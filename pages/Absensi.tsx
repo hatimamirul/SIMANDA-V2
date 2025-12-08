@@ -218,18 +218,18 @@ export const AbsensiPage: React.FC = () => {
   const printFilename = `Laporan_Absensi_${currentPeriode?.nama.replace(/\s+/g, '_') || 'SPPG'}`;
 
   return (
-    <div className="space-y-6 pb-8 print:pb-0 print:space-y-0">
+    <div className="space-y-4 sm:space-y-6 pb-20 sm:pb-8 print:pb-0 print:space-y-0">
       
       {/* Header / Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200 no-print">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-gray-200 no-print">
         <div>
-           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <CalendarDays className="text-primary" /> Absensi Karyawan
+           <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+            <CalendarDays className="text-primary shrink-0" /> <span className="truncate">Absensi Karyawan</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-            {isKoordinator ? `Divisi: ${currentUser?.jabatanDivisi}` : 'Kelola kehadiran 14 hari kerja per periode'}
-            <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
-                <CloudLightning size={10} /> Realtime Auto-Save
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-2">
+            {isKoordinator ? `Divisi: ${currentUser?.jabatanDivisi}` : 'Kelola kehadiran 14 hari'}
+            <span className="text-green-600 bg-green-50 px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium flex items-center gap-1">
+                <CloudLightning size={10} /> Auto-Save
             </span>
           </p>
         </div>
@@ -238,7 +238,7 @@ export const AbsensiPage: React.FC = () => {
           <div className="relative flex items-center gap-2 w-full sm:w-auto">
             <div className="relative w-full sm:w-auto">
               <select 
-                className="pl-4 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-blue-50/50 border-blue-100 font-medium text-blue-900 w-full sm:w-64 appearance-none cursor-pointer hover:bg-blue-50 transition-colors"
+                className="pl-3 sm:pl-4 pr-10 py-2 sm:py-2.5 border rounded-lg focus:ring-2 focus:ring-primary outline-none bg-blue-50/50 border-blue-100 font-medium text-blue-900 w-full sm:w-64 appearance-none cursor-pointer hover:bg-blue-50 transition-colors text-sm"
                 value={selectedPeriode}
                 onChange={(e) => setSelectedPeriode(e.target.value)}
               >
@@ -254,7 +254,7 @@ export const AbsensiPage: React.FC = () => {
               <Button 
                 variant="secondary" 
                 onClick={handleOpenEdit} 
-                className="px-3 py-2.5 shrink-0"
+                className="px-3 py-2 sm:py-2.5 shrink-0"
                 title="Edit Periode Ini"
               >
                 <Pencil size={18} />
@@ -267,14 +267,14 @@ export const AbsensiPage: React.FC = () => {
               variant="secondary" 
               onClick={handlePrintClick} 
               icon={<Printer size={18} />} 
-              className="shadow-sm w-full sm:w-auto whitespace-nowrap"
+              className="shadow-sm w-full sm:w-auto whitespace-nowrap justify-center"
             >
-              Cetak Laporan
+              Cetak
             </Button>
           )}
 
           {canManagePeriode && (
-            <Button onClick={handleOpenAdd} icon={<Plus size={18} />} className="shadow-sm w-full sm:w-auto">Periode Baru</Button>
+            <Button onClick={handleOpenAdd} icon={<Plus size={18} />} className="shadow-sm w-full sm:w-auto justify-center">Periode Baru</Button>
           )}
         </div>
       </div>
@@ -293,52 +293,66 @@ export const AbsensiPage: React.FC = () => {
 
       {/* Main Table View */}
       {!loading && selectedPeriode && sortedDivisions.map(divisi => (
-        <Card key={divisi} className="p-0 overflow-hidden mb-8 shadow-md border-0 ring-1 ring-gray-100 no-print">
-          <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 z-20">
-            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-              <span className="w-1 h-6 bg-primary rounded-full"></span>
-              {divisi}
-            </h3>
-            <span className="text-xs font-semibold px-3 py-1 bg-gray-100 rounded-full text-gray-500 whitespace-nowrap">
-              {groupedData[divisi].length} Karyawan
-            </span>
+        <Card key={divisi} className="mb-6 sm:mb-8 border border-gray-200 shadow-sm overflow-hidden no-print"> 
+          {/* Header Divisi */}
+          <div className="bg-gray-50 px-4 sm:px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+             <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate mr-2">{divisi}</h3>
+             <span className="text-[10px] sm:text-xs font-medium bg-white border border-gray-200 px-2 sm:px-3 py-1 rounded-full text-gray-600 shadow-sm shrink-0">
+               {groupedData[divisi].length} Org
+             </span>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+
+          <div className="overflow-x-auto relative">
+            <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 text-gray-600 border-b border-gray-200">
-                  <th className="p-4 w-16 text-center text-xs font-semibold uppercase tracking-wider sticky left-0 bg-gray-50 z-10 shadow-r">No</th>
-                  <th className="p-4 text-xs font-semibold uppercase tracking-wider min-w-[200px] sticky left-16 bg-gray-50 z-10">Nama Karyawan</th>
+                <tr className="bg-gray-100/50 text-gray-700 border-b border-gray-200">
+                  {/* Sticky No - HIDDEN ON MOBILE */}
+                  <th className="hidden sm:table-cell p-3 w-12 text-center font-semibold sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">No</th>
+                  
+                  {/* Sticky Nama - Left 0 on Mobile, Left 12 on Desktop */}
+                  <th className="p-2 sm:p-3 min-w-[140px] sm:min-w-[220px] font-semibold sticky left-0 sm:left-12 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                    Nama Karyawan
+                  </th>
+                  
+                  {/* Dates */}
                   {calendarDates.map((date, index) => (
-                    <th key={index} className="p-2 text-center border-l border-gray-100 min-w-[40px]">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase font-bold text-gray-400">{getDayName(date)}</span>
-                        <span className="text-xs font-bold text-gray-700">{formatDate(date)}</span>
+                    <th key={index} className={`p-1 sm:p-2 min-w-[38px] sm:min-w-[42px] text-center border-r border-gray-200 last:border-r-0 ${isDateToday(date) ? 'bg-blue-50/50' : ''}`}>
+                      <div className={`flex flex-col items-center justify-center py-1 rounded ${isDateToday(date) ? 'bg-blue-100 text-blue-700' : ''}`}>
+                        <span className="text-[9px] sm:text-[10px] uppercase text-gray-500 font-bold">{getDayName(date)}</span>
+                        <span className={`text-[10px] sm:text-xs font-bold ${isDateToday(date) ? 'text-blue-800' : 'text-gray-800'}`}>{formatDate(date)}</span>
                       </div>
                     </th>
                   ))}
-                  <th className="p-4 text-center text-xs font-semibold uppercase tracking-wider border-l border-gray-200 min-w-[80px]">Total</th>
+                  
+                  {/* Total */}
+                  <th className="p-2 sm:p-3 w-12 sm:w-16 text-center font-semibold bg-gray-50 sticky right-0 z-20 border-l border-gray-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-200 bg-white">
                 {groupedData[divisi].map((record, idx) => (
                   <tr key={record.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="p-4 text-center text-gray-500 text-sm font-medium sticky left-0 bg-white group-hover:bg-blue-50/30 z-10 shadow-r">{idx + 1}</td>
-                    <td className="p-4 font-medium text-gray-700 whitespace-nowrap sticky left-16 bg-white group-hover:bg-blue-50/30 z-10 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-bold shrink-0">
-                        {record.namaKaryawan.charAt(0)}
-                      </div>
-                      {record.namaKaryawan}
+                    {/* No - HIDDEN ON MOBILE */}
+                    <td className="hidden sm:table-cell p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] font-medium text-xs">
+                        {idx + 1}
                     </td>
+                    
+                    {/* Nama - Sticky Left 0 on Mobile */}
+                    <td className="p-2 sm:p-3 font-medium text-gray-700 sticky left-0 sm:left-12 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap text-xs sm:text-sm">
+                      <div className="truncate max-w-[130px] sm:max-w-none">
+                        {record.namaKaryawan}
+                      </div>
+                    </td>
+
+                    {/* Checkboxes */}
                     {calendarDates.map((date, dIdx) => {
-                       const dayIndex = dIdx + 1;
-                       const isChecked = record.hari[dayIndex] || false;
-                       const isSaving = savingId === record.id;
-                       
-                       return (
-                        <td key={dIdx} className="p-2 text-center border-l border-gray-100">
-                          <label className={`relative inline-flex items-center justify-center w-full h-full cursor-pointer ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
+                      const dayIndex = dIdx + 1;
+                      const isChecked = record.hari[dayIndex] || false;
+                      const isToday = isDateToday(date);
+                      const isSaving = savingId === record.id;
+                      
+                      return (
+                        <td key={dIdx} className={`p-0 sm:p-1 text-center border-r border-gray-200 last:border-r-0 align-middle ${isToday ? 'bg-blue-50/20' : ''}`}>
+                           <label className={`relative inline-flex items-center justify-center w-full h-[36px] sm:h-full cursor-pointer group-hover/cell:bg-black/5 rounded transition-colors ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
                             <input 
                               type="checkbox" 
                               checked={isChecked}
@@ -346,17 +360,20 @@ export const AbsensiPage: React.FC = () => {
                               onChange={(e) => handleAttendanceChange(record.id, dayIndex, e.target.checked)}
                               className="peer sr-only"
                             />
-                            <div className="w-6 h-6 border-2 border-gray-300 rounded-md transition-all duration-200 
+                            {/* Custom Checkbox Design */}
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 border-[1.5px] border-gray-300 rounded transition-all duration-200 
                               peer-checked:bg-primary peer-checked:border-primary peer-checked:scale-110
-                              hover:border-primary/50 flex items-center justify-center text-white
+                              hover:border-primary flex items-center justify-center text-white shadow-sm
                             ">
-                              <Check size={14} className="opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
+                              <Check size={12} className="opacity-0 peer-checked:opacity-100 transition-opacity sm:w-3.5 sm:h-3.5" strokeWidth={3.5} />
                             </div>
                           </label>
                         </td>
-                      );
+                      )
                     })}
-                    <td className="p-4 text-center border-l border-gray-200 font-bold text-primary bg-gray-50/30">
+                    
+                    {/* Total */}
+                    <td className="p-2 sm:p-3 text-center font-bold text-primary bg-white group-hover:bg-blue-50/30 sticky right-0 border-l border-gray-200 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-xs sm:text-sm">
                       {record.totalHadir}
                     </td>
                   </tr>
