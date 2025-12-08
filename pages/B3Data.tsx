@@ -1,0 +1,299 @@
+
+import React, { useEffect, useState } from 'react';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { api } from '../services/mockService';
+import { PMB3, User, Role } from '../types';
+import { FileText, Download, Eye } from 'lucide-react';
+
+// Declare XLSX from global scope
+const XLSX = (window as any).XLSX;
+
+export const B3Page: React.FC = () => {
+  const [data, setData] = useState<PMB3[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<PMB3 | null>(null);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<PMB3>>({});
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  const { showToast } = useToast();
+
+  // List of Desa sorted alphabetically
+  const desaOptionsRaw = [
+    "Tales", "Branggahan", "Slumbung", "Seketi", "Ngadiluwih", 
+    "Banggle", "Purwokerto", "Badal Pandean", "Badal", "Wonorejo", 
+    "Dawung", "Rembang", "Rembang Kepuh", "Banjarejo", "Mangunrejo", "Dukuh"
+  ].sort();
+
+  const desaOptions = desaOptionsRaw.map(d => ({ value: d, label: d }));
+
+  // Get current user to check role
+  const currentUser: User | null = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('simanda_user') || '{}');
+    } catch { return null; }
+  })();
+  const role = currentUser?.jabatan as Role;
+  
+  const canAdd = role !== 'KOORDINATORDIVISI';
+  const hideActions = role === 'PETUGAS';
+
+  // Realtime Subscription
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = api.subscribeB3s((items) => {
+      if (search) {
+        const lower = search.toLowerCase();
+        setData(items.filter(i => i.nama.toLowerCase().includes(lower) || i.desa.toLowerCase().includes(lower)));
+      } else {
+        setData(items);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [search]);
+
+  const handleSubmit = async () => {
+    // Validation
+    if (
+      !formData.nama || 
+      !formData.jenis || 
+      !formData.desa || 
+      !formData.rt || 
+      !formData.rw || 
+      !formData.kecamatan || 
+      !formData.hp
+    ) {
+      showToast("Gagal menyimpan! Harap isi semua kolom yang tersedia (kecuali upload scan) dan revisi kembali.", "error");
+      return;
+    }
+
+    setLoading(true);
+    await api.saveB3(formData as PMB3);
+    setLoading(false);
+    setIsModalOpen(false);
+    showToast(`Data PM B3 ${formData.nama} berhasil disimpan!`, "success");
+    // loadData handled by subscription
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+    setLoading(true);
+    try {
+      await api.deleteB3(deleteItem.id);
+      showToast("Data PM B3 berhasil dihapus!", "success");
+      setDeleteItem(null);
+    } catch (e) {
+      showToast('Gagal menghapus data.', "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openAdd = () => {
+    setFormData({ 
+      nama: '', 
+      jenis: 'BALITA', 
+      rt: '', 
+      rw: '', 
+      desa: desaOptionsRaw[0], 
+      kecamatan: 'Ngadiluwih', 
+      hp: '', 
+      buktiScan: '' 
+    });
+    setIsModalOpen(true);
+  };
+
+  const handlePreview = (src: string) => {
+    setPreviewSrc(src);
+    setIsPreviewOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, buktiScan: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleExport = () => {
+    const dataToExport = data.map(item => ({
+      'Nama PM': item.nama,
+      'Jenis': item.jenis,
+      'Desa': item.desa,
+      'RT': item.rt,
+      'RW': item.rw,
+      'Kecamatan': item.kecamatan,
+      'No HP': item.hp
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PM B3");
+    XLSX.writeFile(wb, "Data_PM_B3.xlsx");
+  };
+
+  const getJenisColor = (jenis: string) => {
+    switch (jenis) {
+      case 'BALITA': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'IBU HAMIL': return 'bg-pink-100 text-pink-800 border-pink-200';
+      case 'IBU MENYUSUI': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div>
+      <Toolbar 
+        title="Data PM B3" 
+        onSearch={setSearch} 
+        onAdd={canAdd ? openAdd : undefined} 
+        onExport={handleExport}
+        searchPlaceholder="Cari Nama atau Desa..."
+      />
+      <Card>
+        <Table<PMB3> 
+          isLoading={loading}
+          data={data}
+          hideActions={hideActions}
+          columns={[
+            { header: 'Nama', accessor: 'nama' },
+            { 
+              header: 'Jenis', 
+              accessor: (i) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getJenisColor(i.jenis)}`}>
+                  {i.jenis}
+                </span>
+              ) 
+            },
+            { header: 'Desa', accessor: 'desa' },
+            { header: 'RT/RW', accessor: (i) => `RT ${i.rt} / RW ${i.rw}` },
+            { header: 'Kecamatan', accessor: 'kecamatan' },
+            { header: 'No HP', accessor: 'hp' },
+            { 
+              header: 'BUKTI SCAN PENDATAAN', 
+              accessor: (i) => i.buktiScan ? (
+                <button 
+                  type="button"
+                  onClick={() => handlePreview(i.buktiScan!)}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <Eye size={12} /> Lihat
+                </button>
+              ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
+            },
+          ]}
+          onEdit={(i) => { setFormData(i); setIsModalOpen(true); }}
+          onDelete={setDeleteItem}
+        />
+      </Card>
+
+      {/* Confirmation Modal logic needs conditional rendering based on hideActions or check inside */}
+      {!hideActions && (
+        <ConfirmationModal 
+          isOpen={!!deleteItem}
+          onClose={() => setDeleteItem(null)}
+          onConfirm={handleDelete}
+          title="Hapus Data B3"
+          message={`Apakah anda yakin ingin menghapus data B3 atas nama ${deleteItem?.nama}?`}
+          isLoading={loading}
+        />
+      )}
+
+      <PreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} src={previewSrc} title="Preview Bukti Scan" />
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={formData.id ? "Edit PM B3" : "Tambah PM B3"}>
+        <div className="space-y-4">
+          <div>
+            <Input label="Nama PM" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+            {!formData.id && <FormHelperText />}
+          </div>
+          <div>
+            <Select label="Jenis" value={formData.jenis} onChange={e => setFormData({...formData, jenis: e.target.value as any})} 
+              options={['BALITA', 'IBU HAMIL', 'IBU MENYUSUI'].map(v => ({value: v, label: v}))} 
+            />
+            {!formData.id && <FormHelperText />}
+          </div>
+          
+          <div>
+            <Select 
+              label="Desa" 
+              value={formData.desa} 
+              onChange={e => setFormData({...formData, desa: e.target.value})} 
+              options={desaOptions}
+            />
+            {!formData.id && <FormHelperText />}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Input label="RT" value={formData.rt} onChange={e => setFormData({...formData, rt: e.target.value})} />
+              {!formData.id && <FormHelperText />}
+            </div>
+            <div>
+              <Input label="RW" value={formData.rw} onChange={e => setFormData({...formData, rw: e.target.value})} />
+              {!formData.id && <FormHelperText />}
+            </div>
+          </div>
+          
+          <div>
+            <Select 
+              label="Kecamatan" 
+              value={formData.kecamatan} 
+              onChange={e => setFormData({...formData, kecamatan: e.target.value})} 
+              options={[{ value: 'Ngadiluwih', label: 'Ngadiluwih' }]}
+            />
+            {!formData.id && <FormHelperText />}
+          </div>
+          
+          <div>
+            <Input label="No HP" value={formData.hp} onChange={e => setFormData({...formData, hp: e.target.value})} />
+            {!formData.id && <FormHelperText />}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Bukti Scan</label>
+            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="space-y-1 text-center">
+                {formData.buktiScan ? (
+                  <div className="flex flex-col items-center">
+                    <FileText className="mx-auto h-12 w-12 text-green-500" />
+                    <p className="text-sm text-green-600 font-medium">File dipilih</p>
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({...formData, buktiScan: ''})}
+                      className="text-xs text-red-500 hover:text-red-700 mt-1"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Download className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="flex text-sm text-gray-600 justify-center">
+                      <label htmlFor="file-upload-b3" className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-blue-500 focus-within:outline-none">
+                        <span>Upload a file</span>
+                        <input id="file-upload-b3" name="file-upload-b3" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,.pdf" />
+                      </label>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Batal</Button>
+            <Button onClick={handleSubmit} isLoading={loading}>Simpan</Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
