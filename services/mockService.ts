@@ -8,12 +8,12 @@ import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, 
 // ==========================================
 const firebaseConfig = {
   // --- GANTI DENGAN CONFIG FIREBASE ASLI ANDA ---
-  apiKey: "AIzaSyD-GANTI-KEY-INI", 
-  authDomain: "simanda-app.firebaseapp.com",
-  projectId: "simanda-app",
-  storageBucket: "simanda-app.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyDSEqsEyNK_PTecikuQ7VbD8MCvW_l1C_g", 
+  authDomain: "simanda-project.firebaseapp.com",
+  projectId: "simanda-project",
+  storageBucket: "simanda-project.firebasestorage.app",
+  messagingSenderId: "1061662287994",
+  appId: "1:1061662287994:web:de4e734af8b144c23b73c3"
   // -----------------------------------------
 };
 
