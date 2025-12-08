@@ -1,15 +1,35 @@
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail } from '../types';
 
-// REMOVED FIREBASE IMPORTS DUE TO ENVIRONMENT ISSUES
-// The app will run in offline/local storage mode.
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail } from '../types';
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
 // ==========================================
 // CONFIGURATION FOR HOSTING / REALTIME
 // ==========================================
-// Firebase configuration removed.
-// ==========================================
+const firebaseConfig = {
+  // --- GANTI DENGAN CONFIG FIREBASE ASLI ANDA ---
+  apiKey: "AIzaSyD-GANTI-KEY-INI", 
+  authDomain: "simanda-app.firebaseapp.com",
+  projectId: "simanda-app",
+  storageBucket: "simanda-app.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+  // -----------------------------------------
+};
 
-const USE_FIREBASE = false; 
+// Toggle this to TRUE to enable Cloud Sync
+const USE_FIREBASE = true; 
+
+// Initialize Firebase (Conditional)
+let db: any;
+if (USE_FIREBASE) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  } catch (e) {
+    console.error("Firebase init error (check config):", e);
+  }
+}
 
 // ==========================================
 // MOCK DATA & LOCAL STORAGE HELPERS
@@ -92,20 +112,40 @@ const createSubscriber = <T>(
   callback: (data: T[]) => void,
   customQuery?: any
 ) => {
-    // LOCAL STORAGE POLLING / EVENT LISTENER
-    const notify = () => {
-      const data = localDb.get<T[]>(localKey, initialData);
-      callback(data);
-    };
-    
-    // Initial call
-    notify();
+  if (USE_FIREBASE && db) {
+    // FIREBASE MODE
+    try {
+      const q = customQuery || collection(db, collectionName);
+      const unsubscribe = onSnapshot(q, (snapshot: any) => {
+        const items = snapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id }));
+        // Also update local storage for offline backup
+        localDb.set(localKey, items); 
+        callback(items);
+      }, (error: any) => {
+        console.error(`Firebase error on ${collectionName}:`, error);
+        // Fallback to local if Firebase fails
+        callback(localDb.get(localKey, initialData));
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.warn("Firebase connection failed, falling back to local.");
+    }
+  } 
+  
+  // LOCAL STORAGE POLLING / EVENT LISTENER
+  const notify = () => {
+    const data = localDb.get<T[]>(localKey, initialData);
+    callback(data);
+  };
+  
+  // Initial call
+  notify();
 
-    // Listen to changes from this tab or others
-    const msgHandler = (e: MessageEvent) => { if (e.data.key === localKey) notify(); };
-    channel.addEventListener('message', msgHandler);
-    
-    return () => channel.removeEventListener('message', msgHandler);
+  // Listen to changes from this tab or others
+  const msgHandler = (e: MessageEvent) => { if (e.data.key === localKey) notify(); };
+  channel.addEventListener('message', msgHandler);
+  
+  return () => channel.removeEventListener('message', msgHandler);
 };
 
 const saveData = async (collectionName: string, localKey: string, item: any, isDelete = false) => {
@@ -124,13 +164,36 @@ const saveData = async (collectionName: string, localKey: string, item: any, isD
     }
   }
   localDb.set(localKey, data);
+
+  // IF FIREBASE ENABLED, SYNC TO CLOUD
+  if (USE_FIREBASE && db) {
+    try {
+      if (isDelete) {
+        await deleteDoc(doc(db, collectionName, item.id));
+      } else {
+        await setDoc(doc(db, collectionName, item.id), item, { merge: true });
+      }
+    } catch (e) {
+      console.error("Firebase save error:", e);
+      throw e;
+    }
+  }
 };
 
 export const api = {
   // === AUTH & USER SYNC ===
   login: async (u: string, p: string) => {
     let users: User[] = [];
-    users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
+    if (USE_FIREBASE && db) {
+      try {
+        const snapshot = await getDocs(collection(db, 'users'));
+        users = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as User));
+      } catch (e) {
+        users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
+      }
+    } else {
+      users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
+    }
 
     const user = users.find(user => user.username === u && user.password === p);
     if (user) {
@@ -145,6 +208,12 @@ export const api = {
 
   // Monitor Single User (For Auto-Logout/Profile Sync)
   subscribeUser: (userId: string, callback: (user: User | null) => void) => {
+    if (USE_FIREBASE && db) {
+      return onSnapshot(doc(db, 'users', userId), (doc) => {
+        if (doc.exists()) callback({ ...doc.data(), id: doc.id } as User);
+        else callback(null);
+      });
+    } else {
       // Polling for local storage changes
       const check = () => {
         const users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
@@ -155,6 +224,7 @@ export const api = {
       const msgHandler = (e: MessageEvent) => { if (e.data.key === KEYS.USERS) check(); };
       channel.addEventListener('message', msgHandler);
       return () => channel.removeEventListener('message', msgHandler);
+    }
   },
 
   // === DASHBOARD STATS (REALTIME) ===
@@ -228,6 +298,11 @@ export const api = {
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
 
   getAbsensiByPeriode: async (periodeId: string) => { 
+    if (USE_FIREBASE && db) {
+      const q = query(collection(db, 'absensi'), where('periodeId', '==', periodeId));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => ({...d.data(), id: d.id} as AbsensiRecord));
+    }
     return localDb.get<AbsensiRecord[]>(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
   },
 
@@ -274,7 +349,12 @@ export const api = {
        cb(records);
     };
 
-    const unsubA = createSubscriber('absensi', KEYS.ABSENSI, [], (data) => { allAbsensi = data; processData(); }, undefined);
+    // If Firebase, use query to be efficient
+    const absensiQuery = (USE_FIREBASE && db) 
+        ? query(collection(db, 'absensi'), where('periodeId', '==', periodeId)) 
+        : undefined;
+
+    const unsubA = createSubscriber('absensi', KEYS.ABSENSI, [], (data) => { allAbsensi = data; processData(); }, absensiQuery);
     const unsubK = createSubscriber('karyawan', KEYS.KARYAWAN, INITIAL_KARYAWAN, (data) => { allKaryawan = data; processData(); });
 
     return () => { unsubA(); unsubK(); };
@@ -296,8 +376,17 @@ export const api = {
     let allAbsensi: AbsensiRecord[] = [];
     let allKaryawan: Karyawan[] = [];
     
-    allAbsensi = localDb.get(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
-    allKaryawan = localDb.get(KEYS.KARYAWAN, INITIAL_KARYAWAN);
+    if (USE_FIREBASE && db) {
+       const q = query(collection(db, 'absensi'), where('periodeId', '==', periodeId));
+       const snapshot = await getDocs(q);
+       allAbsensi = snapshot.docs.map(d => ({...d.data(), id: d.id} as AbsensiRecord));
+       
+       const kSnapshot = await getDocs(collection(db, 'karyawan'));
+       allKaryawan = kSnapshot.docs.map(d => ({...d.data(), id: d.id} as Karyawan));
+    } else {
+       allAbsensi = localDb.get(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
+       allKaryawan = localDb.get(KEYS.KARYAWAN, INITIAL_KARYAWAN);
+    }
     
     return allAbsensi.map(abs => {
       const karyawan = allKaryawan.find(k => k.id === abs.karyawanId);
