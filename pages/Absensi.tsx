@@ -291,59 +291,44 @@ export const AbsensiPage: React.FC = () => {
         </Card>
       )}
 
-      {/* Main Table View */}
+      {/* Main Content Area */}
       {!loading && selectedPeriode && sortedDivisions.map(divisi => (
         <Card key={divisi} className="mb-6 sm:mb-8 border border-gray-200 shadow-sm overflow-hidden no-print"> 
           {/* Header Divisi */}
-          <div className="bg-gray-50 px-4 sm:px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+          <div className="bg-gray-50 px-4 sm:px-5 py-3 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
              <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate mr-2">{divisi}</h3>
              <span className="text-[10px] sm:text-xs font-medium bg-white border border-gray-200 px-2 sm:px-3 py-1 rounded-full text-gray-600 shadow-sm shrink-0">
                {groupedData[divisi].length} Org
              </span>
           </div>
 
-          <div className="overflow-x-auto relative">
+          {/* === DESKTOP VIEW (Table) === */}
+          <div className="hidden md:block overflow-x-auto relative">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-gray-100/50 text-gray-700 border-b border-gray-200">
-                  {/* Sticky No - HIDDEN ON MOBILE */}
-                  <th className="hidden sm:table-cell p-3 w-12 text-center font-semibold sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">No</th>
-                  
-                  {/* Sticky Nama - Left 0 on Mobile, Left 12 on Desktop */}
-                  <th className="p-2 sm:p-3 min-w-[140px] sm:min-w-[220px] font-semibold sticky left-0 sm:left-12 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                    Nama Karyawan
-                  </th>
-                  
-                  {/* Dates */}
+                  <th className="p-3 w-12 text-center font-semibold sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">No</th>
+                  <th className="p-3 min-w-[220px] font-semibold sticky left-12 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Nama Karyawan</th>
                   {calendarDates.map((date, index) => (
-                    <th key={index} className={`p-1 sm:p-2 min-w-[38px] sm:min-w-[42px] text-center border-r border-gray-200 last:border-r-0 ${isDateToday(date) ? 'bg-blue-50/50' : ''}`}>
+                    <th key={index} className={`p-2 min-w-[42px] text-center border-r border-gray-200 last:border-r-0 ${isDateToday(date) ? 'bg-blue-50/50' : ''}`}>
                       <div className={`flex flex-col items-center justify-center py-1 rounded ${isDateToday(date) ? 'bg-blue-100 text-blue-700' : ''}`}>
-                        <span className="text-[9px] sm:text-[10px] uppercase text-gray-500 font-bold">{getDayName(date)}</span>
-                        <span className={`text-[10px] sm:text-xs font-bold ${isDateToday(date) ? 'text-blue-800' : 'text-gray-800'}`}>{formatDate(date)}</span>
+                        <span className="text-[10px] uppercase text-gray-500 font-bold">{getDayName(date)}</span>
+                        <span className={`text-xs font-bold ${isDateToday(date) ? 'text-blue-800' : 'text-gray-800'}`}>{formatDate(date)}</span>
                       </div>
                     </th>
                   ))}
-                  
-                  {/* Total */}
-                  <th className="p-2 sm:p-3 w-12 sm:w-16 text-center font-semibold bg-gray-50 sticky right-0 z-20 border-l border-gray-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">Total</th>
+                  <th className="p-3 w-16 text-center font-semibold bg-gray-50 sticky right-0 z-20 border-l border-gray-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {groupedData[divisi].map((record, idx) => (
                   <tr key={record.id} className="hover:bg-blue-50/30 transition-colors group">
-                    {/* No - HIDDEN ON MOBILE */}
-                    <td className="hidden sm:table-cell p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] font-medium text-xs">
+                    <td className="p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] font-medium text-xs">
                         {idx + 1}
                     </td>
-                    
-                    {/* Nama - Sticky Left 0 on Mobile */}
-                    <td className="p-2 sm:p-3 font-medium text-gray-700 sticky left-0 sm:left-12 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap text-xs sm:text-sm">
-                      <div className="truncate max-w-[130px] sm:max-w-none">
-                        {record.namaKaryawan}
-                      </div>
+                    <td className="p-3 font-medium text-gray-700 sticky left-12 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap text-sm">
+                      {record.namaKaryawan}
                     </td>
-
-                    {/* Checkboxes */}
                     {calendarDates.map((date, dIdx) => {
                       const dayIndex = dIdx + 1;
                       const isChecked = record.hari[dayIndex] || false;
@@ -351,8 +336,8 @@ export const AbsensiPage: React.FC = () => {
                       const isSaving = savingId === record.id;
                       
                       return (
-                        <td key={dIdx} className={`p-0 sm:p-1 text-center border-r border-gray-200 last:border-r-0 align-middle ${isToday ? 'bg-blue-50/20' : ''}`}>
-                           <label className={`relative inline-flex items-center justify-center w-full h-[36px] sm:h-full cursor-pointer group-hover/cell:bg-black/5 rounded transition-colors ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
+                        <td key={dIdx} className={`p-1 text-center border-r border-gray-200 last:border-r-0 align-middle ${isToday ? 'bg-blue-50/20' : ''}`}>
+                           <label className={`relative inline-flex items-center justify-center w-full h-full cursor-pointer group-hover/cell:bg-black/5 rounded transition-colors ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
                             <input 
                               type="checkbox" 
                               checked={isChecked}
@@ -360,20 +345,17 @@ export const AbsensiPage: React.FC = () => {
                               onChange={(e) => handleAttendanceChange(record.id, dayIndex, e.target.checked)}
                               className="peer sr-only"
                             />
-                            {/* Custom Checkbox Design */}
-                            <div className="w-4 h-4 sm:w-5 sm:h-5 border-[1.5px] border-gray-300 rounded transition-all duration-200 
+                            <div className="w-5 h-5 border-[1.5px] border-gray-300 rounded transition-all duration-200 
                               peer-checked:bg-primary peer-checked:border-primary peer-checked:scale-110
                               hover:border-primary flex items-center justify-center text-white shadow-sm
                             ">
-                              <Check size={12} className="opacity-0 peer-checked:opacity-100 transition-opacity sm:w-3.5 sm:h-3.5" strokeWidth={3.5} />
+                              <Check size={12} className="opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3.5} />
                             </div>
                           </label>
                         </td>
                       )
                     })}
-                    
-                    {/* Total */}
-                    <td className="p-2 sm:p-3 text-center font-bold text-primary bg-white group-hover:bg-blue-50/30 sticky right-0 border-l border-gray-200 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-xs sm:text-sm">
+                    <td className="p-3 text-center font-bold text-primary bg-white group-hover:bg-blue-50/30 sticky right-0 border-l border-gray-200 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-sm">
                       {record.totalHadir}
                     </td>
                   </tr>
@@ -381,6 +363,72 @@ export const AbsensiPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* === MOBILE VIEW (Cards Stack) === */}
+          <div className="md:hidden flex flex-col p-3 gap-3 bg-gray-50/30">
+            {groupedData[divisi].map((record, idx) => (
+               <div key={record.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
+                  <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-100">
+                     <div className="flex items-center gap-3">
+                       <span className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
+                         {idx + 1}
+                       </span>
+                       <div>
+                         <h4 className="font-bold text-gray-800 text-sm leading-tight">{record.namaKaryawan}</h4>
+                         <p className="text-[10px] text-gray-400 mt-0.5">NIK: {record.karyawanId ? record.karyawanId.slice(-4) : '---'}</p>
+                       </div>
+                     </div>
+                     <div className="flex flex-col items-end">
+                       <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Total</span>
+                       <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100">
+                         {record.totalHadir} Hadir
+                       </span>
+                     </div>
+                  </div>
+                  
+                  {/* Calendar Grid - Mobile */}
+                  <div className="grid grid-cols-5 gap-2">
+                     {calendarDates.map((date, dIdx) => {
+                        const dayIndex = dIdx + 1;
+                        const isChecked = record.hari[dayIndex] || false;
+                        const isToday = isDateToday(date);
+                        const isSaving = savingId === record.id;
+                        
+                        return (
+                          <div 
+                            key={dIdx} 
+                            className={`flex flex-col items-center justify-center p-1.5 rounded-lg border ${
+                              isToday ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <span className="text-[9px] text-gray-400 uppercase font-bold mb-1">{getDayName(date)}</span>
+                            <span className={`text-[10px] font-bold mb-1.5 ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>
+                              {formatDate(date)}
+                            </span>
+                            
+                            <label className={`relative inline-flex items-center justify-center cursor-pointer ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
+                              <input 
+                                type="checkbox" 
+                                checked={isChecked}
+                                disabled={!canEditAttendance || isSaving}
+                                onChange={(e) => handleAttendanceChange(record.id, dayIndex, e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="w-8 h-8 rounded-lg border border-gray-300 transition-all duration-200 
+                                peer-checked:bg-primary peer-checked:border-primary 
+                                flex items-center justify-center text-white
+                              ">
+                                <Check size={16} className="opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
+                              </div>
+                            </label>
+                          </div>
+                        )
+                     })}
+                  </div>
+               </div>
+            ))}
+          </div>
+
         </Card>
       ))}
 
