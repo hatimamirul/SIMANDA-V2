@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Toolbar, Button, LoadingSpinner, SlipGajiModal } from '../components/UIComponents';
+import { Card, Table, Button, LoadingSpinner, SlipGajiModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, HonorariumRow } from '../types';
 import { Calendar, Wallet, FileDown, CalendarDays, Printer } from 'lucide-react';
@@ -19,30 +19,33 @@ export const HonorKaryawanPage: React.FC = () => {
   const [selectedSlipData, setSelectedSlipData] = useState<any>(null);
   const [defaultFilename, setDefaultFilename] = useState("");
 
-  const loadPeriodes = async () => {
-    const data = await api.getPeriode();
-    setPeriodes(data);
-    if (data.length > 0 && !selectedPeriode) {
-      setSelectedPeriode(data[data.length - 1].id);
-    }
-  };
+  // Realtime Subscription to Periodes
+  useEffect(() => {
+    const unsubscribe = api.subscribePeriode((data) => {
+      setPeriodes(data);
+      // Auto-select latest period if none selected
+      if (data.length > 0 && !selectedPeriode) {
+        setSelectedPeriode(data[data.length - 1].id);
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedPeriode]);
 
-  const loadHonorData = async (periodeId: string) => {
-    if (!periodeId) return;
+  // Realtime Subscription to Honorarium Data
+  useEffect(() => {
+    if (!selectedPeriode) {
+        setHonorData([]);
+        return;
+    }
     setLoading(true);
-    const data = await api.getHonorariumKaryawan(periodeId);
-    setHonorData(data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadPeriodes();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPeriode) {
-      loadHonorData(selectedPeriode);
-    }
+    
+    // Using the new realtime join subscriber
+    const unsubscribe = api.subscribeHonorariumKaryawan(selectedPeriode, (data) => {
+        setHonorData(data);
+        setLoading(false);
+    });
+    
+    return () => unsubscribe();
   }, [selectedPeriode]);
 
   const formatCurrency = (val: number) => {
@@ -130,7 +133,7 @@ export const HonorKaryawanPage: React.FC = () => {
            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <Wallet className="text-primary" /> Honorarium Karyawan
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Perhitungan otomatis gaji berdasarkan absensi</p>
+          <p className="text-sm text-gray-500 mt-1">Perhitungan otomatis gaji berdasarkan absensi (Realtime)</p>
         </div>
         
         <div className="flex gap-2 w-full md:w-auto items-center relative">
@@ -152,7 +155,7 @@ export const HonorKaryawanPage: React.FC = () => {
         <Card className="p-12 text-center text-gray-500 border-2 border-dashed border-gray-200">
           <p className="text-lg font-medium">Silahkan pilih periode absensi terlebih dahulu</p>
         </Card>
-      ) : loading ? (
+      ) : loading && honorData.length === 0 ? (
         <LoadingSpinner />
       ) : (
         <>
