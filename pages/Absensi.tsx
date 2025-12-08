@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState, useRef } from 'react';
-import { Card, Button, Input, Modal, LoadingSpinner, useToast, Logo, PrintPreviewDialog } from '../components/UIComponents';
+import { Card, Button, Input, Modal, LoadingSpinner, useToast, Logo, PrintPreviewDialog, ConfirmationModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, AbsensiRecord, User, Role, AbsensiDetail } from '../types';
-import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut } from 'lucide-react';
+import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut, Trash2 } from 'lucide-react';
 
 export const AbsensiPage: React.FC = () => {
   // Get current user to check role
@@ -26,9 +25,10 @@ export const AbsensiPage: React.FC = () => {
   const [attendanceData, setAttendanceData] = useState<AbsensiRecord[]>([]);
   const [calendarDates, setCalendarDates] = useState<Date[]>([]);
   
-  // Modal State for New/Edit Period
+  // Modal State for New/Edit/Delete Period
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPeriodeId, setEditingPeriodeId] = useState<string | null>(null);
+  const [deletePeriodeId, setDeletePeriodeId] = useState<string | null>(null); // For deletion
   const [newPeriodeName, setNewPeriodeName] = useState('');
   const [newPeriodeDate, setNewPeriodeDate] = useState('');
 
@@ -111,6 +111,21 @@ export const AbsensiPage: React.FC = () => {
       setNewPeriodeName(p.nama);
       setNewPeriodeDate(p.tanggalMulai);
       setIsModalOpen(true);
+    }
+  };
+
+  const handleDeletePeriode = async () => {
+    if (!deletePeriodeId) return;
+    setLoading(true);
+    try {
+        await api.deletePeriode(deletePeriodeId);
+        showToast("Periode berhasil dihapus", "success");
+        setSelectedPeriode(''); // Reset selection
+        setDeletePeriodeId(null);
+    } catch (e) {
+        showToast("Gagal menghapus periode", "error");
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -362,7 +377,10 @@ export const AbsensiPage: React.FC = () => {
                 ))}
               </select>
               {canManagePeriode && selectedPeriode && (
-                <Button variant="secondary" onClick={handleOpenEdit} className="px-3 py-2 shrink-0"><Pencil size={18} /></Button>
+                <>
+                    <Button variant="secondary" onClick={handleOpenEdit} className="px-3 py-2 shrink-0" title="Edit Periode"><Pencil size={18} /></Button>
+                    <Button variant="danger" onClick={() => setDeletePeriodeId(selectedPeriode)} className="px-3 py-2 shrink-0" title="Hapus Periode"><Trash2 size={18} /></Button>
+                </>
               )}
           </div>
           
@@ -651,6 +669,16 @@ export const AbsensiPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      <ConfirmationModal 
+        isOpen={!!deletePeriodeId}
+        onClose={() => setDeletePeriodeId(null)}
+        onConfirm={handleDeletePeriode}
+        title="Hapus Periode"
+        message="Apakah anda yakin ingin menghapus periode ini? Data absensi terkait mungkin masih tersimpan di database namun tidak akan muncul lagi."
+        isLoading={loading}
+      />
 
       {/* --- PRINT PREVIEW --- */}
       <PrintPreviewDialog 
