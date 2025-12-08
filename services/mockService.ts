@@ -1,47 +1,15 @@
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail } from '../types';
 
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow } from '../types';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from 'firebase/firestore';
+// REMOVED FIREBASE IMPORTS DUE TO ENVIRONMENT ISSUES
+// The app will run in offline/local storage mode.
 
 // ==========================================
 // CONFIGURATION FOR HOSTING / REALTIME
 // ==========================================
-// 1. Buka console.firebase.google.com, buat project baru (Gratis).
-// 2. Buat database Firestore (Start in Test Mode).
-// 3. Masuk ke Project Settings > General > Your Apps > Web App.
-// 4. Copy config di bawah ini.
+// Firebase configuration removed.
 // ==========================================
 
-const firebaseConfig = {
-  // --- GANTI DENGAN CONFIG FIREBASE ANDA ---
-  apiKey: "AIzaSyDSEqsEyNK_PTecikuQ7VbD8MCvW_l1C_g",
-  authDomain: "simanda-project.firebaseapp.com",
-  projectId: "simanda-project",
-  storageBucket: "simanda-project.firebasestorage.app",
-  messagingSenderId: "1061662287994",
-  appId: "1061662287994:web:de4e734af8b144c23b73c3"
-  // -----------------------------------------
-};
-
-// AKTIFKAN MODE REALTIME (FIREBASE)
-export const USE_FIREBASE = true; 
-
-// Initialize Firebase only if enabled
-let dbFirestore: any;
-if (USE_FIREBASE) {
-  try {
-    // Check if config is still placeholder
-    if (firebaseConfig.apiKey.includes("GANTI")) {
-        console.warn("⚠️ PERHATIAN: Config Firebase belum diisi di services/mockService.ts. Aplikasi berjalan dalam mode Hybrid/Offline.");
-    } else {
-        const app = initializeApp(firebaseConfig);
-        dbFirestore = getFirestore(app);
-        console.log("✅ Firebase Initialized - Realtime Mode Active");
-    }
-  } catch (e) {
-    console.error("Firebase Init Failed (Check Config):", e);
-  }
-}
+const USE_FIREBASE = false; 
 
 // ==========================================
 // MOCK DATA & LOCAL STORAGE HELPERS
@@ -124,20 +92,6 @@ const createSubscriber = <T>(
   callback: (data: T[]) => void,
   customQuery?: any
 ) => {
-  if (USE_FIREBASE && dbFirestore) {
-    // FIREBASE REALTIME LISTENER
-    const q = customQuery ? customQuery : query(collection(dbFirestore, collectionName));
-    return onSnapshot(q, (snapshot: any) => {
-      const items: T[] = [];
-      snapshot.forEach((doc: any) => items.push({ ...doc.data(), id: doc.id } as T));
-      callback(items);
-    }, (error: any) => {
-        console.error(`Firebase Error (${collectionName}):`, error);
-        // Fallback to local if Firebase fails
-        const data = localDb.get<T[]>(localKey, initialData);
-        callback(data);
-    });
-  } else {
     // LOCAL STORAGE POLLING / EVENT LISTENER
     const notify = () => {
       const data = localDb.get<T[]>(localKey, initialData);
@@ -152,26 +106,9 @@ const createSubscriber = <T>(
     channel.addEventListener('message', msgHandler);
     
     return () => channel.removeEventListener('message', msgHandler);
-  }
 };
 
 const saveData = async (collectionName: string, localKey: string, item: any, isDelete = false) => {
-  if (USE_FIREBASE && dbFirestore) {
-    try {
-      if (isDelete) {
-        await deleteDoc(doc(dbFirestore, collectionName, item.id));
-      } else {
-        // If new, generate ID if not present
-        if (!item.id) item.id = doc(collection(dbFirestore, collectionName)).id;
-        // Convert undefined fields to null or delete them, Firestore doesn't like undefined
-        const cleanItem = JSON.parse(JSON.stringify(item));
-        await setDoc(doc(dbFirestore, collectionName, item.id), cleanItem, { merge: true });
-      }
-    } catch (err) {
-      console.error(`Firebase Save Error (${collectionName}):`, err);
-    }
-  } 
-  
   // ALWAYS save to local as backup/hybrid
   let data = localDb.get<any[]>(localKey, []);
   if (isDelete) {
@@ -193,24 +130,7 @@ export const api = {
   // === AUTH & USER SYNC ===
   login: async (u: string, p: string) => {
     let users: User[] = [];
-    if (USE_FIREBASE && dbFirestore) {
-      try {
-        const snap = await getDocs(collection(dbFirestore, 'users'));
-        snap.forEach(d => users.push({ ...d.data(), id: d.id } as User));
-        if (users.length === 0) {
-            // Seed initial users if DB is empty
-            for(const user of INITIAL_USERS) {
-                 await setDoc(doc(dbFirestore, 'users', user.id), user);
-            }
-            users = INITIAL_USERS;
-        }
-      } catch (e) {
-        console.warn("Firebase offline/error, falling back to local users", e);
-        users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
-      }
-    } else {
-      users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
-    }
+    users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
 
     const user = users.find(user => user.username === u && user.password === p);
     if (user) {
@@ -225,12 +145,6 @@ export const api = {
 
   // Monitor Single User (For Auto-Logout/Profile Sync)
   subscribeUser: (userId: string, callback: (user: User | null) => void) => {
-    if (USE_FIREBASE && dbFirestore) {
-      return onSnapshot(doc(dbFirestore, 'users', userId), (doc) => {
-        if (doc.exists()) callback({ ...doc.data(), id: doc.id } as User);
-        else callback(null);
-      });
-    } else {
       // Polling for local storage changes
       const check = () => {
         const users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
@@ -241,7 +155,6 @@ export const api = {
       const msgHandler = (e: MessageEvent) => { if (e.data.key === KEYS.USERS) check(); };
       channel.addEventListener('message', msgHandler);
       return () => channel.removeEventListener('message', msgHandler);
-    }
   },
 
   // === DASHBOARD STATS (REALTIME) ===
@@ -320,11 +233,15 @@ export const api = {
 
   // REALTIME ABSENSI (Optimized for performance)
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
-    // Helper to init empty records
+    // Helper to init empty days and details
     const createEmptyDays = () => {
       const days: { [key: number]: boolean } = {};
-      for (let i = 1; i <= 14; i++) days[i] = false;
-      return days;
+      const details: { [key: number]: AbsensiDetail } = {};
+      for (let i = 1; i <= 14; i++) {
+          days[i] = false;
+          details[i] = {};
+      }
+      return { days, details };
     };
 
     let allAbsensi: AbsensiRecord[] = [];
@@ -340,13 +257,15 @@ export const api = {
        const newKaryawan = allKaryawan.filter(k => !existingKaryawanIds.has(k.id));
 
        if (newKaryawan.length > 0) {
+          const { days, details } = createEmptyDays();
           const newRecords = newKaryawan.map(k => ({
             id: `abs-${periodeId}-${k.id}`,
             periodeId: periodeId,
             karyawanId: k.id,
             namaKaryawan: k.nama,
             divisi: k.divisi,
-            hari: createEmptyDays(),
+            hari: days,
+            detailHari: details, // Initialize with empty details object
             totalHadir: 0
           }));
           // Merge virtual new records
@@ -355,12 +274,7 @@ export const api = {
        cb(records);
     };
 
-    // Firebase Optimization: Only subscribe to records for this specific period
-    const absensiQuery = (USE_FIREBASE && dbFirestore) 
-        ? query(collection(dbFirestore, 'absensi'), where('periodeId', '==', periodeId))
-        : undefined;
-
-    const unsubA = createSubscriber('absensi', KEYS.ABSENSI, [], (data) => { allAbsensi = data; processData(); }, absensiQuery);
+    const unsubA = createSubscriber('absensi', KEYS.ABSENSI, [], (data) => { allAbsensi = data; processData(); }, undefined);
     const unsubK = createSubscriber('karyawan', KEYS.KARYAWAN, INITIAL_KARYAWAN, (data) => { allKaryawan = data; processData(); });
 
     return () => { unsubA(); unsubK(); };
@@ -382,18 +296,8 @@ export const api = {
     let allAbsensi: AbsensiRecord[] = [];
     let allKaryawan: Karyawan[] = [];
     
-    if (USE_FIREBASE && dbFirestore) {
-      // Fetch only for this period
-      const q = query(collection(dbFirestore, 'absensi'), where('periodeId', '==', periodeId));
-      const s1 = await getDocs(q);
-      s1.forEach(d => allAbsensi.push(d.data() as AbsensiRecord));
-      
-      const s2 = await getDocs(collection(dbFirestore, 'karyawan'));
-      s2.forEach(d => allKaryawan.push(d.data() as Karyawan));
-    } else {
-      allAbsensi = localDb.get(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
-      allKaryawan = localDb.get(KEYS.KARYAWAN, INITIAL_KARYAWAN);
-    }
+    allAbsensi = localDb.get(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
+    allKaryawan = localDb.get(KEYS.KARYAWAN, INITIAL_KARYAWAN);
     
     return allAbsensi.map(abs => {
       const karyawan = allKaryawan.find(k => k.id === abs.karyawanId);
