@@ -308,54 +308,58 @@ export const AbsensiPage: React.FC = () => {
               <thead>
                 <tr className="bg-gray-100/50 text-gray-700 border-b border-gray-200">
                   <th className="p-3 w-12 text-center font-semibold sticky left-0 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">No</th>
-                  <th className="p-3 min-w-[220px] font-semibold sticky left-12 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Nama Karyawan</th>
-                  {calendarDates.map((date, index) => (
-                    <th key={index} className={`p-2 min-w-[42px] text-center border-r border-gray-200 last:border-r-0 ${isDateToday(date) ? 'bg-blue-50/50' : ''}`}>
-                      <div className={`flex flex-col items-center justify-center py-1 rounded ${isDateToday(date) ? 'bg-blue-100 text-blue-700' : ''}`}>
-                        <span className="text-[10px] uppercase text-gray-500 font-bold">{getDayName(date)}</span>
-                        <span className={`text-xs font-bold ${isDateToday(date) ? 'text-blue-800' : 'text-gray-800'}`}>{formatDate(date)}</span>
-                      </div>
+                  <th className="p-3 min-w-[200px] font-semibold sticky left-12 bg-gray-50 z-30 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">Nama Karyawan</th>
+                  {calendarDates.map((date, i) => (
+                    <th key={i} className={`p-2 min-w-[45px] text-center font-medium border-l border-gray-100 ${isDateToday(date) ? 'bg-blue-100/50 text-blue-700' : ''}`}>
+                      <div className="text-[10px] uppercase text-gray-500 mb-0.5">{getDayName(date)}</div>
+                      <div className="text-xs">{formatDate(date)}</div>
                     </th>
                   ))}
-                  <th className="p-3 w-16 text-center font-semibold bg-gray-50 sticky right-0 z-20 border-l border-gray-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">Total</th>
+                  <th className="p-3 text-center font-semibold sticky right-0 bg-gray-50 z-20 border-l border-gray-200 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
+              <tbody className="divide-y divide-gray-100">
                 {groupedData[divisi].map((record, idx) => (
-                  <tr key={record.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] font-medium text-xs">
+                  <tr key={record.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="p-3 text-center text-gray-500 sticky left-0 bg-white group-hover:bg-gray-50 z-20 border-r border-gray-100 font-mono text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                         {idx + 1}
                     </td>
-                    <td className="p-3 font-medium text-gray-700 sticky left-12 bg-white group-hover:bg-blue-50/30 z-20 border-r border-gray-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap text-sm">
-                      {record.namaKaryawan}
+                    <td className="p-3 font-medium text-gray-800 sticky left-12 bg-white group-hover:bg-gray-50 z-20 border-r border-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] whitespace-nowrap">
+                        {record.namaKaryawan}
                     </td>
-                    {calendarDates.map((date, dIdx) => {
-                      const dayIndex = dIdx + 1;
-                      const isChecked = record.hari[dayIndex] || false;
-                      const isToday = isDateToday(date);
-                      const isSaving = savingId === record.id;
-                      
-                      return (
-                        <td key={dIdx} className={`p-1 text-center border-r border-gray-200 last:border-r-0 align-middle ${isToday ? 'bg-blue-50/20' : ''}`}>
-                           <label className={`relative inline-flex items-center justify-center w-full h-full cursor-pointer group-hover/cell:bg-black/5 rounded transition-colors ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
+                    {calendarDates.map((date, i) => {
+                       const isLocked = isKoordinator && !isDateToday(date);
+                       const dayIdx = i + 1;
+                       return (
+                        <td key={i} className={`p-2 text-center border-l border-gray-50 relative ${isDateToday(date) ? 'bg-blue-50/30' : ''}`}>
+                          <label className={`
+                              relative flex items-center justify-center w-full h-full cursor-pointer
+                              ${!canEditAttendance || isLocked ? 'cursor-not-allowed opacity-50' : ''}
+                            `}>
                             <input 
-                              type="checkbox" 
-                              checked={isChecked}
-                              disabled={!canEditAttendance || isSaving}
-                              onChange={(e) => handleAttendanceChange(record.id, dayIndex, e.target.checked)}
+                              type="checkbox"
                               className="peer sr-only"
+                              checked={!!record.hari[dayIdx]}
+                              disabled={!canEditAttendance || isLocked}
+                              onChange={(e) => handleAttendanceChange(record.id, dayIdx, e.target.checked)}
                             />
-                            <div className="w-5 h-5 border-[1.5px] border-gray-300 rounded transition-all duration-200 
-                              peer-checked:bg-primary peer-checked:border-primary peer-checked:scale-110
-                              hover:border-primary flex items-center justify-center text-white shadow-sm
-                            ">
-                              <Check size={12} className="opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3.5} />
+                            {/* Custom Checkbox Design */}
+                            <div className="w-5 h-5 rounded border-2 border-gray-300 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center text-white peer-hover:border-primary/50">
+                              {record.hari[dayIdx] && <Check size={14} strokeWidth={3} />}
                             </div>
+                            
+                            {/* Saving Indicator */}
+                            {savingId === record.id && (
+                                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                            )}
                           </label>
                         </td>
-                      )
+                      );
                     })}
-                    <td className="p-3 text-center font-bold text-primary bg-white group-hover:bg-blue-50/30 sticky right-0 border-l border-gray-200 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] text-sm">
+                    <td className="p-3 text-center font-bold text-primary sticky right-0 bg-white group-hover:bg-gray-50 z-10 border-l border-gray-100 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                       {record.totalHadir}
                     </td>
                   </tr>
@@ -365,178 +369,185 @@ export const AbsensiPage: React.FC = () => {
           </div>
 
           {/* === MOBILE VIEW (Cards Stack) === */}
-          <div className="md:hidden flex flex-col p-3 gap-3 bg-gray-50/30">
-            {groupedData[divisi].map((record, idx) => (
-               <div key={record.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative">
-                  <div className="flex justify-between items-start mb-4 pb-3 border-b border-gray-100">
-                     <div className="flex items-center gap-3">
-                       <span className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 border border-gray-200">
-                         {idx + 1}
-                       </span>
-                       <div>
-                         <h4 className="font-bold text-gray-800 text-sm leading-tight">{record.namaKaryawan}</h4>
-                         <p className="text-[10px] text-gray-400 mt-0.5">NIK: {record.karyawanId ? record.karyawanId.slice(-4) : '---'}</p>
-                       </div>
+          <div className="md:hidden">
+             <div className="grid grid-cols-1 divide-y divide-gray-100">
+                {groupedData[divisi].map((record, idx) => (
+                  <div key={record.id} className="p-4 bg-white">
+                     {/* Card Header: Name & Total */}
+                     <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-xs">
+                             {idx + 1}
+                           </div>
+                           <div>
+                             <h4 className="font-bold text-gray-800 text-sm">{record.namaKaryawan}</h4>
+                             <p className="text-[10px] text-gray-500">ID: {record.karyawanId.slice(-4)}</p>
+                           </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                           <span className="text-xs text-gray-500">Hadir</span>
+                           <span className="text-lg font-bold text-primary">{record.totalHadir}</span>
+                        </div>
                      </div>
-                     <div className="flex flex-col items-end">
-                       <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider mb-0.5">Total</span>
-                       <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg border border-blue-100">
-                         {record.totalHadir} Hadir
-                       </span>
-                     </div>
-                  </div>
-                  
-                  {/* Calendar Grid - Mobile */}
-                  <div className="grid grid-cols-5 gap-2">
-                     {calendarDates.map((date, dIdx) => {
-                        const dayIndex = dIdx + 1;
-                        const isChecked = record.hari[dayIndex] || false;
-                        const isToday = isDateToday(date);
-                        const isSaving = savingId === record.id;
-                        
-                        return (
-                          <div 
-                            key={dIdx} 
-                            className={`flex flex-col items-center justify-center p-1.5 rounded-lg border ${
-                              isToday ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-gray-200'
-                            }`}
-                          >
-                            <span className="text-[9px] text-gray-400 uppercase font-bold mb-1">{getDayName(date)}</span>
-                            <span className={`text-[10px] font-bold mb-1.5 ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>
-                              {formatDate(date)}
-                            </span>
-                            
-                            <label className={`relative inline-flex items-center justify-center cursor-pointer ${!canEditAttendance ? 'cursor-not-allowed opacity-60' : ''}`}>
-                              <input 
-                                type="checkbox" 
-                                checked={isChecked}
-                                disabled={!canEditAttendance || isSaving}
-                                onChange={(e) => handleAttendanceChange(record.id, dayIndex, e.target.checked)}
-                                className="peer sr-only"
-                              />
-                              <div className="w-8 h-8 rounded-lg border border-gray-300 transition-all duration-200 
-                                peer-checked:bg-primary peer-checked:border-primary 
-                                flex items-center justify-center text-white
-                              ">
-                                <Check size={16} className="opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
-                              </div>
-                            </label>
-                          </div>
-                        )
-                     })}
-                  </div>
-               </div>
-            ))}
-          </div>
+                     
+                     {/* Calendar Grid */}
+                     <div className="grid grid-cols-7 gap-2">
+                        {calendarDates.map((date, i) => {
+                           const isLocked = isKoordinator && !isDateToday(date);
+                           const dayIdx = i + 1;
+                           const checked = !!record.hari[dayIdx];
+                           const isToday = isDateToday(date);
 
+                           return (
+                             <label 
+                               key={i} 
+                               className={`
+                                  flex flex-col items-center justify-center p-2 rounded-lg border transition-all cursor-pointer
+                                  ${checked 
+                                    ? 'bg-primary/10 border-primary text-primary' 
+                                    : 'bg-white border-gray-200 text-gray-400 hover:border-gray-300'}
+                                  ${isToday ? 'ring-2 ring-blue-400 ring-offset-1' : ''}
+                                  ${(!canEditAttendance || isLocked) ? 'opacity-50 cursor-not-allowed' : ''}
+                               `}
+                             >
+                               <span className="text-[9px] uppercase font-bold mb-1">{getDayName(date)}</span>
+                               <span className="text-xs mb-1.5">{formatDate(date).split('/')[0]}</span>
+                               
+                               <input 
+                                  type="checkbox"
+                                  className="sr-only"
+                                  checked={checked}
+                                  disabled={!canEditAttendance || isLocked}
+                                  onChange={(e) => handleAttendanceChange(record.id, dayIdx, e.target.checked)}
+                               />
+                               <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary text-white' : 'border-gray-300'}`}>
+                                  {checked && <Check size={10} strokeWidth={3} />}
+                               </div>
+                             </label>
+                           );
+                        })}
+                     </div>
+                  </div>
+                ))}
+             </div>
+          </div>
         </Card>
       ))}
 
-      {/* Print Preview Dialog */}
-      <PrintPreviewDialog 
-        isOpen={isPrintPreviewOpen} 
-        onClose={() => setIsPrintPreviewOpen(false)}
-        title={`Laporan Absensi: ${currentPeriode?.nama}`}
-        filename={printFilename}
-      >
-        <div className="p-4">
-          <div className="flex items-center gap-6 border-b-4 border-double border-gray-800 pb-6 mb-8">
-             <Logo className="w-24 h-24 object-contain" />
-             <div className="flex-1 text-center">
-                <h1 className="text-2xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
-                <h2 className="text-lg font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
-                <p className="text-sm mt-2 text-black">Laporan Absensi Karyawan</p>
-             </div>
-             <div className="w-24"></div>
-          </div>
-          
-          <div className="flex justify-between items-end mb-6 text-black">
-             <div>
-               <p className="font-bold text-sm">Periode: {currentPeriode?.nama}</p>
-             </div>
-             <div>
-               <p className="font-bold text-sm">Total Karyawan: {attendanceData.length}</p>
-             </div>
-          </div>
+      {/* --- MODALS --- */}
 
-          {sortedDivisions.map(divisi => (
-            <div key={divisi} className="mb-8 break-inside-avoid">
-              <div className="bg-gray-200 px-4 py-2 border border-black border-b-0 font-bold text-black text-sm uppercase">
-                 Divisi: {divisi}
-              </div>
-              <table className="w-full border-collapse border border-black text-xs text-black">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-black px-2 py-2 w-10 text-center">No</th>
-                    <th className="border border-black px-3 py-2 text-left">Nama Karyawan</th>
-                    {calendarDates.map((date, idx) => (
-                      <th key={idx} className="border border-black px-1 py-2 w-8 text-center bg-gray-50">
-                        {idx + 1}
-                      </th>
-                    ))}
-                    <th className="border border-black px-2 py-2 w-12 text-center bg-gray-100">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedData[divisi].map((record, idx) => (
-                    <tr key={record.id}>
-                      <td className="border border-black px-2 py-1.5 text-center">{idx + 1}</td>
-                      <td className="border border-black px-3 py-1.5 font-medium uppercase">{record.namaKaryawan}</td>
-                      {calendarDates.map((_, dIdx) => (
-                         <td key={dIdx} className="border border-black px-1 py-1.5 text-center">
-                            {record.hari[dIdx + 1] ? '✓' : ''}
-                         </td>
-                      ))}
-                      <td className="border border-black px-2 py-1.5 text-center font-bold bg-gray-50">{record.totalHadir}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-          
-          <div className="grid grid-cols-2 mt-12 px-8 text-black break-inside-avoid">
-             <div className="text-center">
-             </div>
-             <div className="text-center">
-                <p className="mb-1">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
-                <p className="mb-20 font-bold">Kepala SPPG</p>
-                <p className="font-bold underline decoration-1 underline-offset-4">Tiurmasi Saulina Sirait, S.T.</p>
-             </div>
-          </div>
-        </div>
-      </PrintPreviewDialog>
-
-      {/* Add/Edit Periode Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title={editingPeriodeId ? "Edit Periode" : "Buat Periode Baru"}
       >
         <div className="space-y-4">
-          <div>
-            <Input 
-              label="Nama Periode" 
-              placeholder="Contoh: Januari 2025 - Periode 1" 
-              value={newPeriodeName}
-              onChange={(e) => setNewPeriodeName(e.target.value)}
-            />
+          <Input 
+            label="Nama Periode" 
+            placeholder="Contoh: Januari 2025 - Periode 1" 
+            value={newPeriodeName} 
+            onChange={(e) => setNewPeriodeName(e.target.value)} 
+          />
+          <Input 
+            label="Tanggal Mulai" 
+            type="date" 
+            value={newPeriodeDate} 
+            onChange={(e) => setNewPeriodeDate(e.target.value)} 
+          />
+          <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700 flex items-start">
+             <Calendar size={18} className="mr-2 mt-0.5 shrink-0"/>
+             <span>Periode akan berlaku selama 14 hari berturut-turut mulai dari tanggal yang dipilih.</span>
           </div>
-          <div>
-            <Input 
-              type="date" 
-              label="Tanggal Mulai (Hari ke-1)" 
-              value={newPeriodeDate}
-              onChange={(e) => setNewPeriodeDate(e.target.value)}
-            />
-            <p className="text-xs text-gray-500 mt-1">Sistem akan otomatis menghitung 14 hari kerja kedepan.</p>
-          </div>
-          <div className="flex justify-end gap-2 mt-6">
+          <div className="flex justify-end gap-2 mt-4">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSavePeriode} isLoading={loading}>Simpan</Button>
+            <Button onClick={handleSavePeriode} isLoading={loading}>Simpan Periode</Button>
           </div>
         </div>
       </Modal>
+
+      {/* --- PRINT PREVIEW --- */}
+      <PrintPreviewDialog 
+         isOpen={isPrintPreviewOpen} 
+         onClose={() => setIsPrintPreviewOpen(false)} 
+         title="Laporan Absensi Karyawan"
+         filename={printFilename}
+      >
+        <div className="flex flex-col items-center mb-6 border-b-2 border-gray-800 pb-4">
+           <div className="flex items-center gap-4 w-full justify-center">
+              <Logo className="w-16 h-16" />
+              <div className="text-center">
+                 <h1 className="text-2xl font-bold uppercase tracking-wider">Laporan Absensi Karyawan</h1>
+                 <h2 className="text-lg font-semibold uppercase text-gray-700">Satuan Pelayanan Pemenuhan Gizi (SPPG)</h2>
+                 <p className="text-sm font-medium mt-1">Periode: {currentPeriode?.nama}</p>
+                 <p className="text-xs text-gray-500">
+                    Tanggal: {calendarDates.length > 0 && formatDate(calendarDates[0])} s/d {calendarDates.length > 0 && formatDate(calendarDates[calendarDates.length-1])}
+                 </p>
+              </div>
+           </div>
+        </div>
+
+        {/* Print Tables Per Division */}
+        {sortedDivisions.map(divisi => (
+           <div key={divisi} className="mb-8 break-inside-avoid">
+              <div className="bg-gray-200 px-3 py-1.5 font-bold text-sm border border-black mb-0.5 uppercase tracking-wide">
+                 Divisi: {divisi}
+              </div>
+              <table className="w-full border-collapse border border-black text-[10px]">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-black p-1 w-8 text-center" rowSpan={2}>No</th>
+                    <th className="border border-black p-1 text-left pl-2" rowSpan={2}>Nama Karyawan</th>
+                    {/* Date Header Row */}
+                    {calendarDates.map((date, i) => (
+                      <th key={`date-${i}`} className="border border-black p-1 text-center w-8 bg-gray-50">
+                         {formatDate(date)}
+                      </th>
+                    ))}
+                    <th className="border border-black p-1 w-10 text-center" rowSpan={2}>Jml</th>
+                  </tr>
+                  {/* Day Name Header Row */}
+                  <tr className="bg-gray-100">
+                     {calendarDates.map((date, i) => (
+                        <th key={`day-${i}`} className="border border-black p-0.5 text-center font-normal uppercase text-[9px]">
+                           {getDayName(date)}
+                        </th>
+                     ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupedData[divisi].map((record, idx) => (
+                    <tr key={record.id}>
+                      <td className="border border-black p-1 text-center">{idx + 1}</td>
+                      <td className="border border-black p-1 pl-2 font-medium">{record.namaKaryawan}</td>
+                      {calendarDates.map((_, i) => (
+                        <td key={i} className="border border-black p-0 text-center align-middle">
+                          {record.hari[i + 1] ? (
+                            <div className="flex items-center justify-center h-full w-full">
+                               <Check size={12} className="text-black font-bold" strokeWidth={4} />
+                            </div>
+                          ) : ''}
+                        </td>
+                      ))}
+                      <td className="border border-black p-1 text-center font-bold bg-gray-50">
+                        {record.totalHadir}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+           </div>
+        ))}
+        
+        {/* Signature Area */}
+        <div className="mt-12 flex justify-end break-inside-avoid">
+           <div className="text-center w-64">
+              <p className="mb-16">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+              <p className="font-bold border-b border-black pb-1 mb-1">Tiurmasi Saulina Sirait, S.T.</p>
+              <p className="text-xs uppercase">Kepala SPPG</p>
+           </div>
+        </div>
+      </PrintPreviewDialog>
+
     </div>
   );
 };
