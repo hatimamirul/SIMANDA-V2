@@ -297,15 +297,6 @@ export const api = {
   savePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
 
-  getAbsensiByPeriode: async (periodeId: string) => { 
-    if (USE_FIREBASE && db) {
-      const q = query(collection(db, 'absensi'), where('periodeId', '==', periodeId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => ({...d.data(), id: d.id} as AbsensiRecord));
-    }
-    return localDb.get<AbsensiRecord[]>(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
-  },
-
   // REALTIME ABSENSI (Optimized for performance)
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
     // Helper to init empty days and details
@@ -365,45 +356,47 @@ export const api = {
      await saveData('absensi', KEYS.ABSENSI, record);
   },
 
-  saveAbsensi: async (records: AbsensiRecord[]) => {
-    for (const rec of records) {
-      await saveData('absensi', KEYS.ABSENSI, rec);
-    }
-  },
-
-  // === HONORARIUM ===
-  getHonorariumKaryawan: async (periodeId: string): Promise<HonorariumRow[]> => {
-    let allAbsensi: AbsensiRecord[] = [];
-    let allKaryawan: Karyawan[] = [];
-    
-    if (USE_FIREBASE && db) {
-       const q = query(collection(db, 'absensi'), where('periodeId', '==', periodeId));
-       const snapshot = await getDocs(q);
-       allAbsensi = snapshot.docs.map(d => ({...d.data(), id: d.id} as AbsensiRecord));
-       
-       const kSnapshot = await getDocs(collection(db, 'karyawan'));
-       allKaryawan = kSnapshot.docs.map(d => ({...d.data(), id: d.id} as Karyawan));
-    } else {
-       allAbsensi = localDb.get(KEYS.ABSENSI, []).filter(a => a.periodeId === periodeId);
-       allKaryawan = localDb.get(KEYS.KARYAWAN, INITIAL_KARYAWAN);
-    }
-    
-    return allAbsensi.map(abs => {
-      const karyawan = allKaryawan.find(k => k.id === abs.karyawanId);
-      const honorHarian = karyawan?.honorHarian || 0;
-      const totalHadir = abs.totalHadir || 0;
+  // === HONORARIUM (REALTIME JOIN) ===
+  // This combines Absensi Data and Karyawan Data (for Bank info/Honor rate) in Realtime
+  subscribeHonorariumKaryawan: (periodeId: string, cb: (data: HonorariumRow[]) => void) => {
+      let absensiRecords: AbsensiRecord[] = [];
+      let karyawanData: Karyawan[] = [];
       
-      return {
-        id: `honor-${abs.id}`,
-        karyawanId: abs.karyawanId,
-        nama: abs.namaKaryawan,
-        divisi: abs.divisi,
-        bank: karyawan?.bank || '-',
-        rekening: karyawan?.rekening || '-',
-        totalHadir: totalHadir,
-        honorHarian: honorHarian,
-        totalTerima: totalHadir * honorHarian
+      const update = () => {
+           if (!periodeId) { cb([]); return; }
+           
+           const rows = absensiRecords.map(abs => {
+               // Find matching Karyawan to get current Honor Rate and Bank Info
+               const k = karyawanData.find(x => x.id === abs.karyawanId);
+               const honorHarian = k?.honorHarian || 0;
+               
+               return {
+                  id: `honor-${abs.id}`,
+                  karyawanId: abs.karyawanId,
+                  nama: abs.namaKaryawan,
+                  divisi: abs.divisi,
+                  bank: k?.bank || '-',
+                  rekening: k?.rekening || '-',
+                  totalHadir: abs.totalHadir || 0,
+                  honorHarian: honorHarian,
+                  totalTerima: (abs.totalHadir || 0) * honorHarian
+               };
+           });
+           cb(rows);
       };
-    });
+
+      // Reuse subscribeAbsensi to get virtual records + attendance counts
+      const unsubAbsensi = api.subscribeAbsensi(periodeId, (data) => {
+          absensiRecords = data;
+          update();
+      });
+      
+      // Subscribe to Karyawan to get realtime Bank/Honor Rate updates
+      const unsubKaryawan = createSubscriber('karyawan', KEYS.KARYAWAN, INITIAL_KARYAWAN, (data) => {
+          karyawanData = data;
+          update();
+      });
+
+      return () => { unsubAbsensi(); unsubKaryawan(); };
   }
 };
