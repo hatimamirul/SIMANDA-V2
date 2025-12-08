@@ -78,14 +78,25 @@ export interface Periode {
   status: 'OPEN' | 'CLOSED';
 }
 
+// === NEW: Detailed Attendance Data (Foto & Jam) ===
+export interface AbsensiDetail {
+  jamMasuk?: string;  // "07:30"
+  jamPulang?: string; // "16:00"
+  fotoMasuk?: string; // Base64 Thumbnail
+  fotoPulang?: string; // Base64 Thumbnail
+  lokasi?: string;    // Optional: Lat,Long
+}
+
 export interface AbsensiRecord {
   id: string;
   periodeId: string;
   karyawanId: string;
   namaKaryawan: string;
   divisi: string;
-  // Map of day index (1-12) to presence status (true = hadir, false = tidak)
+  // Legacy boolean map (Mencegah error sistem lama)
   hari: { [key: number]: boolean };
+  // New detailed map (Menyimpan Foto & Jam)
+  detailHari?: { [key: number]: AbsensiDetail }; 
   totalHadir: number;
 }
 
