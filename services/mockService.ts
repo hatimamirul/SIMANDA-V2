@@ -1,4 +1,3 @@
-
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
@@ -8,12 +7,12 @@ import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, 
 // ==========================================
 const firebaseConfig = {
   // --- GANTI DENGAN CONFIG FIREBASE ASLI ANDA ---
-  apiKey: "AIzaSyDSEqsEyNK_PTecikuQ7VbD8MCvW_l1C_g", 
+  apiKey: "AIzaSyDSEqsEyNK_PTecikuQ7VbD8MCvW_l1C_g",
   authDomain: "simanda-project.firebaseapp.com",
   projectId: "simanda-project",
   storageBucket: "simanda-project.firebasestorage.app",
   messagingSenderId: "1061662287994",
-  appId: "1:1061662287994:web:de4e734af8b144c23b73c3"
+  appId: "1:1061662287994:web:de4e734af8b144c23b73c3",
   // -----------------------------------------
 };
 
@@ -296,6 +295,7 @@ export const api = {
   subscribePeriode: (cb: (data: Periode[]) => void) => createSubscriber('periode', KEYS.PERIODE, [], cb),
   savePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
+  deletePeriode: (id: string) => saveData('periode', KEYS.PERIODE, { id }, true),
 
   // REALTIME ABSENSI (Optimized for performance)
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
