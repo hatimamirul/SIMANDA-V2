@@ -116,6 +116,7 @@ export const UsersPage: React.FC = () => {
     { value: 'Distribusi', label: 'Distribusi' },
     { value: 'Kebersihan', label: 'Kebersihan' },
     { value: 'Keamanan', label: 'Keamanan' },
+    { value: 'Pencucian Alat', label: 'Pencucian Alat' },
   ];
 
   return (
