@@ -297,7 +297,7 @@ export const api = {
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
   deletePeriode: (id: string) => saveData('periode', KEYS.PERIODE, { id }, true),
 
-  // REALTIME ABSENSI (Optimized for performance)
+  // REALTIME ABSENSI (Synced with Master Karyawan)
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
     // Helper to init empty days and details
     const createEmptyDays = () => {
@@ -315,29 +315,42 @@ export const api = {
 
     const processData = () => {
        if (!periodeId) return;
-       // 1. Existing records for this period (already filtered if using Firebase)
-       let records = allAbsensi.filter(a => a.periodeId === periodeId);
        
-       // 2. Check for new employees
-       const existingKaryawanIds = new Set(records.map(r => r.karyawanId));
-       const newKaryawan = allKaryawan.filter(k => !existingKaryawanIds.has(k.id));
+       // 1. Filter Absensi by this Period (from DB/Storage)
+       const rawAbsensi = allAbsensi.filter(a => a.periodeId === periodeId);
+       
+       // 2. Map existing records by Karyawan ID for O(1) lookup
+       const absensiMap = new Map(rawAbsensi.map(r => [r.karyawanId, r]));
 
-       if (newKaryawan.length > 0) {
-          const { days, details } = createEmptyDays();
-          const newRecords = newKaryawan.map(k => ({
-            id: `abs-${periodeId}-${k.id}`,
-            periodeId: periodeId,
-            karyawanId: k.id,
-            namaKaryawan: k.nama,
-            divisi: k.divisi,
-            hari: days,
-            detailHari: details, // Initialize with empty details object
-            totalHadir: 0
-          }));
-          // Merge virtual new records
-          records = [...records, ...newRecords];
-       }
-       cb(records);
+       // 3. Build the final list based STRICTLY on active Karyawan (Left Join)
+       // This handles Adding (new Karyawan appears) and Deleting (deleted Karyawan disappears)
+       const syncedRecords = allKaryawan.map(karyawan => {
+          const record = absensiMap.get(karyawan.id);
+
+          if (record) {
+             // Return existing record (update name/divisi from master to ensure sync)
+             return {
+                ...record,
+                namaKaryawan: karyawan.nama,
+                divisi: karyawan.divisi
+             };
+          } else {
+             // New Karyawan found! Create virtual empty record
+             const { days, details } = createEmptyDays();
+             return {
+                id: `auto-${periodeId}-${karyawan.id}`, // Temporary/Virtual ID until saved
+                periodeId: periodeId,
+                karyawanId: karyawan.id,
+                namaKaryawan: karyawan.nama,
+                divisi: karyawan.divisi,
+                hari: days,
+                detailHari: details,
+                totalHadir: 0
+             } as AbsensiRecord;
+          }
+       });
+
+       cb(syncedRecords);
     };
 
     // If Firebase, use query to be efficient
@@ -353,6 +366,10 @@ export const api = {
 
   // Updated to support saving single record (Auto-Save on checkbox)
   saveAbsensiRecord: async (record: AbsensiRecord) => {
+     // Ensure ID is set (if it was virtual 'auto-...')
+     if (!record.id || record.id.startsWith('auto-')) {
+         record.id = `abs-${record.periodeId}-${record.karyawanId}`;
+     }
      await saveData('absensi', KEYS.ABSENSI, record);
   },
 
