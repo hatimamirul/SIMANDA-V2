@@ -1,9 +1,10 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMB3, User, Role } from '../types';
-import { FileText, Download, Eye } from 'lucide-react';
+import { FileText, Download, Eye, Filter } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -17,6 +18,9 @@ export const B3Page: React.FC = () => {
   const [formData, setFormData] = useState<Partial<PMB3>>({});
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Filtering by Desa
+  const [filterDesa, setFilterDesa] = useState('');
   
   const { showToast } = useToast();
 
@@ -44,16 +48,24 @@ export const B3Page: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const unsubscribe = api.subscribeB3s((items) => {
+      let filtered = items;
+      
+      // Filter by Search
       if (search) {
         const lower = search.toLowerCase();
-        setData(items.filter(i => i.nama.toLowerCase().includes(lower) || i.desa.toLowerCase().includes(lower)));
-      } else {
-        setData(items);
+        filtered = filtered.filter(i => i.nama.toLowerCase().includes(lower) || i.desa.toLowerCase().includes(lower));
       }
+
+      // Filter by Desa
+      if (filterDesa) {
+        filtered = filtered.filter(i => i.desa === filterDesa);
+      }
+
+      setData(filtered);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [search]);
+  }, [search, filterDesa]);
 
   const handleSubmit = async () => {
     // Validation
@@ -157,6 +169,29 @@ export const B3Page: React.FC = () => {
         onExport={handleExport}
         searchPlaceholder="Cari Nama atau Desa..."
       />
+
+      {/* Filter Control */}
+      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
+         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold">
+            <Filter size={16} /> Filter:
+         </div>
+         <select 
+            value={filterDesa} 
+            onChange={(e) => setFilterDesa(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+         >
+            <option value="">-- Semua Desa --</option>
+            {desaOptionsRaw.map(desa => (
+               <option key={desa} value={desa}>{desa}</option>
+            ))}
+         </select>
+         {filterDesa && (
+           <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md">
+             Menampilkan data desa: {filterDesa}
+           </span>
+         )}
+      </div>
+
       <Card>
         <Table<PMB3> 
           isLoading={loading}
