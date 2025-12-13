@@ -1,10 +1,11 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
-import { Eye, FileText, Download } from 'lucide-react';
+import { Eye, FileText, Download, User as UserIcon, Phone, CreditCard, Activity, Pencil, Trash2 } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -40,6 +41,9 @@ export const KaryawanPage: React.FC = () => {
   
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  // Layout State
+  const [layout, setLayout] = useState<'table' | 'grid'>('table');
 
   // Switch to Realtime Subscription
   useEffect(() => {
@@ -225,6 +229,63 @@ export const KaryawanPage: React.FC = () => {
     { value: 'BANK BNI', label: 'BANK BNI' },
   ];
 
+  // Grid Renderer
+  const renderGrid = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       {data.map(item => (
+         <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-5 flex flex-col relative group">
+            <div className="flex items-start justify-between mb-4">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                    {item.nama.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800 line-clamp-1">{item.nama}</h3>
+                    <p className="text-xs text-gray-500">NIK: {item.nik}</p>
+                  </div>
+               </div>
+               <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-blue-100">
+                  {item.divisi.split(' ')[0]}
+               </span>
+            </div>
+
+            <div className="space-y-2 mb-6 flex-1">
+               <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone size={14} className="text-gray-400" /> {item.hp || '-'}
+               </div>
+               <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <CreditCard size={14} className="text-gray-400" /> {item.bank} - {item.rekening}
+               </div>
+               <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Activity size={14} className="text-gray-400" /> BPJS: {item.noBpjs || '-'}
+               </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+               <div className="text-xs text-gray-400">
+                  Honor: <span className="font-semibold text-gray-600">{formatCurrency(item.honorHarian)}</span>
+               </div>
+               <div className="flex gap-2">
+                 {item.sertifikat && (
+                    <button onClick={() => handlePreview(item.sertifikat!)} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors" title="Lihat Sertifikat">
+                       <Eye size={16} />
+                    </button>
+                 )}
+                 <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
+                    <Pencil size={16} />
+                 </button>
+                 {canDelete && (
+                   <button onClick={() => setDeleteItem(item)} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Hapus">
+                      <Trash2 size={16} />
+                   </button>
+                 )}
+               </div>
+            </div>
+         </div>
+       ))}
+    </div>
+  );
+
   return (
     <div>
       <Toolbar 
@@ -233,38 +294,47 @@ export const KaryawanPage: React.FC = () => {
         onAdd={canAdd ? openAdd : undefined} 
         onExport={handleExport}
         onImport={canImport ? handleImport : undefined}
+        layoutMode={layout}
+        onLayoutChange={setLayout}
       />
-      <Card>
-        <Table<Karyawan> 
-          isLoading={loading}
-          data={data}
-          hideActions={false}
-          columns={[
-            { header: 'NIK', accessor: 'nik' },
-            { header: 'Nama', accessor: 'nama' },
-            { header: 'Divisi', accessor: (i) => <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm font-medium">{i.divisi}</span> },
-            { header: 'No HP', accessor: 'hp' },
-            { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) },
-            { header: 'BPJS', accessor: 'noBpjs' },
-            { header: 'Bank', accessor: 'bank' },
-            { header: 'Rekening', accessor: 'rekening' },
-            { 
-              header: 'SERTIFIKAT PENUNJANG', 
-              accessor: (i) => i.sertifikat ? (
-                <button 
-                  type="button"
-                  onClick={() => handlePreview(i.sertifikat!)}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
-                >
-                  <Eye size={12} /> Lihat
-                </button>
-              ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
-            },
-          ]}
-          onEdit={openEdit}
-          onDelete={canDelete ? setDeleteItem : (() => {})} 
-        />
-      </Card>
+      
+      {loading ? (
+        <LoadingSpinner />
+      ) : layout === 'table' ? (
+        <Card>
+          <Table<Karyawan> 
+            isLoading={loading}
+            data={data}
+            hideActions={false}
+            columns={[
+              { header: 'NIK', accessor: 'nik' },
+              { header: 'Nama', accessor: 'nama' },
+              { header: 'Divisi', accessor: (i) => <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm font-medium">{i.divisi}</span> },
+              { header: 'No HP', accessor: 'hp' },
+              { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) },
+              { header: 'BPJS', accessor: 'noBpjs' },
+              { header: 'Bank', accessor: 'bank' },
+              { header: 'Rekening', accessor: 'rekening' },
+              { 
+                header: 'SERTIFIKAT PENUNJANG', 
+                accessor: (i) => i.sertifikat ? (
+                  <button 
+                    type="button"
+                    onClick={() => handlePreview(i.sertifikat!)}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
+                  >
+                    <Eye size={12} /> Lihat
+                  </button>
+                ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
+              },
+            ]}
+            onEdit={openEdit}
+            onDelete={canDelete ? setDeleteItem : (() => {})} 
+          />
+        </Card>
+      ) : (
+        renderGrid()
+      )}
 
       {canDelete && (
         <ConfirmationModal 
