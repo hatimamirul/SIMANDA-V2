@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
@@ -13,6 +14,9 @@ import { HonorKaryawanPage } from './pages/HonorKaryawan';
 import { HonorPICSekolahPage } from './pages/HonorPICSekolah';
 import { HonorKaderB3Page } from './pages/HonorKaderB3';
 import { AbsensiPage } from './pages/Absensi'; 
+import { DataSupplierPage } from './pages/inventory/DataSupplier';
+import { LaporanBahanMasukPage } from './pages/inventory/LaporanBahanMasuk';
+import { LaporanStokOpnamePage } from './pages/inventory/LaporanStokOpname';
 import { Layout } from './components/Layout';
 import { ToastProvider, useToast } from './components/UIComponents';
 import { User, Role } from './types';
@@ -217,6 +221,32 @@ const MainApp = () => {
             element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <KaderB3Page />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* === INVENTORY ROUTES === */}
+          <Route 
+            path="/inventory/supplier" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <DataSupplierPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/inventory/bahan-masuk" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <LaporanBahanMasukPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/inventory/stok-opname" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <LaporanStokOpnamePage />
               </ProtectedRoute>
             } 
           />
