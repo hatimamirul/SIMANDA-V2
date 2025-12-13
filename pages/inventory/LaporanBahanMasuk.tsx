@@ -546,4 +546,3 @@ export const LaporanBahanMasukPage: React.FC = () => {
     </div>
   );
 };
-
