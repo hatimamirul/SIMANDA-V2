@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select } from '../../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select, ExportModal } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { StokOpname } from '../../types';
 
@@ -15,6 +15,9 @@ export const LaporanStokOpnamePage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -72,7 +75,7 @@ export const LaporanStokOpnamePage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Tanggal': item.tanggal,
       'Nama Bahan': item.namaBahan,
@@ -94,7 +97,7 @@ export const LaporanStokOpnamePage: React.FC = () => {
         title="Laporan Stok Opname" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Nama Bahan..."
       />
       {loading ? (
@@ -126,6 +129,23 @@ export const LaporanStokOpnamePage: React.FC = () => {
           />
         </Card>
       )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Stok Opname"
+        data={data}
+        columns={[
+            { header: 'Tanggal', accessor: 'tanggal' },
+            { header: 'Nama Bahan', accessor: 'namaBahan' },
+            { header: 'Stok Fisik', accessor: (i) => `${i.stokFisik} ${i.satuan}` },
+            { header: 'Kondisi', accessor: 'kondisi' },
+            { header: 'Keterangan', accessor: (i) => i.keterangan || '-' },
+            { header: 'Petugas', accessor: (i) => i.petugas || '-' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
