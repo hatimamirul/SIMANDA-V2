@@ -1,7 +1,6 @@
 
-
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast, ExportModal, LoadingSpinner } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { AlergiSiswa, PMSekolah, User, Role } from '../types';
 
@@ -17,6 +16,9 @@ export const AlergiPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   // Get current user to check role
@@ -124,7 +126,7 @@ export const AlergiPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Nama Sekolah': item.namaSekolah,
       'Nama Siswa': item.namaSiswa,
@@ -203,31 +205,49 @@ export const AlergiPage: React.FC = () => {
         title="Data Alergi Siswa" 
         onSearch={setSearch} 
         onAdd={canAdd ? openAdd : undefined} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         onImport={canImport ? handleImport : undefined}
         searchPlaceholder="Cari Sekolah atau Siswa..."
       />
-      <Card>
-        <Table<AlergiSiswa> 
-          isLoading={loading}
-          data={data}
-          hideActions={hideActions}
-          columns={[
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+        <Card>
+          <Table<AlergiSiswa> 
+            isLoading={loading}
+            data={data}
+            hideActions={hideActions}
+            columns={[
+              { header: 'Nama Sekolah', accessor: 'namaSekolah' },
+              { header: 'Nama Siswa', accessor: 'namaSiswa' },
+              { 
+                header: 'Keterangan Alergi', 
+                accessor: (i) => (
+                  <span className="text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full border border-red-100 text-xs">
+                    {i.keterangan}
+                  </span>
+                ) 
+              },
+            ]}
+            onEdit={(i) => { setFormData(i); setIsModalOpen(true); }}
+            onDelete={setDeleteItem}
+          />
+        </Card>
+      )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data Alergi Siswa"
+        data={data}
+        columns={[
             { header: 'Nama Sekolah', accessor: 'namaSekolah' },
             { header: 'Nama Siswa', accessor: 'namaSiswa' },
-            { 
-              header: 'Keterangan Alergi', 
-              accessor: (i) => (
-                <span className="text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full border border-red-100 text-xs">
-                  {i.keterangan}
-                </span>
-              ) 
-            },
-          ]}
-          onEdit={(i) => { setFormData(i); setIsModalOpen(true); }}
-          onDelete={setDeleteItem}
-        />
-      </Card>
+            { header: 'Keterangan Alergi', accessor: 'keterangan' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
@@ -275,3 +295,4 @@ export const AlergiPage: React.FC = () => {
     </div>
   );
 };
+
