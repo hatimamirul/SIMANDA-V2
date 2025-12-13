@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
-import { Eye, FileText, Download, User as UserIcon, Phone, CreditCard, Activity, Pencil, Trash2 } from 'lucide-react';
+import { Eye, FileText, Download, Phone, CreditCard, Activity, Pencil, Trash2 } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -23,7 +22,6 @@ export const KaryawanPage: React.FC = () => {
   // Permission Logic
   const canAdd = role === 'SUPERADMIN' || role === 'KSPPG';
   const canDelete = role === 'SUPERADMIN' || role === 'KSPPG';
-  const canEditHonor = role === 'SUPERADMIN' || role === 'KSPPG';
   // Define roles allowed to import
   const canImport = role === 'SUPERADMIN' || role === 'KSPPG';
   
