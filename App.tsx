@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
@@ -7,6 +8,7 @@ import { UsersPage } from './pages/Users';
 import { KaryawanPage } from './pages/Karyawan';
 import { SchoolPage } from './pages/SchoolData';
 import { PICSekolahPage } from './pages/PICSekolah';
+import { AlergiPage } from './pages/AlergiPage';
 import { B3Page } from './pages/B3Data';
 import { KaderB3Page } from './pages/KaderB3';
 import { HonorKaryawanPage } from './pages/HonorKaryawan';
@@ -150,6 +152,14 @@ const MainApp = () => {
             element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'PETUGAS']}>
                 <SchoolPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/alergi" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'PETUGAS']}>
+                <AlergiPage />
               </ProtectedRoute>
             } 
           />
