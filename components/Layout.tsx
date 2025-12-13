@@ -21,7 +21,11 @@ import {
   GraduationCap,
   Heart,
   CalendarCheck,
-  ShieldAlert
+  ShieldAlert,
+  Package, // Icon for Inventory
+  Truck, // Icon for Supplier
+  ArrowDownToLine, // Icon for Incoming
+  ClipboardList // Icon for Stock Opname
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -146,7 +150,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const canSeeB3 = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG' || role === 'PETUGAS';
   const canSeeKaderB3 = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG'; // Petugas excluded
 
+  // Finance
   const canSeeFinance = role === 'SUPERADMIN' || role === 'KSPPG';
+  
+  // Inventory (Stok Bahan Baku) Permissions
+  const canSeeInventory = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
+
   const canSeeLogs = role === 'SUPERADMIN';
 
   return (
@@ -220,6 +229,20 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
           {canSeeKaderB3 && (
             <SidebarItem to="/kader-b3" icon={<Stethoscope size={20} />} label={isOpen ? "Data Kader B3" : ""} />
+          )}
+
+          {canSeeInventory && (
+             <SidebarDropdown 
+               icon={<Package size={20} />} 
+               label="Master Stok Bahan Baku" 
+               isOpen={isOpen}
+               sidebarOpen={isOpen}
+               setSidebarOpen={setIsOpen}
+             >
+               <SidebarItem to="/inventory/bahan-masuk" icon={<ArrowDownToLine size={18} />} label="Laporan Bahan Masuk" isSubItem />
+               <SidebarItem to="/inventory/stok-opname" icon={<ClipboardList size={18} />} label="Laporan Stok Opname" isSubItem />
+               <SidebarItem to="/inventory/supplier" icon={<Truck size={18} />} label="Data Suplayer" isSubItem />
+             </SidebarDropdown>
           )}
           
           {canSeeFinance && (
