@@ -33,14 +33,17 @@ export const LaporanBahanMasukPage: React.FC = () => {
     
     // Subscribe to Bahan Masuk
     const unsubBahan = api.subscribeBahanMasuk((items) => {
+        // Sort Descending (Terbaru paling atas)
+        const sortedItems = items.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+
         if (search) {
             const lower = search.toLowerCase();
-            setData(items.filter(i => 
+            setData(sortedItems.filter(i => 
               i.namaBahan.toLowerCase().includes(lower) || 
               i.namaSupplier.toLowerCase().includes(lower)
             ));
         } else {
-            setData(items);
+            setData(sortedItems);
         }
         setLoading(false);
     });
@@ -494,4 +497,3 @@ export const LaporanBahanMasukPage: React.FC = () => {
     </div>
   );
 };
-
