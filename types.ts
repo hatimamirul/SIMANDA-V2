@@ -1,4 +1,5 @@
 
+
 export type Role = 'SUPERADMIN' | 'KSPPG' | 'ADMINSPPG' | 'PETUGAS' | 'KOORDINATORDIVISI';
 
 export interface User {
@@ -29,6 +30,7 @@ export interface PMSekolah {
   id: string;
   nama: string;
   npsn: string;
+  desa?: string; // Added Desa field
   jenis: 'KB/PAUD' | 'TK' | 'SD/MI' | 'SMP/MTS' | 'SMA/MA';
   jmlsiswa: number;
   pmBesar: number;
