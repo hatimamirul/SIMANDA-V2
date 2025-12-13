@@ -1,10 +1,10 @@
 
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Users, Phone, Pencil, Trash2, MapPin } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -22,6 +22,9 @@ export const SchoolPage: React.FC = () => {
   
   // Filtering by Desa
   const [filterDesa, setFilterDesa] = useState('');
+
+  // Layout State
+  const [layout, setLayout] = useState<'table' | 'grid'>('table');
 
   const { showToast } = useToast();
 
@@ -237,6 +240,76 @@ export const SchoolPage: React.FC = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  // Grid Renderer
+  const renderGrid = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       {data.map(item => (
+         <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-5 flex flex-col group">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                    <School size={20} />
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-gray-800 line-clamp-1 text-sm">{item.nama}</h3>
+                    <p className="text-xs text-gray-500">NPSN: {item.npsn}</p>
+                 </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 text-gray-600 uppercase border border-gray-200">
+                {item.jenis}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+               <MapPin size={14} className="text-red-400" /> Desa {item.desa || '-'}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mb-6">
+               <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
+                  <span className="block text-xl font-bold text-blue-700">{item.jmlsiswa}</span>
+                  <span className="text-[10px] text-blue-600 font-medium">Siswa</span>
+               </div>
+               <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-100">
+                  <span className="block text-xl font-bold text-indigo-700">{item.pmBesar}</span>
+                  <span className="text-[10px] text-indigo-600 font-medium">PM Besar</span>
+               </div>
+               <div className="bg-pink-50 rounded-lg p-2 text-center border border-pink-100">
+                  <span className="block text-xl font-bold text-pink-700">{item.pmKecil}</span>
+                  <span className="text-[10px] text-pink-600 font-medium">PM Kecil</span>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+               <Phone size={14} /> {item.narahubung} ({item.hp})
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+               <div className="text-xs text-gray-400 font-medium">
+                  Guru: {item.jmlguru}
+               </div>
+               {!hideActions && (
+                <div className="flex gap-2">
+                  {item.buktiScan && (
+                      <button onClick={() => handlePreview(item.buktiScan!)} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors" title="Lihat Scan">
+                        <Eye size={16} />
+                      </button>
+                  )}
+                  <button onClick={() => { setFormData(item); setValidationError(''); setIsModalOpen(true); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
+                      <Pencil size={16} />
+                  </button>
+                  {canDelete && (
+                    <button onClick={() => setDeleteItem(item)} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Hapus">
+                        <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+               )}
+            </div>
+         </div>
+       ))}
+    </div>
+  );
+
   return (
     <div>
       <Toolbar 
@@ -245,6 +318,8 @@ export const SchoolPage: React.FC = () => {
         onAdd={canAdd ? openAdd : undefined} 
         onExport={handleExport}
         onImport={canImport ? handleImport : undefined}
+        layoutMode={layout}
+        onLayoutChange={setLayout}
       />
 
       {/* Filter Control */}
@@ -269,60 +344,66 @@ export const SchoolPage: React.FC = () => {
          )}
       </div>
 
-      <Card>
-        <Table<PMSekolah> 
-          isLoading={loading}
-          data={data}
-          hideActions={hideActions} 
-          columns={[
-            { header: 'NPSN', accessor: 'npsn' },
-            { header: 'Nama Sekolah', accessor: 'nama' },
-            { 
-              header: 'Desa', 
-              accessor: (i) => (
-                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium border border-gray-200">
-                  {i.desa || '-'}
-                </span>
-              )
-            },
-            { header: 'Jenis', accessor: 'jenis' },
-            { header: 'Siswa', accessor: 'jmlsiswa' },
-            { 
-              header: 'PM Besar', 
-              accessor: (i) => (
-                <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200">
-                  {i.pmBesar || 0}
-                </span>
-              )
-            },
-            { 
-              header: 'PM Kecil', 
-              accessor: (i) => (
-                <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-red-100 text-red-700 font-bold text-xs border border-red-200">
-                  {i.pmKecil || 0}
-                </span>
-              )
-            },
-            { header: 'Guru', accessor: 'jmlguru' },
-            { header: 'Narahubung', accessor: 'narahubung' },
-            { header: 'No HP Narahubung', accessor: 'hp' },
-            { 
-              header: 'BUKTI SCAN PENDATAAN', 
-              accessor: (i) => i.buktiScan ? (
-                <button 
-                  type="button"
-                  onClick={() => handlePreview(i.buktiScan!)}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
-                >
-                  <Eye size={12} /> Lihat
-                </button>
-              ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
-            },
-          ]}
-          onEdit={(i) => { setFormData(i); setValidationError(''); setIsModalOpen(true); }}
-          onDelete={setDeleteItem}
-        />
-      </Card>
+      {loading ? (
+        <LoadingSpinner />
+      ) : layout === 'table' ? (
+        <Card>
+          <Table<PMSekolah> 
+            isLoading={loading}
+            data={data}
+            hideActions={hideActions} 
+            columns={[
+              { header: 'NPSN', accessor: 'npsn' },
+              { header: 'Nama Sekolah', accessor: 'nama' },
+              { 
+                header: 'Desa', 
+                accessor: (i) => (
+                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium border border-gray-200">
+                    {i.desa || '-'}
+                  </span>
+                )
+              },
+              { header: 'Jenis', accessor: 'jenis' },
+              { header: 'Siswa', accessor: 'jmlsiswa' },
+              { 
+                header: 'PM Besar', 
+                accessor: (i) => (
+                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200">
+                    {i.pmBesar || 0}
+                  </span>
+                )
+              },
+              { 
+                header: 'PM Kecil', 
+                accessor: (i) => (
+                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-red-100 text-red-700 font-bold text-xs border border-red-200">
+                    {i.pmKecil || 0}
+                  </span>
+                )
+              },
+              { header: 'Guru', accessor: 'jmlguru' },
+              { header: 'Narahubung', accessor: 'narahubung' },
+              { header: 'No HP Narahubung', accessor: 'hp' },
+              { 
+                header: 'BUKTI SCAN PENDATAAN', 
+                accessor: (i) => i.buktiScan ? (
+                  <button 
+                    type="button"
+                    onClick={() => handlePreview(i.buktiScan!)}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    <Eye size={12} /> Lihat
+                  </button>
+                ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
+              },
+            ]}
+            onEdit={(i) => { setFormData(i); setValidationError(''); setIsModalOpen(true); }}
+            onDelete={setDeleteItem}
+          />
+        </Card>
+      ) : (
+        renderGrid()
+      )}
 
       {canDelete && (
         <ConfirmationModal 
