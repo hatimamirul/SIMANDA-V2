@@ -25,7 +25,8 @@ import {
   Package, // Icon for Inventory
   Truck, // Icon for Supplier
   ArrowDownToLine, // Icon for Incoming
-  ClipboardList // Icon for Stock Opname
+  ClipboardList, // Icon for Stock Opname
+  Layers // Icon for Stock Current
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -239,6 +240,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                sidebarOpen={isOpen}
                setSidebarOpen={setIsOpen}
              >
+               <SidebarItem to="/inventory/stok-saat-ini" icon={<Layers size={18} />} label="Stok Saat Ini" isSubItem />
                <SidebarItem to="/inventory/bahan-masuk" icon={<ArrowDownToLine size={18} />} label="Laporan Bahan Masuk" isSubItem />
                <SidebarItem to="/inventory/stok-opname" icon={<ClipboardList size={18} />} label="Laporan Stok Opname" isSubItem />
                <SidebarItem to="/inventory/supplier" icon={<Truck size={18} />} label="Data Suplayer" isSubItem />
