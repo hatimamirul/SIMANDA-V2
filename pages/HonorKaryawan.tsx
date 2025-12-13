@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, LoadingSpinner, SlipGajiModal } from '../components/UIComponents';
+import { Card, Table, Button, LoadingSpinner, SlipGajiModal, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, HonorariumRow } from '../types';
 import { Calendar, Wallet, FileDown, CalendarDays, Printer } from 'lucide-react';
@@ -18,6 +18,9 @@ export const HonorKaryawanPage: React.FC = () => {
   const [isSlipOpen, setIsSlipOpen] = useState(false);
   const [selectedSlipData, setSelectedSlipData] = useState<any>(null);
   const [defaultFilename, setDefaultFilename] = useState("");
+  
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Realtime Subscription to Periodes
   useEffect(() => {
@@ -80,11 +83,10 @@ export const HonorKaryawanPage: React.FC = () => {
   };
 
   const totalBudget = honorData.reduce((acc, curr) => acc + curr.totalTerima, 0);
+  const currentPeriodeName = periodes.find(p => p.id === selectedPeriode)?.nama || 'Periode';
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     if (honorData.length === 0) return;
-    
-    const periodeName = periodes.find(p => p.id === selectedPeriode)?.nama || 'Unknown';
     
     const dataToExport = honorData.map((item, index) => ({
       'No': index + 1,
@@ -100,7 +102,7 @@ export const HonorKaryawanPage: React.FC = () => {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Honorarium");
-    XLSX.writeFile(wb, `Honorarium_Karyawan_${periodeName}.xlsx`);
+    XLSX.writeFile(wb, `Honorarium_Karyawan_${currentPeriodeName}.xlsx`);
   };
 
   const handlePrintSlip = (item: HonorariumRow) => {
@@ -172,8 +174,8 @@ export const HonorKaryawanPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <Button variant="secondary" onClick={handleExport} icon={<FileDown size={18}/>}>
-                  Export Laporan Excel
+                <Button variant="secondary" onClick={() => setIsExportModalOpen(true)} icon={<FileDown size={18}/>}>
+                  Export Laporan
                 </Button>
               </div>
             </div>
@@ -217,6 +219,24 @@ export const HonorKaryawanPage: React.FC = () => {
           </Card>
         </>
       )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title={`Laporan Honorarium Karyawan - ${currentPeriodeName}`}
+        subtitle={`Periode: ${getPeriodeDateRange(selectedPeriode)}`}
+        data={honorData}
+        columns={[
+            { header: 'Nama Karyawan', accessor: 'nama' },
+            { header: 'Divisi', accessor: 'divisi' },
+            { header: 'Bank', accessor: 'bank' },
+            { header: 'Rekening', accessor: 'rekening' },
+            { header: 'Total Hadir', accessor: (i) => `${i.totalHadir} Hari` },
+            { header: 'Total Terima', accessor: (i) => formatCurrency(i.totalTerima) }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <SlipGajiModal 
         isOpen={isSlipOpen} 
