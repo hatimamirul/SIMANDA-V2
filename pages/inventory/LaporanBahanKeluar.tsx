@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select } from '../../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select, ExportModal } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { BahanKeluar, StokSummary } from '../../types';
 import { Package, Hash, Scale, FileText, CalendarDays, ArrowUpFromLine, Filter } from 'lucide-react';
@@ -22,6 +22,9 @@ export const LaporanBahanKeluarPage: React.FC = () => {
   const [filterDate, setFilterDate] = useState(''); // Filter by Month/Year
   const [loading, setLoading] = useState(false);
   
+  // Export State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -139,7 +142,7 @@ export const LaporanBahanKeluarPage: React.FC = () => {
       }));
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Tanggal': item.tanggal,
       'Nama Bahan': item.namaBahan,
@@ -160,7 +163,7 @@ export const LaporanBahanKeluarPage: React.FC = () => {
         title="Laporan Bahan Keluar" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Nama Bahan..."
       />
 
@@ -210,6 +213,22 @@ export const LaporanBahanKeluarPage: React.FC = () => {
           />
         </Card>
       )}
+
+      {/* EXPORT MODAL */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Bahan Keluar"
+        subtitle={filterDate ? `Periode: ${filterDate}` : 'Semua Periode'}
+        data={data}
+        columns={[
+            { header: 'Tanggal', accessor: 'tanggal' },
+            { header: 'Nama Bahan', accessor: 'namaBahan' },
+            { header: 'Jumlah', accessor: (i) => `${i.jumlah} ${i.satuan}` },
+            { header: 'Keterangan', accessor: (i) => i.keterangan || '-' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
@@ -309,4 +328,3 @@ export const LaporanBahanKeluarPage: React.FC = () => {
     </div>
   );
 };
-
