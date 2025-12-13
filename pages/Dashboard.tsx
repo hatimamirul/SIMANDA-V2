@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../components/UIComponents';
@@ -6,7 +7,8 @@ import { api } from '../services/mockService';
 import { DashboardStats } from '../types';
 import { 
   Users, School, Baby, Activity, Calendar, Clock, 
-  TrendingUp, ArrowRight, PlusCircle, CheckSquare, FileText 
+  TrendingUp, ArrowRight, PlusCircle, CheckSquare, FileText,
+  GraduationCap
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -129,8 +131,8 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* === KEY METRICS (4 COLUMNS) === */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* === KEY METRICS (5 COLUMNS) === */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard 
           title="Total Karyawan" 
           count={stats.karyawan} 
@@ -144,6 +146,13 @@ export const Dashboard: React.FC = () => {
           icon={<School size={24} />} 
           color="#61A5C2" 
           subText={`Terdiri dari ${stats.pmsekolah} Institusi`}
+        />
+        <StatCard 
+          title="Total Guru" 
+          count={stats.guru} 
+          icon={<GraduationCap size={24} />} 
+          color="#E9C46A" 
+          subText="Tenaga Pendidik"
         />
         <StatCard 
           title="Penerima Manfaat B3" 
@@ -323,4 +332,3 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
-
