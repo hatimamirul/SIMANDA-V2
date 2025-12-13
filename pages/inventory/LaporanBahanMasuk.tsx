@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select } from '../../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select, ExportModal } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { BahanMasuk, Supplier, MasterBarang } from '../../types';
 import { Plus, Trash2, CalendarDays, Archive, Search, Package, Truck, Hash, Scale, FileText, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
@@ -27,6 +27,9 @@ export const LaporanBahanMasukPage: React.FC = () => {
   const [filterDate, setFilterDate] = useState(''); // Filter by Month/Year
   const [loading, setLoading] = useState(false);
   
+  // Export State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -227,7 +230,8 @@ export const LaporanBahanMasukPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  // --- EXPORT LOGIC ---
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Tanggal': item.tanggal,
       'Suplayer': item.namaSupplier,
@@ -272,7 +276,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
         title="Laporan Bahan Masuk" 
         onSearch={setSearch} 
         onAdd={openAddBatch} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Bahan atau Suplayer..."
       />
 
@@ -316,6 +320,23 @@ export const LaporanBahanMasukPage: React.FC = () => {
           />
         </Card>
       )}
+
+      {/* EXPORT MODAL */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Bahan Masuk"
+        subtitle={filterDate ? `Periode: ${filterDate}` : 'Semua Periode'}
+        data={data}
+        columns={[
+            { header: 'Tanggal', accessor: 'tanggal' },
+            { header: 'Suplayer', accessor: 'namaSupplier' },
+            { header: 'Nama Bahan', accessor: 'namaBahan' },
+            { header: 'Jumlah', accessor: (i) => `${i.jumlah} ${i.satuan}` },
+            { header: 'Keterangan', accessor: (i) => i.keterangan || '-' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
