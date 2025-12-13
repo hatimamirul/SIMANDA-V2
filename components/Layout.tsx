@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -19,7 +20,8 @@ import {
   Briefcase,
   GraduationCap,
   Heart,
-  CalendarCheck
+  CalendarCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -202,7 +204,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           )}
           
           {canSeeSekolah && (
-            <SidebarItem to="/sekolah" icon={<School size={20} />} label={isOpen ? "Data PM Sekolah" : ""} />
+            <>
+              <SidebarItem to="/sekolah" icon={<School size={20} />} label={isOpen ? "Data PM Sekolah" : ""} />
+              <SidebarItem to="/alergi" icon={<ShieldAlert size={20} />} label={isOpen ? "Data Alergi" : ""} />
+            </>
           )}
           
           {canSeePICSekolah && (
