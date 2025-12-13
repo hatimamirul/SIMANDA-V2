@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { Supplier } from '../../types';
 
@@ -15,6 +15,9 @@ export const DataSupplierPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export const DataSupplierPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Nama Suplayer': item.nama,
       'Alamat': item.alamat,
@@ -83,7 +86,7 @@ export const DataSupplierPage: React.FC = () => {
         title="Data Suplayer" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Nama Suplayer..."
       />
       {loading ? (
@@ -104,6 +107,21 @@ export const DataSupplierPage: React.FC = () => {
           />
         </Card>
       )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data Suplayer"
+        data={data}
+        columns={[
+            { header: 'Nama Suplayer', accessor: 'nama' },
+            { header: 'Alamat', accessor: 'alamat' },
+            { header: 'No HP', accessor: 'hp' },
+            { header: 'Keterangan', accessor: (i) => i.keterangan || '-' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
