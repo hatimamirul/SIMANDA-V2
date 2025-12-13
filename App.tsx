@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -59,12 +59,20 @@ const MainApp = () => {
     return u ? JSON.parse(u) : null;
   });
   
+  // Use Ref to track current user state inside async/closure callbacks without stale data
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+  
   // Realtime User Sync (Security & State Update)
   useEffect(() => {
     if (!user || !token) return;
 
     // Subscribe to this specific user's data in the database
     const unsubscribe = api.subscribeUser(user.id, (updatedUser) => {
+      const currentUser = userRef.current;
+
       if (!updatedUser) {
         // User deleted from DB
         alert("Akun anda telah dihapus. Sesi berakhir.");
@@ -80,28 +88,30 @@ const MainApp = () => {
       }
 
       // Check for password change (Sync across devices)
-      if (user.password && updatedUser.password && updatedUser.password !== user.password) {
+      if (currentUser && currentUser.password && updatedUser.password && updatedUser.password !== currentUser.password) {
         alert("Password anda telah diubah di perangkat lain. Silahkan login kembali.");
         handleLogout();
         return;
       }
 
-      // --- NEW: Single Device Login Check (Session ID Mismatch) ---
-      if (updatedUser.sessionId && user.sessionId && updatedUser.sessionId !== user.sessionId) {
-          alert("Akun anda telah digunakan login di perangkat lain. Anda akan logout otomatis.");
+      // --- Single Device Login Check (Session ID Mismatch) ---
+      // We check against userRef.current to ensure we have the latest local state.
+      // If remote has a session ID, and it differs from our local one, we are stale.
+      if (currentUser && updatedUser.sessionId && updatedUser.sessionId !== currentUser.sessionId) {
+          alert("Akun anda telah digunakan login di perangkat lain. Sesi ini akan berakhir otomatis.");
           handleLogout();
           return;
       }
 
       // Update local user state for non-critical changes (name, role, division)
       // We also update sessionId here if it wasn't present locally (first sync)
-      if (
-          updatedUser.nama !== user.nama || 
-          updatedUser.jabatan !== user.jabatan || 
-          updatedUser.jabatanDivisi !== user.jabatanDivisi ||
-          (!user.sessionId && updatedUser.sessionId)
-      ) {
-         const mergedUser = { ...updatedUser, password: user.password, sessionId: updatedUser.sessionId };
+      if (currentUser && (
+          updatedUser.nama !== currentUser.nama || 
+          updatedUser.jabatan !== currentUser.jabatan || 
+          updatedUser.jabatanDivisi !== currentUser.jabatanDivisi ||
+          (!currentUser.sessionId && updatedUser.sessionId)
+      )) {
+         const mergedUser = { ...updatedUser, password: currentUser.password, sessionId: updatedUser.sessionId };
          setUser(mergedUser);
          localStorage.setItem('simanda_user', JSON.stringify(mergedUser));
       }
