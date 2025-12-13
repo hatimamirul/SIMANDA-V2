@@ -163,6 +163,16 @@ export interface BahanMasuk {
   buktiFoto?: string;
 }
 
+// Type for Aggregated Stock View
+export interface StokSummary {
+  id: string; // composite key: namaBahan_namaSupplier
+  namaBahan: string;
+  namaSupplier: string;
+  totalStok: number;
+  satuan: string;
+  lastUpdated: string;
+}
+
 export interface StokOpname {
   id: string;
   tanggal: string;
