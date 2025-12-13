@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, useToast, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { User, Role } from '../types';
 
@@ -29,6 +29,9 @@ export const UsersPage: React.FC = () => {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Export State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -83,7 +86,7 @@ export const UsersPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = users.map(u => ({
       'Nama Lengkap': u.nama,
       'Email': u.email,
@@ -125,7 +128,7 @@ export const UsersPage: React.FC = () => {
         title="User Management" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport} 
+        onExport={() => setIsExportModalOpen(true)} 
         searchPlaceholder="Search users..." 
       />
       
@@ -156,6 +159,23 @@ export const UsersPage: React.FC = () => {
           onDelete={setDeleteItem}
         />
       </Card>
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data Users SIMANDA"
+        data={users}
+        columns={[
+            { header: 'Nama Lengkap', accessor: 'nama' },
+            { header: 'Email', accessor: 'email' },
+            { header: 'Username', accessor: 'username' },
+            { header: 'Role', accessor: 'jabatan' },
+            { header: 'Divisi', accessor: (u) => u.jabatanDivisi || '-' },
+            { header: 'Status', accessor: 'status' },
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
