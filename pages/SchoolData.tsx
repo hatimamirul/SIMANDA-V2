@@ -20,8 +20,9 @@ export const SchoolPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState('');
   
-  // Filtering by Desa
+  // Filtering States
   const [filterDesa, setFilterDesa] = useState('');
+  const [filterJenis, setFilterJenis] = useState('');
 
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
@@ -36,6 +37,9 @@ export const SchoolPage: React.FC = () => {
   ].sort();
   
   const desaOptions = desaOptionsRaw.map(d => ({ value: d, label: d }));
+
+  // List of Jenis Sekolah
+  const jenisOptionsRaw = ['KB/PAUD', 'TK', 'SD/MI', 'SMP/MTS', 'SMA/MA'];
 
   // Get current user to check role
   const currentUser: User | null = (() => {
@@ -53,28 +57,33 @@ export const SchoolPage: React.FC = () => {
   // Define roles allowed to import
   const canImport = ['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role);
 
-  // Realtime Subscription
+  // Realtime Subscription with Integrated Filtering
   useEffect(() => {
     setLoading(true);
     const unsubscribe = api.subscribePMs((items) => {
       let filtered = items;
       
-      // Filter by Search
+      // 1. Filter by Search
       if (search) {
         const lower = search.toLowerCase();
         filtered = filtered.filter(i => i.nama.toLowerCase().includes(lower) || i.npsn.includes(lower));
       }
 
-      // Filter by Desa
+      // 2. Filter by Desa
       if (filterDesa) {
         filtered = filtered.filter(i => i.desa === filterDesa);
+      }
+
+      // 3. Filter by Jenis
+      if (filterJenis) {
+        filtered = filtered.filter(i => i.jenis === filterJenis);
       }
 
       setData(filtered);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [search, filterDesa]);
+  }, [search, filterDesa, filterJenis]);
 
   const validate = (): boolean => {
     if (
@@ -323,24 +332,56 @@ export const SchoolPage: React.FC = () => {
       />
 
       {/* Filter Control */}
-      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold">
+      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center gap-3">
+         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold shrink-0">
             <Filter size={16} /> Filter:
          </div>
-         <select 
-            value={filterDesa} 
-            onChange={(e) => setFilterDesa(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
-         >
-            <option value="">-- Semua Desa --</option>
-            {desaOptionsRaw.map(desa => (
-               <option key={desa} value={desa}>{desa}</option>
-            ))}
-         </select>
-         {filterDesa && (
-           <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md">
-             Menampilkan data desa: {filterDesa}
-           </span>
+         
+         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+             {/* Filter Desa */}
+             <select 
+                value={filterDesa} 
+                onChange={(e) => setFilterDesa(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+             >
+                <option value="">-- Semua Desa --</option>
+                {desaOptionsRaw.map(desa => (
+                   <option key={desa} value={desa}>{desa}</option>
+                ))}
+             </select>
+
+             {/* Filter Jenis */}
+             <select 
+                value={filterJenis} 
+                onChange={(e) => setFilterJenis(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+             >
+                <option value="">-- Semua Jenjang --</option>
+                {jenisOptionsRaw.map(jenis => (
+                   <option key={jenis} value={jenis}>{jenis}</option>
+                ))}
+             </select>
+         </div>
+
+         {(filterDesa || filterJenis) && (
+           <div className="flex flex-wrap gap-2 md:ml-auto">
+             {filterDesa && (
+                <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                  Desa: {filterDesa}
+                </span>
+             )}
+             {filterJenis && (
+                <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                  Jenjang: {filterJenis}
+                </span>
+             )}
+             <button 
+                onClick={() => { setFilterDesa(''); setFilterJenis(''); }}
+                className="text-xs text-gray-500 hover:text-red-500 underline"
+             >
+                Reset
+             </button>
+           </div>
          )}
       </div>
 
