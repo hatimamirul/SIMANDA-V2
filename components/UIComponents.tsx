@@ -1,7 +1,6 @@
 
-
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
-import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List } from 'lucide-react';
+import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText } from 'lucide-react';
 
 // === Logo ===
 // Using a more reliable Google Drive direct link format
@@ -113,7 +112,7 @@ export const FormHelperText: React.FC = () => (
 
 // === Button ===
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
   size?: 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
   isLoading?: boolean;
@@ -125,6 +124,7 @@ export const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', s
     primary: "bg-primary hover:bg-[#1f5676] text-white focus:ring-primary",
     secondary: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300",
     danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
     ghost: "bg-transparent hover:bg-gray-100 text-gray-600"
   };
   
@@ -221,6 +221,146 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         </div>
         <div className="p-6">
           {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Export Preview Modal ===
+interface ExportModalProps<T> {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  data: T[];
+  columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined) }[];
+  onExportExcel: () => void;
+}
+
+export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel }: ExportModalProps<T>) => {
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleExportPdf = () => {
+    const element = document.getElementById('export-preview-content');
+    if (!element || !(window as any).html2pdf) return;
+
+    setIsPdfLoading(true);
+    const opt = {
+      margin: [10, 10, 10, 10], // top, left, bottom, right
+      filename: `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    (window as any).html2pdf().set(opt).from(element).save().then(() => {
+      setIsPdfLoading(false);
+    });
+  };
+
+  const currentDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col animate-scale-in">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl shrink-0">
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                <Printer size={20} />
+             </div>
+             <div>
+                <h3 className="text-lg font-bold text-gray-800">Preview Export Laporan</h3>
+                <p className="text-xs text-gray-500">Silahkan pilih format unduhan (Excel / PDF)</p>
+             </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+            <X size={20} className="text-gray-600" />
+          </button>
+        </div>
+
+        {/* Scrollable Preview Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
+           <div id="export-preview-content" className="bg-white p-8 shadow-sm border border-gray-200 mx-auto max-w-[297mm] min-h-[210mm] text-black">
+              
+              {/* Report Header */}
+              <div className="flex items-center gap-4 border-b-2 border-gray-800 pb-4 mb-6">
+                  <Logo className="w-16 h-16 object-contain" />
+                  <div className="flex-1">
+                    <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-gray-900">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
+                    <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-gray-700">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
+                    <p className="text-xs text-gray-500 mt-1">Laporan digenerate pada: {currentDate}</p>
+                  </div>
+              </div>
+
+              {/* Report Title */}
+              <div className="text-center mb-6">
+                 <h2 className="text-xl font-bold underline decoration-2 underline-offset-4 uppercase">{title}</h2>
+                 {subtitle && <p className="text-sm font-medium mt-1 text-gray-600">{subtitle}</p>}
+              </div>
+
+              {/* Report Table */}
+              <table className="w-full border-collapse border border-gray-300 text-xs">
+                 <thead>
+                    <tr className="bg-gray-100 text-gray-800">
+                       <th className="border border-gray-300 px-2 py-2 w-10 text-center">No</th>
+                       {columns.map((col, idx) => (
+                          <th key={idx} className="border border-gray-300 px-2 py-2 text-left font-bold uppercase">
+                             {col.header}
+                          </th>
+                       ))}
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {data.length === 0 ? (
+                       <tr><td colSpan={columns.length + 1} className="p-4 text-center text-gray-500 italic">Tidak ada data</td></tr>
+                    ) : (
+                       data.map((item, idx) => (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                             <td className="border border-gray-300 px-2 py-1.5 text-center">{idx + 1}</td>
+                             {columns.map((col, cIdx) => (
+                                <td key={cIdx} className="border border-gray-300 px-2 py-1.5">
+                                   {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as any)}
+                                </td>
+                             ))}
+                          </tr>
+                       ))
+                    )}
+                 </tbody>
+              </table>
+
+              {/* Footer Signature Area (Optional Placeholder) */}
+              <div className="mt-10 flex justify-end page-break-inside-avoid">
+                 <div className="text-center w-48">
+                    <p className="mb-16">Mengetahui,</p>
+                    <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                    <p className="text-xs">Kepala SPPG</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t bg-white flex justify-end gap-3 rounded-b-xl shrink-0">
+           <Button variant="secondary" onClick={onClose}>Batal</Button>
+           <Button 
+              variant="success" 
+              onClick={() => { onExportExcel(); onClose(); }} 
+              icon={<FileSpreadsheet size={18} />}
+           >
+              Download Excel
+           </Button>
+           <Button 
+              variant="danger" 
+              onClick={handleExportPdf} 
+              isLoading={isPdfLoading} 
+              icon={<FileText size={18} />}
+           >
+              Download PDF
+           </Button>
         </div>
       </div>
     </div>
@@ -820,3 +960,4 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
+
