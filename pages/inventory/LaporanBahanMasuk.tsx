@@ -151,7 +151,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                  m => m.namaBarang.toLowerCase() === inputNameRaw.toLowerCase()
              );
 
-             let finalName = inputNameRaw;
+             let finalName = inputNameRaw; // Already Uppercase from input
 
              if (existingMaster) {
                  // Jika ada (sama persis atau beda casing), AMBIL dari Role Model
@@ -367,7 +367,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                                      className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-medium"
                                      placeholder="Ketik nama barang..."
                                      value={item.namaBahan}
-                                     onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value)}
+                                     onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value.toUpperCase())}
                                   />
                                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
                                </div>
@@ -419,7 +419,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                                   type="text"
                                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
                                   value={item.keterangan}
-                                  onChange={(e) => handleRowChange(index, 'keterangan', e.target.value)}
+                                  onChange={(e) => handleRowChange(index, 'keterangan', e.target.value.toUpperCase())}
                                   placeholder="Opsional (Kualitas, dll)"
                                />
                            </div>
@@ -446,7 +446,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
               
               <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Input label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value})} />
+                    <Input label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value.toUpperCase()})} />
                   </div>
                   <div>
                     <Select 
@@ -480,7 +480,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                 <textarea 
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   value={editItem.keterangan || ''}
-                  onChange={e => setEditItem({...editItem, keterangan: e.target.value})}
+                  onChange={e => setEditItem({...editItem, keterangan: e.target.value.toUpperCase()})}
                 />
               </div>
 
