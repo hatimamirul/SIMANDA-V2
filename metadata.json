@@ -1,5 +1,7 @@
 {
-  "name": "Copy of SIMANDA SPPG 6",
+  "name": "SIMANDA FIKS",
   "description": "WEB APP SIMANDA SPPG",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }
