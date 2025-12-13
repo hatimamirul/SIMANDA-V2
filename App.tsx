@@ -17,6 +17,7 @@ import { HonorKaderB3Page } from './pages/HonorKaderB3';
 import { AbsensiPage } from './pages/Absensi'; 
 import { DataSupplierPage } from './pages/inventory/DataSupplier';
 import { LaporanBahanMasukPage } from './pages/inventory/LaporanBahanMasuk';
+import { LaporanBahanKeluarPage } from './pages/inventory/LaporanBahanKeluar';
 import { LaporanStokOpnamePage } from './pages/inventory/LaporanStokOpname';
 import { StokSaatIniPage } from './pages/inventory/StokSaatIni';
 import { Layout } from './components/Layout';
@@ -241,6 +242,14 @@ const MainApp = () => {
             element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <LaporanBahanMasukPage />
+              </ProtectedRoute>
+            } 
+          />
+           <Route 
+            path="/inventory/bahan-keluar" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <LaporanBahanKeluarPage />
               </ProtectedRoute>
             } 
           />
