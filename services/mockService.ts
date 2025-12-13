@@ -1,5 +1,4 @@
 
-
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
@@ -235,8 +234,15 @@ export const api = {
     const user = users.find(user => user.username === u && user.password === p);
     if (user) {
       if (user.status === 'AKTIF') {
-        // Return full user including password so App.tsx can compare for sync
-        return { status: 'success', token: 'mock-jwt-' + Date.now(), user: user };
+        // --- NEW: Generate Unique Session ID ---
+        const newSessionId = `sess-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const userWithSession = { ...user, sessionId: newSessionId };
+        
+        // Save session ID to DB so other devices can see it changed
+        await saveData('users', KEYS.USERS, userWithSession);
+
+        // Return full user with session
+        return { status: 'success', token: 'mock-jwt-' + Date.now(), user: userWithSession };
       }
       return { status: 'error', message: 'Akun Tidak Aktif' };
     }
@@ -601,3 +607,4 @@ export const api = {
       return () => { unsubAbsensi(); unsubKaryawan(); };
   }
 };
+
