@@ -1,6 +1,7 @@
 
+
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
-import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download } from 'lucide-react';
+import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List } from 'lucide-react';
 
 // === Logo ===
 // Using a more reliable Google Drive direct link format
@@ -638,8 +639,10 @@ interface ToolbarProps {
   onImport?: (file: File) => void;
   searchPlaceholder?: string;
   title: string;
+  layoutMode?: 'table' | 'grid';
+  onLayoutChange?: (mode: 'table' | 'grid') => void;
 }
-export const Toolbar: React.FC<ToolbarProps> = ({ onSearch, onAdd, onExport, onImport, searchPlaceholder = "Search...", title }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ onSearch, onAdd, onExport, onImport, searchPlaceholder = "Search...", title, layoutMode, onLayoutChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchValue, setSearchValue] = useState('');
 
@@ -670,8 +673,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onSearch, onAdd, onExport, onI
   return (
     <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200/60 no-print">
       <h2 className="text-xl font-bold text-gray-800 tracking-tight">{title}</h2>
-      <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
-        <div className="relative flex-grow sm:flex-grow-0 group">
+      <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
+        <div className="relative flex-grow sm:flex-grow-0 group w-full sm:w-auto">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
              <Search className="text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
           </div>
@@ -692,7 +695,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onSearch, onAdd, onExport, onI
             </button>
           )}
         </div>
-        <div className="flex gap-2">
+        
+        {/* Layout Switcher */}
+        {layoutMode && onLayoutChange && (
+          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+            <button 
+              onClick={() => onLayoutChange('table')}
+              className={`p-1.5 rounded-md transition-all ${layoutMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              title="List View"
+            >
+              <List size={18} />
+            </button>
+            <button 
+              onClick={() => onLayoutChange('grid')}
+              className={`p-1.5 rounded-md transition-all ${layoutMode === 'grid' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              title="Grid View"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+        )}
+
+        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
            {onAdd && <Button onClick={onAdd} icon={<Plus size={18} />} className="whitespace-nowrap shadow-sm">Add New</Button>}
            <Button variant="secondary" onClick={onExport} icon={<FileDown size={18} />} className="whitespace-nowrap shadow-sm">Export</Button>
            {onImport && (
