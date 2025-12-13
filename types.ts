@@ -158,7 +158,7 @@ export interface BahanMasuk {
   namaBahan: string;
   jumlah: number;
   satuan: string; // kg, liter, pcs, ikat, dll
-  hargaTotal: number;
+  hargaTotal?: number; // Optional now
   keterangan?: string;
   buktiFoto?: string;
 }
