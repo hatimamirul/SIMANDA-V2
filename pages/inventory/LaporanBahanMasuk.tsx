@@ -115,7 +115,14 @@ export const LaporanBahanMasukPage: React.FC = () => {
 
   const handleRowChange = (index: number, field: keyof BahanMasuk, value: any) => {
       const newList = [...inputList];
-      newList[index] = { ...newList[index], [field]: value };
+      
+      // Enforce Uppercase for Text Fields to ensure neatness
+      let finalValue = value;
+      if (typeof value === 'string' && field !== 'supplierId' && field !== 'satuan') {
+          finalValue = value.toUpperCase();
+      }
+
+      newList[index] = { ...newList[index], [field]: finalValue };
 
       // Auto update supplier name if ID changes
       if (field === 'supplierId') {
@@ -310,10 +317,10 @@ export const LaporanBahanMasukPage: React.FC = () => {
             data={data}
             columns={[
               { header: 'Tanggal', accessor: 'tanggal' },
-              { header: 'Nama Bahan', accessor: 'namaBahan' },
+              { header: 'Nama Bahan', accessor: (i) => <span className="font-bold text-gray-700 uppercase tracking-wide">{i.namaBahan}</span> },
               { header: 'Suplayer', accessor: 'namaSupplier' },
-              { header: 'Jumlah', accessor: (i) => `${i.jumlah} ${i.satuan}` },
-              { header: 'Keterangan', accessor: (i) => i.keterangan || '-' },
+              { header: 'Jumlah', accessor: (i) => <span className="font-mono font-bold bg-gray-100 px-2 py-1 rounded">{i.jumlah} {i.satuan}</span> },
+              { header: 'Keterangan', accessor: (i) => <span className="uppercase text-xs text-gray-500">{i.keterangan || '-'}</span> },
             ]}
             onEdit={openEdit}
             onDelete={setDeleteItem}
@@ -372,7 +379,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                     <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Tanggal Transaksi</label>
                     <input 
                         type="date" 
-                        className="bg-transparent font-bold text-gray-800 outline-none w-full cursor-pointer text-lg"
+                        className="bg-transparent font-bold text-gray-800 outline-none w-full cursor-pointer text-lg uppercase"
                         value={entryDate}
                         onChange={(e) => setEntryDate(e.target.value)}
                     />
@@ -390,7 +397,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Item #{index + 1}</span>
                                 {item.namaBahan && (
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-medium ${isKnown ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 font-bold tracking-wide uppercase ${isKnown ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                         {isKnown ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
                                         {isKnown ? 'Tersedia di Role' : 'Item Baru'}
                                     </span>
@@ -410,27 +417,27 @@ export const LaporanBahanMasukPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
                            {/* Row 1: Nama & Supplier */}
                            <div className="md:col-span-7">
-                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                                   <Package size={14} className="text-primary"/> Nama Barang
                                </label>
                                <div className="relative">
                                   <input 
                                      list="masterBarangList"
-                                     className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-medium uppercase"
+                                     className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-bold text-gray-800 uppercase tracking-wide placeholder:font-normal"
                                      placeholder="KETIK NAMA BARANG..."
                                      value={item.namaBahan}
-                                     onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value.toUpperCase())}
+                                     onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value)}
                                   />
                                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
                                </div>
                            </div>
                            
                            <div className="md:col-span-5">
-                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                                   <Truck size={14} className="text-primary"/> Suplayer
                                </label>
                                <select 
-                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-gray-50/50"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-gray-50/50 font-medium"
                                   value={item.supplierId}
                                   onChange={(e) => handleRowChange(index, 'supplierId', e.target.value)}
                                >
@@ -440,22 +447,22 @@ export const LaporanBahanMasukPage: React.FC = () => {
 
                            {/* Row 2: Qty, Unit, Desc */}
                            <div className="md:col-span-3">
-                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                                   <Hash size={14} className="text-primary"/> Jumlah
                                </label>
                                <input 
                                   type="number"
-                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-center"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-center text-blue-700"
                                   value={item.jumlah ?? ''}
                                   onChange={(e) => handleRowChange(index, 'jumlah', e.target.value)}
                                />
                            </div>
                            <div className="md:col-span-3">
-                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                                   <Scale size={14} className="text-primary"/> Satuan
                                </label>
                                <select 
-                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-gray-50/50"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-gray-50/50 font-medium"
                                   value={item.satuan}
                                   onChange={(e) => handleRowChange(index, 'satuan', e.target.value)}
                                >
@@ -464,14 +471,14 @@ export const LaporanBahanMasukPage: React.FC = () => {
                            </div>
                            
                            <div className="md:col-span-6">
-                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                               <label className="flex items-center gap-1.5 text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                                   <FileText size={14} className="text-primary"/> Keterangan
                                </label>
                                <input 
                                   type="text"
-                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm uppercase"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm font-medium text-gray-700 uppercase tracking-wide"
                                   value={item.keterangan}
-                                  onChange={(e) => handleRowChange(index, 'keterangan', e.target.value.toUpperCase())}
+                                  onChange={(e) => handleRowChange(index, 'keterangan', e.target.value)}
                                   placeholder="OPSIONAL (KUALITAS, DLL)"
                                />
                            </div>
@@ -498,7 +505,12 @@ export const LaporanBahanMasukPage: React.FC = () => {
               
               <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Input className="uppercase" label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value.toUpperCase()})} />
+                    <Input 
+                        className="uppercase font-bold tracking-wide text-gray-800" 
+                        label="Nama Bahan" 
+                        value={editItem.namaBahan} 
+                        onChange={e => setEditItem({...editItem, namaBahan: e.target.value.toUpperCase()})} 
+                    />
                   </div>
                   <div>
                     <Select 
@@ -530,7 +542,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                 <textarea 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none uppercase"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none uppercase font-medium text-gray-700 tracking-wide"
                   value={editItem.keterangan || ''}
                   onChange={e => setEditItem({...editItem, keterangan: e.target.value.toUpperCase()})}
                 />
@@ -546,3 +558,4 @@ export const LaporanBahanMasukPage: React.FC = () => {
     </div>
   );
 };
+
