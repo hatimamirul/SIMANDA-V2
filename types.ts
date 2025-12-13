@@ -1,5 +1,4 @@
 
-
 export type Role = 'SUPERADMIN' | 'KSPPG' | 'ADMINSPPG' | 'PETUGAS' | 'KOORDINATORDIVISI';
 
 export interface User {
@@ -11,6 +10,7 @@ export interface User {
   jabatan: Role;
   jabatanDivisi?: string; // Optional, used for KOORDINATORDIVISI to match Karyawan Division
   status: 'AKTIF' | 'TIDAK AKTIF';
+  sessionId?: string; // New: Unique ID to track active login session
 }
 
 export interface Karyawan {
@@ -193,3 +193,4 @@ export interface StokOpname {
   keterangan?: string;
   petugas?: string;
 }
+
