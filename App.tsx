@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
@@ -44,6 +42,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, user, token, 
   );
 };
 
+// Auto Logout Time (30 Minutes)
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+
 // Inner App Component to use Toast Hook properly
 const MainApp = () => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('simanda_token'));
@@ -73,8 +74,6 @@ const MainApp = () => {
       }
 
       // Check for password change (Sync across devices)
-      // This works because mockService 'login' stores the password in local user state
-      // allowing us to compare it with the live version.
       if (user.password && updatedUser.password && updatedUser.password !== user.password) {
         alert("Password anda telah diubah di perangkat lain. Silahkan login kembali.");
         handleLogout();
@@ -82,9 +81,7 @@ const MainApp = () => {
       }
 
       // Update local user state for non-critical changes (name, role, division)
-      // This allows live update of Role/Division without logout
       if (updatedUser.nama !== user.nama || updatedUser.jabatan !== user.jabatan || updatedUser.jabatanDivisi !== user.jabatanDivisi) {
-         // Preserve password in local state so the check above continues to work
          const mergedUser = { ...updatedUser, password: user.password };
          setUser(mergedUser);
          localStorage.setItem('simanda_user', JSON.stringify(mergedUser));
@@ -92,7 +89,43 @@ const MainApp = () => {
     });
 
     return () => unsubscribe();
-  }, [user?.id, token]); // Only re-sub if ID changes (login)
+  }, [user?.id, token]); 
+
+  // === AUTO LOGOUT LOGIC ===
+  useEffect(() => {
+    if (!user || !token) return;
+
+    let timeoutId: any;
+
+    const handleInactivity = () => {
+      alert("Sesi anda telah berakhir karena tidak ada aktivitas selama 30 menit. Silahkan login kembali.");
+      handleLogout();
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleInactivity, INACTIVITY_TIMEOUT);
+    };
+
+    // Events to detect activity
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+
+    // Attach listeners
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    // Start initial timer
+    resetTimer();
+
+    // Cleanup listeners on unmount or logout
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user, token]);
 
   const handleLogin = (newToken: string, newUser: User) => {
     setToken(newToken);
