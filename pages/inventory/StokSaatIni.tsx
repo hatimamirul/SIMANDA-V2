@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, LoadingSpinner } from '../../components/UIComponents';
+import { Card, Toolbar, Table, LoadingSpinner, ExportModal } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { StokSummary } from '../../types';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -12,6 +12,7 @@ export const StokSaatIniPage: React.FC = () => {
   const [data, setData] = useState<StokSummary[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -37,7 +38,7 @@ export const StokSaatIniPage: React.FC = () => {
       return data.filter(d => d.namaBahan.toLowerCase() === name.toLowerCase()).length;
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Nama Bahan': item.namaBahan,
       'Suplayer': item.namaSupplier,
@@ -57,7 +58,7 @@ export const StokSaatIniPage: React.FC = () => {
       <Toolbar 
         title="Stok Bahan Baku Saat Ini" 
         onSearch={setSearch} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Nama Bahan atau Suplayer..."
       />
       
@@ -103,6 +104,21 @@ export const StokSaatIniPage: React.FC = () => {
           />
         </Card>
       )}
+
+      {/* EXPORT MODAL */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Laporan Stok Saat Ini"
+        data={data}
+        columns={[
+            { header: 'Nama Bahan', accessor: 'namaBahan' },
+            { header: 'Suplayer', accessor: 'namaSupplier' },
+            { header: 'Total Stok', accessor: (item) => `${item.totalStok} ${item.satuan}` },
+            { header: 'Terakhir Update', accessor: 'lastUpdated' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
       
       <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 flex items-start gap-2">
           <AlertCircle size={16} className="text-orange-500 shrink-0 mt-0.5" />
