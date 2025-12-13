@@ -1,4 +1,5 @@
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa } from '../types';
+
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
@@ -72,6 +73,21 @@ const INITIAL_ALERGI: AlergiSiswa[] = [
   { id: '2', sekolahId: '2', namaSekolah: 'SD Negeri 1 Pertiwi', namaSiswa: 'Sari', keterangan: 'Alergi Kacang' }
 ];
 
+// Mock Inventory Data
+const INITIAL_SUPPLIERS: Supplier[] = [
+  { id: '1', nama: 'Toko Sayur Segar Jaya', alamat: 'Pasar Ngadiluwih Blok A', hp: '081233344455', keterangan: 'Langganan Sayur' },
+  { id: '2', nama: 'UD. Beras Makmur', alamat: 'Jl. Raya Kediri No 10', hp: '085677788899', keterangan: 'Suplayer Beras Premium' }
+];
+
+const INITIAL_BAHAN_MASUK: BahanMasuk[] = [
+  { id: '1', tanggal: '2025-01-20', supplierId: '1', namaSupplier: 'Toko Sayur Segar Jaya', namaBahan: 'Wortel', jumlah: 50, satuan: 'kg', hargaTotal: 500000, keterangan: 'Kualitas Bagus' },
+  { id: '2', tanggal: '2025-01-21', supplierId: '2', namaSupplier: 'UD. Beras Makmur', namaBahan: 'Beras IR 64', jumlah: 100, satuan: 'kg', hargaTotal: 1200000 }
+];
+
+const INITIAL_STOK_OPNAME: StokOpname[] = [
+  { id: '1', tanggal: '2025-01-25', namaBahan: 'Beras IR 64', stokFisik: 85, satuan: 'kg', kondisi: 'BAIK', keterangan: 'Sisa stok gudang', petugas: 'Admin' }
+];
+
 // Keys
 const KEYS = {
   USERS: 'simanda_users_v3',
@@ -82,7 +98,11 @@ const KEYS = {
   KADER_B3: 'simanda_kader_b3_v1',
   ALERGI: 'simanda_alergi_v1',
   PERIODE: 'simanda_periode_v1',
-  ABSENSI: 'simanda_absensi_v2' 
+  ABSENSI: 'simanda_absensi_v2',
+  // New Inventory Keys
+  SUPPLIER: 'simanda_supplier_v1',
+  BAHAN_MASUK: 'simanda_bahan_masuk_v1',
+  STOK_OPNAME: 'simanda_stok_opname_v1'
 };
 
 // Realtime Broadcast Channel for Local Sync (Fallback)
@@ -301,6 +321,22 @@ export const api = {
   subscribeAlergi: (cb: (data: AlergiSiswa[]) => void) => createSubscriber('alergi_siswa', KEYS.ALERGI, INITIAL_ALERGI, cb),
   saveAlergi: (item: AlergiSiswa) => saveData('alergi_siswa', KEYS.ALERGI, item),
   deleteAlergi: (id: string) => saveData('alergi_siswa', KEYS.ALERGI, { id }, true),
+
+  // === INVENTORY MANAGEMENT (NEW) ===
+  // Supplier
+  subscribeSuppliers: (cb: (data: Supplier[]) => void) => createSubscriber('suppliers', KEYS.SUPPLIER, INITIAL_SUPPLIERS, cb),
+  saveSupplier: (item: Supplier) => saveData('suppliers', KEYS.SUPPLIER, item),
+  deleteSupplier: (id: string) => saveData('suppliers', KEYS.SUPPLIER, { id }, true),
+
+  // Bahan Masuk
+  subscribeBahanMasuk: (cb: (data: BahanMasuk[]) => void) => createSubscriber('bahan_masuk', KEYS.BAHAN_MASUK, INITIAL_BAHAN_MASUK, cb),
+  saveBahanMasuk: (item: BahanMasuk) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, item),
+  deleteBahanMasuk: (id: string) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, { id }, true),
+
+  // Stok Opname
+  subscribeStokOpname: (cb: (data: StokOpname[]) => void) => createSubscriber('stok_opname', KEYS.STOK_OPNAME, INITIAL_STOK_OPNAME, cb),
+  saveStokOpname: (item: StokOpname) => saveData('stok_opname', KEYS.STOK_OPNAME, item),
+  deleteStokOpname: (id: string) => saveData('stok_opname', KEYS.STOK_OPNAME, { id }, true),
 
   // === ABSENSI & PERIODE ===
   getPeriode: async () => Promise.resolve(localDb.get(KEYS.PERIODE, [])),
