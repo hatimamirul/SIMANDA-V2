@@ -163,6 +163,16 @@ export interface BahanMasuk {
   buktiFoto?: string;
 }
 
+// NEW: Bahan Keluar
+export interface BahanKeluar {
+  id: string;
+  tanggal: string;
+  namaBahan: string;
+  jumlah: number;
+  satuan: string;
+  keterangan?: string;
+}
+
 // Type for Aggregated Stock View
 export interface StokSummary {
   id: string; // composite key: namaBahan_namaSupplier
