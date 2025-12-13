@@ -1,6 +1,6 @@
 
 
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname, MasterBarang } from '../types';
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
@@ -366,6 +366,40 @@ export const api = {
   },
   
   deleteBahanMasuk: (id: string) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, { id }, true),
+
+  // Stok Summary (Aggregated View)
+  subscribeStokSummary: (cb: (data: StokSummary[]) => void) => {
+      // Re-use subscribeBahanMasuk to compute aggregation in realtime
+      return api.subscribeBahanMasuk((bahanMasuk) => {
+          const map = new Map<string, StokSummary>();
+
+          bahanMasuk.forEach(item => {
+              // Create unique key based on Name + Supplier (lowercase to normalize)
+              const key = `${item.namaBahan.toLowerCase()}_${item.namaSupplier.toLowerCase()}`;
+              
+              if (map.has(key)) {
+                  const existing = map.get(key)!;
+                  existing.totalStok += item.jumlah;
+                  // Update last updated date if current item is newer
+                  if (item.tanggal > existing.lastUpdated) {
+                      existing.lastUpdated = item.tanggal;
+                  }
+              } else {
+                  map.set(key, {
+                      id: key,
+                      namaBahan: item.namaBahan, // Keep original casing of first entry
+                      namaSupplier: item.namaSupplier,
+                      totalStok: item.jumlah,
+                      satuan: item.satuan,
+                      lastUpdated: item.tanggal
+                  });
+              }
+          });
+
+          // Convert map to array
+          cb(Array.from(map.values()));
+      });
+  },
 
   // Stok Opname
   subscribeStokOpname: (cb: (data: StokOpname[]) => void) => createSubscriber('stok_opname', KEYS.STOK_OPNAME, INITIAL_STOK_OPNAME, cb),
