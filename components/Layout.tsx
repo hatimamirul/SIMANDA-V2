@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -41,7 +40,16 @@ interface LayoutProps {
 const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string; onClick?: () => void; isSubItem?: boolean }> = ({ to, icon, label, onClick, isSubItem }) => (
   <NavLink
     to={to}
-    onClick={onClick}
+    onClick={(e) => {
+      // 1. Mencegah navigasi SPA standar (tanpa refresh)
+      e.preventDefault();
+      
+      // 2. Jalankan fungsi onClick tambahan jika ada (misal: tutup sidebar mobile)
+      if (onClick) onClick();
+
+      // 3. Paksa browser untuk pindah URL & refresh halaman penuh
+      window.location.href = to;
+    }}
     className={({ isActive }) =>
       `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
         isActive 
@@ -316,3 +324,4 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     </div>
   );
 };
+
