@@ -41,6 +41,14 @@ export interface PMSekolah {
   buktiScan?: string;
 }
 
+export interface AlergiSiswa {
+  id: string;
+  sekolahId: string; // Link to PMSekolah
+  namaSekolah: string; // Denormalized for display
+  namaSiswa: string;
+  keterangan: string;
+}
+
 export interface PMB3 {
   id: string;
   nama: string;
