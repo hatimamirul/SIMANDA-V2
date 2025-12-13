@@ -1,5 +1,6 @@
 
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname } from '../types';
+
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname, MasterBarang } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
@@ -79,6 +80,13 @@ const INITIAL_SUPPLIERS: Supplier[] = [
   { id: '2', nama: 'UD. Beras Makmur', alamat: 'Jl. Raya Kediri No 10', hp: '085677788899', keterangan: 'Suplayer Beras Premium' }
 ];
 
+const INITIAL_MASTER_BARANG: MasterBarang[] = [
+    { id: '1', namaBarang: 'Beras IR 64', satuanDefault: 'kg' },
+    { id: '2', namaBarang: 'Telur Ayam', satuanDefault: 'kg' },
+    { id: '3', namaBarang: 'Wortel', satuanDefault: 'kg' },
+    { id: '4', namaBarang: 'Minyak Goreng', satuanDefault: 'liter' },
+];
+
 const INITIAL_BAHAN_MASUK: BahanMasuk[] = [
   { id: '1', tanggal: '2025-01-20', supplierId: '1', namaSupplier: 'Toko Sayur Segar Jaya', namaBahan: 'Wortel', jumlah: 50, satuan: 'kg', hargaTotal: 500000, keterangan: 'Kualitas Bagus' },
   { id: '2', tanggal: '2025-01-21', supplierId: '2', namaSupplier: 'UD. Beras Makmur', namaBahan: 'Beras IR 64', jumlah: 100, satuan: 'kg', hargaTotal: 1200000 }
@@ -101,6 +109,7 @@ const KEYS = {
   ABSENSI: 'simanda_absensi_v2',
   // New Inventory Keys
   SUPPLIER: 'simanda_supplier_v1',
+  MASTER_BARANG: 'simanda_master_barang_v1',
   BAHAN_MASUK: 'simanda_bahan_masuk_v1',
   STOK_OPNAME: 'simanda_stok_opname_v1'
 };
@@ -328,9 +337,34 @@ export const api = {
   saveSupplier: (item: Supplier) => saveData('suppliers', KEYS.SUPPLIER, item),
   deleteSupplier: (id: string) => saveData('suppliers', KEYS.SUPPLIER, { id }, true),
 
+  // Master Barang (Role Model)
+  subscribeMasterBarang: (cb: (data: MasterBarang[]) => void) => createSubscriber('master_barang', KEYS.MASTER_BARANG, INITIAL_MASTER_BARANG, cb),
+  saveMasterBarang: (item: MasterBarang) => saveData('master_barang', KEYS.MASTER_BARANG, item),
+
   // Bahan Masuk
   subscribeBahanMasuk: (cb: (data: BahanMasuk[]) => void) => createSubscriber('bahan_masuk', KEYS.BAHAN_MASUK, INITIAL_BAHAN_MASUK, cb),
-  saveBahanMasuk: (item: BahanMasuk) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, item),
+  
+  // Updated saveBahanMasuk with Auto-Add to Master Logic
+  saveBahanMasuk: async (item: BahanMasuk) => {
+    await saveData('bahan_masuk', KEYS.BAHAN_MASUK, item);
+    
+    // Check if this item exists in MasterBarang, if not add it (Role Model)
+    let masters = localDb.get<MasterBarang[]>(KEYS.MASTER_BARANG, INITIAL_MASTER_BARANG);
+    
+    // Check uniqueness case-insensitive
+    const exists = masters.some(m => m.namaBarang.toLowerCase() === item.namaBahan.toLowerCase());
+    
+    if (!exists) {
+        // Auto create new Role Model
+        const newMaster: MasterBarang = {
+            id: 'mb-' + Date.now() + Math.random().toString(36).substr(2, 5),
+            namaBarang: item.namaBahan,
+            satuanDefault: item.satuan
+        };
+        await saveData('master_barang', KEYS.MASTER_BARANG, newMaster);
+    }
+  },
+  
   deleteBahanMasuk: (id: string) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, { id }, true),
 
   // Stok Opname
