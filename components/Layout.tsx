@@ -37,32 +37,25 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string; onClick?: () => void; isSubItem?: boolean }> = ({ to, icon, label, onClick, isSubItem }) => (
-  <NavLink
-    to={to}
-    onClick={(e) => {
-      // 1. Mencegah navigasi SPA standar (tanpa refresh)
-      e.preventDefault();
-      
-      // 2. Jalankan fungsi onClick tambahan jika ada (misal: tutup sidebar mobile)
-      if (onClick) onClick();
-
-      // 3. Paksa browser untuk pindah URL & refresh halaman penuh
-      window.location.href = to;
-    }}
-    className={({ isActive }) =>
-      `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-        isActive 
-          ? 'bg-gradient-to-r from-primary to-[#3482ad] text-white shadow-md' 
-          : 'text-gray-600 hover:bg-white hover:text-primary'
-      } ${isSubItem ? 'pl-11 py-2.5 text-sm' : ''}`
-    }
-  >
-    {icon && <span className="group-hover:scale-110 transition-transform">{icon}</span>}
-    {!icon && isSubItem && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>}
-    <span className="font-medium">{label}</span>
-  </NavLink>
-);
+const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string; onClick?: () => void; isSubItem?: boolean }> = ({ to, icon, label, onClick, isSubItem }) => {
+  return (
+    <NavLink
+      to={to}
+      onClick={() => onClick && onClick()}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+          isActive 
+            ? 'bg-gradient-to-r from-primary to-[#3482ad] text-white shadow-md' 
+            : 'text-gray-600 hover:bg-white hover:text-primary'
+        } ${isSubItem ? 'pl-11 py-2.5 text-sm' : ''}`
+      }
+    >
+      {icon && <span className="group-hover:scale-110 transition-transform">{icon}</span>}
+      {!icon && isSubItem && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>}
+      <span className="font-medium">{label}</span>
+    </NavLink>
+  );
+};
 
 const SidebarDropdown: React.FC<{ 
   icon: React.ReactNode; 
