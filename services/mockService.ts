@@ -1,6 +1,6 @@
 
 
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, StokOpname, MasterBarang, StokSummary } from '../types';
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
@@ -81,19 +81,21 @@ const INITIAL_SUPPLIERS: Supplier[] = [
 ];
 
 const INITIAL_MASTER_BARANG: MasterBarang[] = [
-    { id: '1', namaBarang: 'Beras IR 64', satuanDefault: 'kg' },
-    { id: '2', namaBarang: 'Telur Ayam', satuanDefault: 'kg' },
-    { id: '3', namaBarang: 'Wortel', satuanDefault: 'kg' },
-    { id: '4', namaBarang: 'Minyak Goreng', satuanDefault: 'liter' },
+    { id: '1', namaBarang: 'BERAS IR 64', satuanDefault: 'kg' },
+    { id: '2', namaBarang: 'TELUR AYAM', satuanDefault: 'kg' },
+    { id: '3', namaBarang: 'WORTEL', satuanDefault: 'kg' },
+    { id: '4', namaBarang: 'MINYAK GORENG', satuanDefault: 'liter' },
 ];
 
 const INITIAL_BAHAN_MASUK: BahanMasuk[] = [
-  { id: '1', tanggal: '2025-01-20', supplierId: '1', namaSupplier: 'Toko Sayur Segar Jaya', namaBahan: 'Wortel', jumlah: 50, satuan: 'kg', hargaTotal: 500000, keterangan: 'Kualitas Bagus' },
-  { id: '2', tanggal: '2025-01-21', supplierId: '2', namaSupplier: 'UD. Beras Makmur', namaBahan: 'Beras IR 64', jumlah: 100, satuan: 'kg', hargaTotal: 1200000 }
+  { id: '1', tanggal: '2025-01-20', supplierId: '1', namaSupplier: 'Toko Sayur Segar Jaya', namaBahan: 'WORTEL', jumlah: 50, satuan: 'kg', hargaTotal: 500000, keterangan: 'Kualitas Bagus' },
+  { id: '2', tanggal: '2025-01-21', supplierId: '2', namaSupplier: 'UD. Beras Makmur', namaBahan: 'BERAS IR 64', jumlah: 100, satuan: 'kg', hargaTotal: 1200000 }
 ];
 
+const INITIAL_BAHAN_KELUAR: BahanKeluar[] = [];
+
 const INITIAL_STOK_OPNAME: StokOpname[] = [
-  { id: '1', tanggal: '2025-01-25', namaBahan: 'Beras IR 64', stokFisik: 85, satuan: 'kg', kondisi: 'BAIK', keterangan: 'Sisa stok gudang', petugas: 'Admin' }
+  { id: '1', tanggal: '2025-01-25', namaBahan: 'BERAS IR 64', stokFisik: 85, satuan: 'kg', kondisi: 'BAIK', keterangan: 'Sisa stok gudang', petugas: 'Admin' }
 ];
 
 // Keys
@@ -111,6 +113,7 @@ const KEYS = {
   SUPPLIER: 'simanda_supplier_v1',
   MASTER_BARANG: 'simanda_master_barang_v1',
   BAHAN_MASUK: 'simanda_bahan_masuk_v1',
+  BAHAN_KELUAR: 'simanda_bahan_keluar_v1',
   STOK_OPNAME: 'simanda_stok_opname_v1'
 };
 
@@ -358,7 +361,7 @@ export const api = {
         // Auto create new Role Model
         const newMaster: MasterBarang = {
             id: 'mb-' + Date.now() + Math.random().toString(36).substr(2, 5),
-            namaBarang: item.namaBahan,
+            namaBarang: item.namaBahan, // Already UPPERCASE from UI
             satuanDefault: item.satuan
         };
         await saveData('master_barang', KEYS.MASTER_BARANG, newMaster);
@@ -367,27 +370,41 @@ export const api = {
   
   deleteBahanMasuk: (id: string) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, { id }, true),
 
-  // Stok Summary (Aggregated View)
-  subscribeStokSummary: (cb: (data: StokSummary[]) => void) => {
-      // Re-use subscribeBahanMasuk to compute aggregation in realtime
-      return api.subscribeBahanMasuk((bahanMasuk) => {
-          const map = new Map<string, StokSummary>();
+  // Bahan Keluar
+  subscribeBahanKeluar: (cb: (data: BahanKeluar[]) => void) => createSubscriber('bahan_keluar', KEYS.BAHAN_KELUAR, INITIAL_BAHAN_KELUAR, cb),
+  saveBahanKeluar: (item: BahanKeluar) => saveData('bahan_keluar', KEYS.BAHAN_KELUAR, item),
+  deleteBahanKeluar: (id: string) => saveData('bahan_keluar', KEYS.BAHAN_KELUAR, { id }, true),
 
+  // Stok Summary (Aggregated View - Now includes Deductions)
+  subscribeStokSummary: (cb: (data: StokSummary[]) => void) => {
+      let bahanMasuk: BahanMasuk[] = [];
+      let bahanKeluar: BahanKeluar[] = [];
+
+      const compute = () => {
+          // 1. Calculate Total Keluar per NamaBahan
+          const totalKeluarMap = new Map<string, number>();
+          bahanKeluar.forEach(bk => {
+              const key = bk.namaBahan.toLowerCase();
+              const current = totalKeluarMap.get(key) || 0;
+              totalKeluarMap.set(key, current + bk.jumlah);
+          });
+
+          // 2. Process Masuk and Deduct logic
+          const map = new Map<string, StokSummary>();
+          
+          // First, group by Name+Supplier to allow standard aggregation
           bahanMasuk.forEach(item => {
-              // Create unique key based on Name + Supplier (lowercase to normalize)
               const key = `${item.namaBahan.toLowerCase()}_${item.namaSupplier.toLowerCase()}`;
-              
               if (map.has(key)) {
                   const existing = map.get(key)!;
                   existing.totalStok += item.jumlah;
-                  // Update last updated date if current item is newer
                   if (item.tanggal > existing.lastUpdated) {
                       existing.lastUpdated = item.tanggal;
                   }
               } else {
                   map.set(key, {
                       id: key,
-                      namaBahan: item.namaBahan, // Keep original casing of first entry
+                      namaBahan: item.namaBahan, // Keep original casing
                       namaSupplier: item.namaSupplier,
                       totalStok: item.jumlah,
                       satuan: item.satuan,
@@ -396,9 +413,60 @@ export const api = {
               }
           });
 
-          // Convert map to array
-          cb(Array.from(map.values()));
+          // 3. Apply Deduction (Simple FIFO/Reduction Logic)
+          // Since StokSummary is split by Supplier, but BahanKeluar is global (by Name)
+          // We need to reduce the stocks available in the map.
+          
+          const summaryList = Array.from(map.values());
+
+          // Group summary list by Name to apply deduction sequentially
+          const groupedByName = new Map<string, StokSummary[]>();
+          summaryList.forEach(s => {
+              const nameKey = s.namaBahan.toLowerCase();
+              if(!groupedByName.has(nameKey)) groupedByName.set(nameKey, []);
+              groupedByName.get(nameKey)!.push(s);
+          });
+
+          // Iterate and deduct
+          groupedByName.forEach((items, nameKey) => {
+              let amountToDeduct = totalKeluarMap.get(nameKey) || 0;
+              
+              if (amountToDeduct > 0) {
+                  // Sort items (maybe by date, or just array order)
+                  // Here we just use array order
+                  for (const stockItem of items) {
+                      if (amountToDeduct <= 0) break;
+
+                      if (stockItem.totalStok >= amountToDeduct) {
+                          stockItem.totalStok -= amountToDeduct;
+                          amountToDeduct = 0;
+                      } else {
+                          amountToDeduct -= stockItem.totalStok;
+                          stockItem.totalStok = 0;
+                      }
+                  }
+              }
+          });
+
+          // Filter out 0 stock items if desired, OR keep them to show "Habis"
+          // User request: "otomatis berkurang". We return the modified list.
+          // Optional: filter out negative or zero if you want to hide empty stocks
+          // For now, we return all, but UI might filter.
+          
+          cb(summaryList.filter(s => s.totalStok > 0)); 
+      };
+
+      // Subscribe to both
+      const unsubMasuk = api.subscribeBahanMasuk((data) => {
+          bahanMasuk = data;
+          compute();
       });
+      const unsubKeluar = api.subscribeBahanKeluar((data) => {
+          bahanKeluar = data;
+          compute();
+      });
+
+      return () => { unsubMasuk(); unsubKeluar(); };
   },
 
   // Stok Opname
