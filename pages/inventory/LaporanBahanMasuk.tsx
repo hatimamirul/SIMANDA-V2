@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { BahanMasuk, Supplier, MasterBarang } from '../../types';
-import { Plus, Trash2, CalendarDays, Archive, Search, Package, Truck, Hash, Scale, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, CalendarDays, Archive, Search, Package, Truck, Hash, Scale, FileText, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -24,6 +24,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
   const [editItem, setEditItem] = useState<Partial<BahanMasuk> | null>(null);
 
   const [search, setSearch] = useState('');
+  const [filterDate, setFilterDate] = useState(''); // Filter by Month/Year
   const [loading, setLoading] = useState(false);
   
   const { showToast } = useToast();
@@ -33,18 +34,24 @@ export const LaporanBahanMasukPage: React.FC = () => {
     
     // Subscribe to Bahan Masuk
     const unsubBahan = api.subscribeBahanMasuk((items) => {
-        // Sort Descending (Terbaru paling atas)
-        const sortedItems = items.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+        // 1. Sort Descending (Terbaru paling atas)
+        let processedItems = items.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
 
+        // 2. Filter by Date (Month/Year)
+        if (filterDate) {
+            processedItems = processedItems.filter(i => i.tanggal.startsWith(filterDate));
+        }
+
+        // 3. Filter by Search
         if (search) {
             const lower = search.toLowerCase();
-            setData(sortedItems.filter(i => 
+            processedItems = processedItems.filter(i => 
               i.namaBahan.toLowerCase().includes(lower) || 
               i.namaSupplier.toLowerCase().includes(lower)
-            ));
-        } else {
-            setData(sortedItems);
+            );
         }
+
+        setData(processedItems);
         setLoading(false);
     });
 
@@ -63,7 +70,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
         unsubSuppliers();
         unsubMaster();
     };
-  }, [search]);
+  }, [search, filterDate]);
 
   // --- BATCH ENTRY LOGIC ---
 
@@ -268,6 +275,27 @@ export const LaporanBahanMasukPage: React.FC = () => {
         onExport={handleExport}
         searchPlaceholder="Cari Bahan atau Suplayer..."
       />
+
+      {/* FILTER TANGGAL */}
+      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3 w-fit">
+         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold">
+            <Filter size={16} /> Filter Periode:
+         </div>
+         <input 
+            type="month" 
+            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none text-gray-700"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+         />
+         {filterDate && (
+             <button 
+                onClick={() => setFilterDate('')}
+                className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline ml-1"
+             >
+                Reset
+             </button>
+         )}
+      </div>
       
       {loading ? (
         <LoadingSpinner />
@@ -497,3 +525,4 @@ export const LaporanBahanMasukPage: React.FC = () => {
     </div>
   );
 };
+
