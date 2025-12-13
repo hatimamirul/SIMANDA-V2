@@ -1,22 +1,22 @@
 
 import React, { useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
-import { Card } from '../components/UIComponents';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/mockService';
 import { DashboardStats, User, Role } from '../types';
 import { 
-  Users, School, Baby, Activity, Calendar, Clock, 
-  TrendingUp, ArrowRight, CheckSquare, FileText,
-  GraduationCap, Package, UserCog, Bell, ChevronRight,
-  ArrowUpRight, ShieldCheck, Zap, Layers
+  Users, School, Activity, Calendar, 
+  ArrowRight, CheckSquare, 
+  Package, UserCog, Bell, 
+  TrendingUp, Zap, PieChart as PieIcon,
+  Layers
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
-  PieChart, Pie, Legend, AreaChart, Area
+  PieChart, Pie, Legend
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({ 
     karyawan: 0, 
     pmsekolah: 0, 
@@ -40,233 +40,218 @@ export const Dashboard: React.FC = () => {
   const role = currentUser?.jabatan as Role;
 
   useEffect(() => {
-    // Clock Timer
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    // Stats Subscription
     const unsubscribe = api.subscribeStats(setStats);
-    
     return () => {
       clearInterval(timer);
       unsubscribe();
     };
   }, []);
 
-  // Time & Greeting Logic
-  const hour = currentTime.getHours();
-  let greeting = 'Selamat Pagi';
-  if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
-  else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
-  else if (hour >= 18) greeting = 'Selamat Malam';
-
   const dateStr = currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   // --- DATA PREPARATION ---
-
-  // 1. Donut Chart: Komposisi PM B3
+  
+  // 1. Data Komposisi PM B3 (Donut Chart)
   const pieDataB3 = [
-    { name: 'Balita', value: stats.balita, color: '#F59E0B' },      // Amber 500
-    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink 500
-    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald 500
+    { name: 'Balita', value: stats.balita, color: '#3B82F6' },      // Blue
+    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink
+    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald
   ].filter(d => d.value > 0);
 
-  // 2. Bar Chart: Statistik Sekolah
-  const barDataSekolah = [
-    { name: 'Guru', value: stats.guru, color: '#3B82F6' }, // Blue 500
-    { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' }, // Indigo 500
-    { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' }, // Violet 500
+  // 2. Data Statistik Sekolah (Area/Bar Chart)
+  const chartDataSekolah = [
+    { name: 'Guru', value: stats.guru, fill: '#8B5CF6' }, // Violet
+    { name: 'PM Kecil', value: stats.pmKecil, fill: '#F59E0B' }, // Amber
+    { name: 'PM Besar', value: stats.pmBesar, fill: '#0EA5E9' }, // Sky
   ];
 
-  // Total Penerima Manfaat (Sekolah + B3)
-  const totalPM = (stats.pmKecil || 0) + (stats.pmBesar || 0) + stats.pmb3;
+  // Total Penerima Manfaat
+  const totalPMSekolah = (stats.pmKecil || 0) + (stats.pmBesar || 0);
+  const totalPM = totalPMSekolah + stats.pmb3;
+  
+  // Percentages for Progress Bars
+  const pctSekolah = totalPM > 0 ? Math.round((totalPMSekolah / totalPM) * 100) : 0;
+  const pctB3 = totalPM > 0 ? Math.round((stats.pmb3 / totalPM) * 100) : 0;
 
   // Mock Recent Activity
   const recentActivities = [
-    { id: 1, text: "Data Absensi Harian diperbarui", time: "10 menit lalu", icon: <CheckSquare size={14} />, color: "bg-green-100 text-green-600" },
-    { id: 2, text: "Stok Bahan Baku (Beras) masuk", time: "1 jam lalu", icon: <Package size={14} />, color: "bg-blue-100 text-blue-600" },
-    { id: 3, text: "Laporan PM Sekolah diverifikasi", time: "3 jam lalu", icon: <School size={14} />, color: "bg-purple-100 text-purple-600" },
+    { id: 1, text: "Absensi hari ini telah di-update", time: "10 menit lalu", type: 'success' },
+    { id: 2, text: "Stok Beras IR 64 masuk (100kg)", time: "1 jam lalu", type: 'info' },
+    { id: 3, text: "Data PM Sekolah disinkronisasi", time: "3 jam lalu", type: 'warning' },
   ];
 
   // --- COMPONENTS ---
 
-  const StatCard = ({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-          {icon}
-        </div>
-        {trend && (
-           <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-             <TrendingUp size={12} /> {trend}
-           </div>
-        )}
-      </div>
-      <div className="relative z-10">
-        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
-        <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
-      </div>
-      
-      {/* Decorative Background Icon */}
-      <div className={`absolute -right-6 -bottom-6 opacity-5 transform rotate-12 group-hover:scale-125 transition-transform duration-500 ${colorClass}`}>
-         {React.cloneElement(icon as React.ReactElement<any>, { size: 100 })}
-      </div>
-    </div>
-  );
-
-  const QuickActionBtn = ({ label, desc, icon, onClick, color, bg }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string, bg: string }) => (
+  const QuickActionCard = ({ icon, label, sub, onClick, colorClass, bgClass }: any) => (
     <button 
       onClick={onClick}
-      className={`flex items-center gap-4 p-4 rounded-xl border border-transparent ${bg} hover:shadow-md transition-all duration-200 text-left group w-full relative overflow-hidden`}
+      className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group w-full h-full min-h-[140px]"
     >
-      <div className={`p-3 rounded-lg bg-white shadow-sm group-hover:scale-110 transition-transform duration-300 ${color}`}>
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 ${bgClass} ${colorClass} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
         {icon}
       </div>
-      <div className="relative z-10">
-        <h4 className="font-bold text-gray-800 text-sm group-hover:text-primary transition-colors">{label}</h4>
-        <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">{desc}</p>
-      </div>
-      <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
-        <ArrowRight size={16} />
-      </div>
+      <h4 className="font-bold text-gray-700 text-sm text-center group-hover:text-primary transition-colors">{label}</h4>
+      <p className="text-[10px] text-gray-400 text-center mt-1">{sub}</p>
     </button>
   );
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
+    <div className="space-y-8 pb-12 animate-fade-in">
       
-      {/* === HERO SECTION === */}
-      <div className="relative bg-gradient-to-br from-[#1e40af] via-[#0284c7] to-[#38bdf8] rounded-3xl p-8 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
-        {/* Abstract Shapes */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-400 opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
-
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-blue-100 font-medium text-xs backdrop-blur-sm bg-white/10 px-3 py-1.5 rounded-full w-fit border border-white/10">
-               <Calendar size={12} /> {dateStr}
+      {/* === HEADER SECTION === */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+         <div>
+            <div className="flex items-center gap-2 text-gray-500 mb-1">
+               <Calendar size={14} /> 
+               <span className="text-xs font-semibold uppercase tracking-wider">{dateStr}</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              {greeting}, <span className="text-yellow-300 underline decoration-yellow-300/30 underline-offset-4">{currentUser?.nama?.split(' ')[0] || 'Admin'}</span>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 tracking-tight">
+               Dashboard <span className="text-primary">Overview</span>
             </h1>
-            <p className="text-blue-100 max-w-lg text-sm leading-relaxed opacity-90">
-              Selamat datang di Dashboard SIMANDA SPPG. Pantau kinerja dan data penerima manfaat secara real-time.
-            </p>
-          </div>
-          
-          <div className="flex flex-col items-end gap-3">
-             <div className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl text-center min-w-[140px] shadow-lg">
-                <span className="text-[10px] text-blue-200 uppercase tracking-widest font-bold block mb-1">Waktu Server</span>
-                <span className="text-3xl font-mono font-bold tracking-widest text-white drop-shadow-sm">{timeStr}</span>
-             </div>
-             <div className="flex items-center gap-2 text-xs text-blue-100 bg-blue-900/30 px-3 py-1 rounded-full border border-blue-500/30">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                System Operational
-             </div>
-          </div>
-        </div>
+         </div>
+         <div className="flex items-center gap-4">
+            <div className="bg-white px-5 py-2 rounded-full shadow-sm border border-gray-100 flex items-center gap-3">
+               <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+               <span className="text-lg font-mono font-bold text-gray-700">{timeStr}</span>
+            </div>
+         </div>
       </div>
 
-      {/* === KEY METRICS === */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Karyawan" 
-          count={stats.karyawan} 
-          icon={<Users size={22} />} 
-          bgClass="bg-blue-50"
-          colorClass="text-blue-600"
-          trend="+2 Baru"
-        />
-        <StatCard 
-          title="Total Sekolah" 
-          count={stats.pmsekolah} 
-          icon={<School size={22} />} 
-          bgClass="bg-indigo-50"
-          colorClass="text-indigo-600"
-        />
-        <StatCard 
-          title="PM B3 (Balita/Ibu)" 
-          count={stats.pmb3} 
-          icon={<Baby size={22} />} 
-          bgClass="bg-pink-50"
-          colorClass="text-pink-600"
-          trend="Stabil"
-        />
-        <StatCard 
-          title="Penerima Manfaat" 
-          count={totalPM} 
-          icon={<Activity size={22} />} 
-          bgClass="bg-emerald-50"
-          colorClass="text-emerald-600"
-          trend="Aktif"
-        />
+      {/* === HERO & KEY METRICS GRID === */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         
+         {/* 1. HERO CARD: TOTAL IMPACT (Spans 2 columns) */}
+         <div className="lg:col-span-2 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 rounded-3xl p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden flex flex-col justify-between min-h-[280px]">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500 opacity-10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+            
+            <div className="relative z-10">
+               <div className="flex items-center gap-2 text-blue-100 mb-2">
+                  <Activity size={18} />
+                  <span className="text-sm font-bold uppercase tracking-wide">Total Penerima Manfaat</span>
+               </div>
+               <div className="flex items-baseline gap-2">
+                  <h2 className="text-6xl font-extrabold tracking-tight">{new Intl.NumberFormat('id-ID').format(totalPM)}</h2>
+                  <span className="text-xl font-medium text-blue-200">Jiwa</span>
+               </div>
+               <p className="text-blue-100 mt-2 max-w-md text-sm leading-relaxed">
+                  Akumulasi total penerima manfaat program Gizi dari sektor Sekolah (Siswa) dan B3 (Balita, Ibu Hamil/Menyusui).
+               </p>
+            </div>
+
+            {/* Breakdown Visualizer */}
+            <div className="relative z-10 mt-8">
+               <div className="flex justify-between text-xs font-semibold mb-2 text-blue-100">
+                  <span>PM Sekolah ({pctSekolah}%)</span>
+                  <span>PM B3 ({pctB3}%)</span>
+               </div>
+               <div className="w-full h-4 bg-black/20 rounded-full overflow-hidden flex">
+                  <div style={{ width: `${pctSekolah}%` }} className="h-full bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
+                  <div style={{ width: `${pctB3}%` }} className="h-full bg-yellow-400/90"></div>
+               </div>
+               <div className="flex justify-between mt-2 text-sm font-bold">
+                  <div className="flex items-center gap-2">
+                     <span className="w-3 h-3 rounded-full bg-white"></span> {new Intl.NumberFormat('id-ID').format(totalPMSekolah)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                     {new Intl.NumberFormat('id-ID').format(stats.pmb3)} <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* 2. OPERATIONAL METRICS (Vertical Stack) */}
+         <div className="space-y-6 flex flex-col">
+            {/* Card Karyawan */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
+               <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-full"></div>
+               <div>
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Karyawan</p>
+                  <h3 className="text-3xl font-extrabold text-gray-800">{stats.karyawan}</h3>
+                  <button onClick={() => navigate('/karyawan')} className="text-xs text-blue-600 font-bold mt-2 flex items-center gap-1 hover:underline">
+                     Kelola Data <ArrowRight size={12} />
+                  </button>
+               </div>
+               <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                  <Users size={28} />
+               </div>
+            </div>
+
+            {/* Card Sekolah */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
+               <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-full"></div>
+               <div>
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Sekolah</p>
+                  <h3 className="text-3xl font-extrabold text-gray-800">{stats.pmsekolah}</h3>
+                  <button onClick={() => navigate('/sekolah')} className="text-xs text-indigo-600 font-bold mt-2 flex items-center gap-1 hover:underline">
+                     Lihat Detail <ArrowRight size={12} />
+                  </button>
+               </div>
+               <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                  <School size={28} />
+               </div>
+            </div>
+         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* === LEFT COLUMN: CHARTS (8/12 width) === */}
-        <div className="lg:col-span-8 space-y-6">
-          
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-             <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                    <School size={20} className="text-blue-500"/> Statistik Sekolah
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">Distribusi Guru, Siswa (PM Besar/Kecil)</p>
-                </div>
-             </div>
-             <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barDataSekolah} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorGuru" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorKecil" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fill: '#6B7280', fontSize: 12, fontWeight: 500}} 
-                      dy={10}
-                    />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
-                    <Tooltip 
-                      cursor={{fill: '#F9FAFB'}}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                    />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={50}>
-                      {barDataSekolah.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
+      {/* === CHARTS SECTION (Bento Grid) === */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         
+         {/* CHART 1: SEKOLAH BREAKDOWN (Bar Chart Style) */}
+         <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+               <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                     <TrendingUp size={20} />
+                  </div>
+                  <div>
+                     <h3 className="font-bold text-gray-800">Statistik Sekolah</h3>
+                     <p className="text-xs text-gray-400">Komposisi Guru, PM Kecil, dan PM Besar</p>
+                  </div>
+               </div>
+            </div>
+            
+            <div className="h-[250px] w-full">
+               <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartDataSekolah} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
+                     <XAxis type="number" hide />
+                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#6b7280', fontSize: 12, fontWeight: 600}} width={80} />
+                     <Tooltip 
+                        cursor={{fill: 'transparent'}}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+                     />
+                     <Bar dataKey="value" barSize={30} radius={[0, 6, 6, 0]}>
+                        {chartDataSekolah.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
-             </div>
-          </div>
+               </ResponsiveContainer>
+            </div>
+         </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {/* Pie Chart Card */}
-             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                   <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                      <Baby size={20} className="text-pink-500"/> Komposisi PM B3
-                   </h3>
-                </div>
-                <div className="flex-1 w-full relative min-h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
+         {/* CHART 2: B3 DEMOGRAPHICS (Donut) */}
+         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+               <div className="flex items-center gap-3">
+                  <div className="p-2 bg-pink-50 text-pink-600 rounded-lg">
+                     <PieIcon size={20} />
+                  </div>
+                  <div>
+                     <h3 className="font-bold text-gray-800">Demografi B3</h3>
+                     <p className="text-xs text-gray-400">Kategori Penerima</p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="flex-1 relative min-h-[220px]">
+               <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                     <Pie
                         data={pieDataB3}
                         cx="50%"
                         cy="50%"
@@ -275,133 +260,103 @@ export const Dashboard: React.FC = () => {
                         paddingAngle={5}
                         dataKey="value"
                         stroke="none"
-                      >
+                        cornerRadius={6}
+                     >
                         {pieDataB3.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px' }} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                     <span className="text-3xl font-bold text-gray-700">{stats.pmb3}</span>
-                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
-                  </div>
-                </div>
-             </div>
-
-             {/* System Health Widget */}
-             <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white shadow-lg flex flex-col justify-between">
-                <div>
-                   <div className="flex items-center gap-2 mb-4 text-emerald-400">
-                      <ShieldCheck size={24} />
-                      <span className="font-bold tracking-wide uppercase text-xs">Security Status</span>
-                   </div>
-                   <h3 className="text-2xl font-bold mb-2">Semua Sistem Aman</h3>
-                   <p className="text-gray-400 text-sm">Database terenkripsi dan backup otomatis aktif setiap hari pukul 00:00.</p>
-                </div>
-                
-                <div className="mt-6 space-y-3">
-                   <div className="flex justify-between text-xs text-gray-400 mb-1">
-                      <span>Server Load</span>
-                      <span>12%</span>
-                   </div>
-                   <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div className="bg-emerald-500 h-1.5 rounded-full w-[12%]"></div>
-                   </div>
-                   
-                   <div className="flex justify-between text-xs text-gray-400 mb-1 mt-2">
-                      <span>Storage Usage</span>
-                      <span>45%</span>
-                   </div>
-                   <div className="w-full bg-gray-700 rounded-full h-1.5">
-                      <div className="bg-blue-500 h-1.5 rounded-full w-[45%]"></div>
-                   </div>
-                </div>
-             </div>
-          </div>
-
-        </div>
-
-        {/* === RIGHT COLUMN: ACTIONS & ACTIVITY (4/12 width) === */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Quick Actions Grid */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
-               <Zap size={20} className="text-yellow-500" /> Akses Cepat
-            </h3>
-            
-            <div className="space-y-3">
-              <QuickActionBtn 
-                label="Input Absensi" 
-                desc="Isi kehadiran harian"
-                icon={<CheckSquare size={18} />} 
-                onClick={() => history.push('/absensi')}
-                color="text-blue-600"
-                bg="bg-blue-50/50 hover:bg-blue-50"
-              />
-
-              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                <QuickActionBtn 
-                  label="Data Karyawan" 
-                  desc="Kelola database pegawai"
-                  icon={<UserCog size={18} />} 
-                  onClick={() => history.push('/karyawan')}
-                  color="text-indigo-600"
-                  bg="bg-indigo-50/50 hover:bg-indigo-50"
-                />
-              )}
-
-              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                <QuickActionBtn 
-                  label="Stok Bahan Baku" 
-                  desc="Cek ketersediaan gudang"
-                  icon={<Layers size={18} />} 
-                  onClick={() => history.push('/inventory/stok-saat-ini')}
-                  color="text-orange-600"
-                  bg="bg-orange-50/50 hover:bg-orange-50"
-                />
-              )}
+                     </Pie>
+                     <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px' }} />
+                     <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} wrapperStyle={{fontSize: '11px'}} />
+                  </PieChart>
+               </ResponsiveContainer>
+               {/* Center Text */}
+               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                  <span className="text-3xl font-extrabold text-gray-700">{stats.pmb3}</span>
+                  <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Total B3</span>
+               </div>
             </div>
-          </div>
+         </div>
+      </div>
 
-          {/* Recent Activity Timeline */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 min-h-[300px]">
-             <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                   <Bell size={20} className="text-gray-400" /> Aktivitas
-                </h3>
-                <span className="text-xs text-primary cursor-pointer hover:underline">Lihat Semua</span>
-             </div>
-             
-             <div className="space-y-0 relative pl-2">
-                {/* Timeline Vertical Line */}
-                <div className="absolute left-[19px] top-2 bottom-4 w-[2px] bg-gray-100 rounded-full"></div>
+      {/* === BOTTOM SECTION: ACTIONS & ACTIVITY === */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+         
+         {/* APP DOCK (Quick Actions) - Spans 3 columns */}
+         <div className="lg:col-span-3">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 ml-1 flex items-center gap-2">
+               <Zap size={16} /> Akses Cepat Aplikasi
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+               <QuickActionCard 
+                  icon={<CheckSquare size={24} />} 
+                  label="Input Absensi" 
+                  sub="Harian Pegawai"
+                  colorClass="text-white"
+                  bgClass="bg-gradient-to-br from-blue-400 to-blue-600"
+                  onClick={() => navigate('/absensi')}
+               />
+               
+               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                  <QuickActionCard 
+                     icon={<Package size={24} />} 
+                     label="Stok Gudang" 
+                     sub="Cek Persediaan"
+                     colorClass="text-white"
+                     bgClass="bg-gradient-to-br from-orange-400 to-orange-600"
+                     onClick={() => navigate('/inventory/stok-saat-ini')}
+                  />
+               )}
 
-                {recentActivities.map((act, idx) => (
-                   <div key={act.id} className="flex gap-4 relative py-3 group">
-                      <div className={`w-10 h-10 rounded-full ${act.color} flex items-center justify-center border-4 border-white shadow-sm shrink-0 z-10`}>
-                         {act.icon}
-                      </div>
-                      <div className="pt-1">
-                         <p className="text-sm font-semibold text-gray-700 group-hover:text-primary transition-colors cursor-pointer leading-tight">
-                            {act.text}
-                         </p>
-                         <p className="text-[11px] text-gray-400 mt-1 font-medium">{act.time}</p>
-                      </div>
-                   </div>
-                ))}
-             </div>
-             
-             <div className="mt-4 p-3 bg-gray-50 rounded-xl text-center">
-                <p className="text-xs text-gray-500">Tidak ada aktivitas baru lainnya.</p>
-             </div>
-          </div>
+               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                  <QuickActionCard 
+                     icon={<UserCog size={24} />} 
+                     label="Karyawan" 
+                     sub="Database Pegawai"
+                     colorClass="text-white"
+                     bgClass="bg-gradient-to-br from-purple-400 to-purple-600"
+                     onClick={() => navigate('/karyawan')}
+                  />
+               )}
 
-        </div>
+               <QuickActionCard 
+                  icon={<Layers size={24} />} 
+                  label="Laporan" 
+                  sub="Export Data"
+                  colorClass="text-white"
+                  bgClass="bg-gradient-to-br from-emerald-400 to-emerald-600"
+                  onClick={() => { /* Open Report/Export Modal if exist, or route */ }}
+               />
+            </div>
+         </div>
+
+         {/* ACTIVITY FEED - Spans 1 column */}
+         <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col h-full">
+            <div className="flex items-center justify-between mb-4">
+               <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
+                  <Bell size={16} className="text-gray-400" /> Aktivitas
+               </h3>
+            </div>
+            
+            <div className="flex-1 space-y-4 relative">
+               <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-gray-100 rounded-full"></div>
+               {recentActivities.map((act) => (
+                  <div key={act.id} className="relative pl-6">
+                     <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 
+                        ${act.type === 'success' ? 'bg-green-500' : act.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}
+                     `}></div>
+                     <p className="text-xs font-semibold text-gray-700 leading-tight">{act.text}</p>
+                     <p className="text-[10px] text-gray-400 mt-0.5">{act.time}</p>
+                  </div>
+               ))}
+            </div>
+            <button className="w-full mt-4 py-2 text-xs font-bold text-gray-500 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+               Lihat Semua Log
+            </button>
+         </div>
+
       </div>
     </div>
   );
 };
+
