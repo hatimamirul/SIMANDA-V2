@@ -1,17 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button } from '../components/UIComponents';
+import { Card } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { DashboardStats, User, Role } from '../types';
 import { 
   Users, School, Baby, Activity, Calendar, Clock, 
-  TrendingUp, ArrowRight, PlusCircle, CheckSquare, FileText,
-  GraduationCap, Package, UserCog
+  TrendingUp, ArrowRight, CheckSquare, FileText,
+  GraduationCap, Package, UserCog, Bell, ChevronRight,
+  ArrowUpRight, ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
-  PieChart, Pie, Legend 
+  PieChart, Pie, Legend, AreaChart, Area
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
@@ -54,7 +54,7 @@ export const Dashboard: React.FC = () => {
   // Time & Greeting Logic
   const hour = currentTime.getHours();
   let greeting = 'Selamat Pagi';
-  if (hour >= 12 && hour < 15) greeting = 'Selamat Siang';
+  if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
   else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
   else if (hour >= 18) greeting = 'Selamat Malam';
 
@@ -65,129 +65,158 @@ export const Dashboard: React.FC = () => {
 
   // 1. Donut Chart: Komposisi PM B3
   const pieDataB3 = [
-    { name: 'Balita', value: stats.balita, color: '#FFD166' },      // Yellow
-    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EF476F' }, // Pink/Red
-    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#06D6A0' }, // Green
-  ].filter(d => d.value > 0); // Hide zero values
+    { name: 'Balita', value: stats.balita, color: '#F59E0B' },      // Amber 500
+    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink 500
+    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald 500
+  ].filter(d => d.value > 0);
 
   // 2. Bar Chart: Statistik Sekolah
   const barDataSekolah = [
-    { name: 'Guru', value: stats.guru, color: '#118AB2' },
-    { name: 'PM Kecil', value: stats.pmKecil, color: '#48CAE4' },
-    { name: 'PM Besar', value: stats.pmBesar, color: '#0077B6' },
+    { name: 'Guru', value: stats.guru, color: '#3B82F6' }, // Blue 500
+    { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' }, // Indigo 500
+    { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' }, // Violet 500
   ];
 
   // Total Penerima Manfaat (Sekolah + B3)
   const totalPM = (stats.pmKecil || 0) + (stats.pmBesar || 0) + stats.pmb3;
 
+  // Mock Recent Activity
+  const recentActivities = [
+    { id: 1, text: "Data Absensi Harian diperbarui", time: "10 menit lalu", icon: <CheckSquare size={14} />, color: "bg-green-100 text-green-600" },
+    { id: 2, text: "Stok Bahan Baku (Beras) masuk", time: "1 jam lalu", icon: <Package size={14} />, color: "bg-blue-100 text-blue-600" },
+    { id: 3, text: "Laporan PM Sekolah diverifikasi", time: "3 jam lalu", icon: <School size={14} />, color: "bg-purple-100 text-purple-600" },
+  ];
+
   // --- COMPONENTS ---
 
-  const StatCard = ({ title, count, icon, color, subText }: { title: string, count: number, icon: React.ReactNode, color: string, subText?: string }) => (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-      <div className="relative z-10">
-        <div className="flex justify-between items-start mb-4">
-          <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg transform group-hover:scale-110 transition-transform duration-300"
-            style={{ backgroundColor: color }}
-          >
-            {icon}
-          </div>
-          <div className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-            <TrendingUp size={12} />
-            <span>Aktif</span>
-          </div>
+  const StatCard = ({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
+    <div className="bg-white rounded-2xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+          {icon}
         </div>
-        <h3 className="text-3xl font-bold text-gray-800 mb-1">{new Intl.NumberFormat('id-ID').format(count)}</h3>
-        <p className="text-gray-500 text-sm font-medium">{title}</p>
-        {subText && <p className="text-xs text-gray-400 mt-2 border-t border-gray-100 pt-2">{subText}</p>}
+        {trend && (
+           <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+             <TrendingUp size={10} /> {trend}
+           </div>
+        )}
+      </div>
+      <div className="relative z-10">
+        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
+        <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
       </div>
       
-      {/* Background Decoration */}
-      <div 
-        className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-10 pointer-events-none group-hover:scale-150 transition-transform duration-500"
-        style={{ backgroundColor: color }}
-      />
+      {/* Decorative Background Icon */}
+      <div className={`absolute -right-4 -bottom-4 opacity-5 transform rotate-12 group-hover:scale-125 transition-transform duration-500 ${colorClass}`}>
+         {React.cloneElement(icon as React.ReactElement<any>, { size: 80 })}
+      </div>
     </div>
+  );
+
+  const QuickActionBtn = ({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
+    <button 
+      onClick={onClick}
+      className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md hover:bg-blue-50/30 transition-all duration-200 text-left group w-full"
+    >
+      <div className={`p-3 rounded-xl text-white shadow-md group-hover:scale-110 transition-transform duration-300 ${color}`}>
+        {icon}
+      </div>
+      <div>
+        <h4 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{label}</h4>
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{desc}</p>
+      </div>
+      <div className="ml-auto self-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
+        <ArrowRight size={16} />
+      </div>
+    </button>
   );
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* === HERO SECTION === */}
-      <div className="relative bg-gradient-to-r from-[#1A4D6F] to-[#2A6F97] rounded-3xl p-8 md:p-10 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
-        {/* Abstract Pattern Overlay */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-accent opacity-10 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl"></div>
-        
-        <div className="relative z-10 flex flex-col md:flex-row justify-between md:items-end gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2 text-blue-100/80 text-sm font-medium">
-               <Calendar size={16} /> {dateStr}
+      <div className="relative bg-gradient-to-br from-[#1e40af] via-[#2A6F97] to-[#0ea5e9] rounded-3xl p-8 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
+        {/* Abstract Shapes */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-400 opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-blue-100 font-medium text-sm backdrop-blur-sm bg-white/10 px-3 py-1 rounded-full w-fit">
+               <Calendar size={14} /> {dateStr}
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">
-              {greeting}, <span className="text-blue-200">{currentUser?.nama || 'Admin'}!</span>
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+              {greeting}, <span className="text-yellow-300">{currentUser?.nama?.split(' ')[0] || 'Admin'}</span>
             </h1>
-            <p className="text-blue-100 max-w-xl text-sm md:text-base leading-relaxed opacity-90">
-              Selamat datang di Dashboard SIMANDA SPPG. Berikut adalah ringkasan aktivitas dan statistik data terkini.
+            <p className="text-blue-100 max-w-lg text-sm md:text-base leading-relaxed opacity-90">
+              Selamat datang di Dashboard SIMANDA. Semua sistem berjalan normal hari ini.
             </p>
           </div>
-          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
-            <Clock className="text-accent" size={24} />
-            <span className="text-2xl font-mono font-bold tracking-wider">{timeStr}</span>
+          
+          <div className="flex flex-col items-end gap-2">
+             <div className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl text-center min-w-[140px]">
+                <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold block mb-1">Waktu Server</span>
+                <span className="text-3xl font-mono font-bold tracking-widest">{timeStr}</span>
+             </div>
+             <div className="flex items-center gap-2 text-xs text-blue-200">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                System Online
+             </div>
           </div>
         </div>
       </div>
 
-      {/* === KEY METRICS (5 COLUMNS) === */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      {/* === KEY METRICS === */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard 
           title="Total Karyawan" 
           count={stats.karyawan} 
-          icon={<Users size={24} />} 
-          color="#2A6F97" 
-          subText="Divisi & Operasional"
+          icon={<Users size={22} />} 
+          bgClass="bg-blue-50"
+          colorClass="text-blue-600"
+          trend="+2 Baru"
         />
         <StatCard 
           title="Total Sekolah" 
           count={stats.pmsekolah} 
-          icon={<School size={24} />} 
-          color="#61A5C2" 
-          subText={`Terdiri dari ${stats.pmsekolah} Institusi`}
+          icon={<School size={22} />} 
+          bgClass="bg-indigo-50"
+          colorClass="text-indigo-600"
         />
         <StatCard 
-          title="Total Guru" 
-          count={stats.guru} 
-          icon={<GraduationCap size={24} />} 
-          color="#E9C46A" 
-          subText="Tenaga Pendidik"
-        />
-        <StatCard 
-          title="Penerima Manfaat B3" 
+          title="PM B3 (Balita/Ibu)" 
           count={stats.pmb3} 
-          icon={<Baby size={24} />} 
-          color="#F4A261" 
-          subText="Balita, Ibu Hamil & Menyusui"
+          icon={<Baby size={22} />} 
+          bgClass="bg-pink-50"
+          colorClass="text-pink-600"
+          trend="Stabil"
         />
         <StatCard 
           title="Total Penerima Manfaat" 
           count={totalPM} 
-          icon={<Activity size={24} />} 
-          color="#264653" 
-          subText="Gabungan Sekolah & B3"
+          icon={<Activity size={22} />} 
+          bgClass="bg-emerald-50"
+          colorClass="text-emerald-600"
+          trend="Aktif"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         {/* === LEFT COLUMN: CHARTS (2/3 width) === */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Chart Row */}
+        <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pie Chart */}
-            <Card className="p-6 flex flex-col min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-gray-800 text-lg">Komposisi PM B3</h3>
-                <p className="text-sm text-gray-400">Proporsi Balita, Ibu Hamil, Menyusui</p>
+            <Card className="p-6 flex flex-col min-h-[380px] hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">Komposisi PM B3</h3>
+                  <p className="text-xs text-gray-400 mt-1">Balita vs Ibu Hamil vs Ibu Menyusui</p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600"><ArrowUpRight size={18}/></button>
               </div>
               <div className="flex-1 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -197,33 +226,37 @@ export const Dashboard: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       innerRadius={60}
-                      outerRadius={80}
+                      outerRadius={90}
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
                     >
                       {pieDataB3.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.1))' }} />
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
                   </PieChart>
                 </ResponsiveContainer>
                 {/* Center Label */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
-                   <span className="text-2xl font-bold text-gray-300 opacity-20">{stats.pmb3}</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                   <span className="text-3xl font-bold text-gray-700">{stats.pmb3}</span>
+                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
                 </div>
               </div>
             </Card>
 
             {/* Bar Chart */}
-            <Card className="p-6 flex flex-col min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-gray-800 text-lg">Statistik Sekolah</h3>
-                <p className="text-sm text-gray-400">Perbandingan Guru & Siswa (PM)</p>
+            <Card className="p-6 flex flex-col min-h-[380px] hover:shadow-md transition-shadow">
+               <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">Statistik Sekolah</h3>
+                  <p className="text-xs text-gray-400 mt-1">Distribusi Guru & Siswa</p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600"><ArrowUpRight size={18}/></button>
               </div>
               <div className="flex-1 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -233,15 +266,15 @@ export const Dashboard: React.FC = () => {
                       dataKey="name" 
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{fill: '#9CA3AF', fontSize: 12}} 
+                      tick={{fill: '#9CA3AF', fontSize: 11}} 
                       dy={10}
                     />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
                     <Tooltip 
                       cursor={{fill: '#F9FAFB'}}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500}>
                       {barDataSekolah.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -256,127 +289,83 @@ export const Dashboard: React.FC = () => {
         {/* === RIGHT COLUMN: ACTIONS & INFO (1/3 width) === */}
         <div className="space-y-6">
           
-          {/* Quick Actions */}
-          <Card className="p-6">
-            <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
-              <Activity size={20} className="text-primary"/> Akses Cepat
-            </h3>
-            <div className="space-y-3">
-              {/* Universal: Absensi */}
-              <button 
+          {/* Quick Actions Grid */}
+          <div>
+            <div className="flex items-center justify-between mb-4 px-1">
+               <h3 className="font-bold text-gray-800 text-lg">Akses Cepat</h3>
+               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Lihat Semua</span>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-3">
+              <QuickActionBtn 
+                label="Input Absensi" 
+                desc="Isi kehadiran harian karyawan"
+                icon={<CheckSquare size={20} />} 
                 onClick={() => navigate('/absensi')}
-                className="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl transition-colors group text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm">
-                    <CheckSquare size={18} />
-                  </div>
-                  <div>
-                    <span className="font-semibold block text-sm">Input Absensi</span>
-                    <span className="text-xs opacity-70">Monitor kehadiran harian</span>
-                  </div>
-                </div>
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-              </button>
+                color="bg-blue-500"
+              />
 
-              {/* High Level Roles: Karyawan */}
               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                <button 
+                <QuickActionBtn 
+                  label="Data Karyawan" 
+                  desc="Kelola database pegawai"
+                  icon={<UserCog size={20} />} 
                   onClick={() => navigate('/karyawan')}
-                  className="w-full flex items-center justify-between p-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl transition-colors group text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-lg text-indigo-600 shadow-sm">
-                      <PlusCircle size={18} />
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-sm">Data Karyawan</span>
-                      <span className="text-xs opacity-70">Kelola data pegawai</span>
-                    </div>
-                  </div>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                </button>
+                  color="bg-indigo-500"
+                />
               )}
 
-              {/* Finance Roles: Laporan Gaji */}
-              {['SUPERADMIN', 'KSPPG'].includes(role) && (
-                <button 
-                  onClick={() => navigate('/honor-karyawan')}
-                  className="w-full flex items-center justify-between p-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl transition-colors group text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
-                      <FileText size={18} />
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-sm">Laporan Gaji</span>
-                      <span className="text-xs opacity-70">Cek honorarium periode</span>
-                    </div>
-                  </div>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                </button>
-              )}
-
-              {/* Inventory Management: For Superadmin, KSPPG, AdminSPPG */}
               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                <button 
-                  onClick={() => navigate('/inventory/bahan-masuk')}
-                  className="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 text-orange-800 rounded-xl transition-colors group text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-lg text-orange-600 shadow-sm">
-                      <Package size={18} />
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-sm">Bahan Masuk</span>
-                      <span className="text-xs opacity-70">Input stok harian</span>
-                    </div>
-                  </div>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                </button>
-              )}
-
-              {/* User Management: Superadmin Only */}
-              {role === 'SUPERADMIN' && (
-                <button 
-                  onClick={() => navigate('/users')}
-                  className="w-full flex items-center justify-between p-4 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl transition-colors group text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white p-2 rounded-lg text-purple-600 shadow-sm">
-                      <UserCog size={18} />
-                    </div>
-                    <div>
-                      <span className="font-semibold block text-sm">Kelola User</span>
-                      <span className="text-xs opacity-70">Manajemen akun sistem</span>
-                    </div>
-                  </div>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-                </button>
+                <QuickActionBtn 
+                  label="Stok Bahan" 
+                  desc="Cek ketersediaan stok gudang"
+                  icon={<Package size={20} />} 
+                  onClick={() => navigate('/inventory/stok-saat-ini')}
+                  color="bg-orange-500"
+                />
               )}
             </div>
+          </div>
+
+          {/* Recent Activity (Mock) */}
+          <Card className="p-5">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                   <Bell size={16} className="text-gray-400" /> Aktivitas Terbaru
+                </h3>
+             </div>
+             <div className="space-y-0 relative">
+                {/* Timeline Line */}
+                <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-gray-100"></div>
+
+                {recentActivities.map((act, idx) => (
+                   <div key={act.id} className="flex gap-4 relative py-3 group">
+                      <div className={`w-5 h-5 rounded-full ${act.color} flex items-center justify-center border-2 border-white shadow-sm shrink-0 z-10`}>
+                         {act.icon}
+                      </div>
+                      <div>
+                         <p className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors cursor-pointer">{act.text}</p>
+                         <p className="text-[10px] text-gray-400 mt-0.5">{act.time}</p>
+                      </div>
+                   </div>
+                ))}
+             </div>
+             <button className="w-full text-center text-xs text-gray-400 mt-2 pt-2 border-t border-gray-50 hover:text-primary transition-colors">
+                Tampilkan Lebih Banyak
+             </button>
           </Card>
 
-          {/* System Info (Mini) */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 text-white shadow-lg">
-            <h4 className="font-bold text-lg mb-2 flex items-center gap-2">
-              <Activity size={18} className="text-green-400"/> System Status
-            </h4>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm border-b border-gray-700 pb-2">
-                <span className="text-gray-400">Database</span>
-                <span className="text-green-400 font-mono flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm border-b border-gray-700 pb-2">
-                <span className="text-gray-400">Mode</span>
-                <span className="text-blue-300 font-mono">Realtime</span>
-              </div>
-              <div className="pt-2 text-xs text-gray-500">
-                Last synced: {timeStr}
-              </div>
-            </div>
+          {/* System Status Mini Widget */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
+                   <ShieldCheck size={20} />
+                </div>
+                <div>
+                   <p className="text-xs font-bold text-emerald-800 uppercase">Status Keamanan</p>
+                   <p className="text-xs text-emerald-600">Semua data aman & terenkripsi</p>
+                </div>
+             </div>
           </div>
 
         </div>
@@ -384,4 +373,3 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
-
