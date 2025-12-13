@@ -1,4 +1,4 @@
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail } from '../types';
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 
@@ -67,6 +67,11 @@ const INITIAL_KADER_B3: KaderB3[] = [
   { id: '1', nik: '350101010101', nama: 'Bu Ani Kader', alamat: 'Jl. Melati No 5', desa: 'Sukamaju', jumlahPaket: 1, honorHarian: 50000 }
 ];
 
+const INITIAL_ALERGI: AlergiSiswa[] = [
+  { id: '1', sekolahId: '1', namaSekolah: 'TK Harapan Bangsa', namaSiswa: 'Doni', keterangan: 'Alergi Telur' },
+  { id: '2', sekolahId: '2', namaSekolah: 'SD Negeri 1 Pertiwi', namaSiswa: 'Sari', keterangan: 'Alergi Kacang' }
+];
+
 // Keys
 const KEYS = {
   USERS: 'simanda_users_v3',
@@ -75,6 +80,7 @@ const KEYS = {
   PM_B3: 'simanda_pm_b3_v2',
   PIC_SEKOLAH: 'simanda_pic_sekolah_v1',
   KADER_B3: 'simanda_kader_b3_v1',
+  ALERGI: 'simanda_alergi_v1',
   PERIODE: 'simanda_periode_v1',
   ABSENSI: 'simanda_absensi_v2' 
 };
@@ -289,6 +295,12 @@ export const api = {
   subscribeKaderB3: (cb: (data: KaderB3[]) => void) => createSubscriber('kader_b3', KEYS.KADER_B3, INITIAL_KADER_B3, cb),
   saveKaderB3: (item: KaderB3) => saveData('kader_b3', KEYS.KADER_B3, item),
   deleteKaderB3: (id: string) => saveData('kader_b3', KEYS.KADER_B3, { id }, true),
+
+  // Alergi Siswa
+  getAlergi: (q: string = '') => Promise.resolve(localDb.get(KEYS.ALERGI, INITIAL_ALERGI)),
+  subscribeAlergi: (cb: (data: AlergiSiswa[]) => void) => createSubscriber('alergi_siswa', KEYS.ALERGI, INITIAL_ALERGI, cb),
+  saveAlergi: (item: AlergiSiswa) => saveData('alergi_siswa', KEYS.ALERGI, item),
+  deleteAlergi: (id: string) => saveData('alergi_siswa', KEYS.ALERGI, { id }, true),
 
   // === ABSENSI & PERIODE ===
   getPeriode: async () => Promise.resolve(localDb.get(KEYS.PERIODE, [])),
