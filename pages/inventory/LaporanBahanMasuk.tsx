@@ -154,9 +154,9 @@ export const LaporanBahanMasukPage: React.FC = () => {
              let finalName = inputNameRaw; // Already Uppercase from input
 
              if (existingMaster) {
-                 // Jika ada (sama persis atau beda casing), AMBIL dari Role Model
-                 // Ini mencegah pembuatan item baru yang duplikat
-                 finalName = existingMaster.namaBarang;
+                 // Jika ada (sama persis atau beda casing), AMBIL dari Role Model tapi paksa UPPERCASE
+                 // Ini memastikan data yang tersimpan selalu konsisten huruf besar
+                 finalName = existingMaster.namaBarang.toUpperCase();
              }
              // Jika tidak ada, biarkan apa adanya (akan jadi Role Model baru via service)
 
@@ -364,8 +364,8 @@ export const LaporanBahanMasukPage: React.FC = () => {
                                <div className="relative">
                                   <input 
                                      list="masterBarangList"
-                                     className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-medium"
-                                     placeholder="Ketik nama barang..."
+                                     className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-medium uppercase"
+                                     placeholder="KETIK NAMA BARANG..."
                                      value={item.namaBahan}
                                      onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value.toUpperCase())}
                                   />
@@ -417,10 +417,10 @@ export const LaporanBahanMasukPage: React.FC = () => {
                                </label>
                                <input 
                                   type="text"
-                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm uppercase"
                                   value={item.keterangan}
                                   onChange={(e) => handleRowChange(index, 'keterangan', e.target.value.toUpperCase())}
-                                  placeholder="Opsional (Kualitas, dll)"
+                                  placeholder="OPSIONAL (KUALITAS, DLL)"
                                />
                            </div>
                         </div>
@@ -446,7 +446,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
               
               <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Input label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value.toUpperCase()})} />
+                    <Input className="uppercase" label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value.toUpperCase()})} />
                   </div>
                   <div>
                     <Select 
@@ -478,7 +478,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                 <textarea 
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none uppercase"
                   value={editItem.keterangan || ''}
                   onChange={e => setEditItem({...editItem, keterangan: e.target.value.toUpperCase()})}
                 />
