@@ -229,6 +229,21 @@ export const KaryawanPage: React.FC = () => {
     { value: 'BANK BNI', label: 'BANK BNI' },
   ];
 
+  // Helper function for Divisi Color Mapping
+  const getDivisiColor = (divisi: string) => {
+    switch (divisi) {
+      case 'Asisten Lapangan': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Persiapan': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'Produksi (Masak)': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'Pemorsian': return 'bg-pink-100 text-pink-800 border-pink-200';
+      case 'Distribusi': return 'bg-cyan-100 text-cyan-800 border-cyan-200';
+      case 'Kebersihan': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'Keamanan': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Pencucian Alat': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   // Grid Renderer
   const renderGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -244,7 +259,7 @@ export const KaryawanPage: React.FC = () => {
                     <p className="text-xs text-gray-500">NIK: {item.nik}</p>
                   </div>
                </div>
-               <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border border-blue-100">
+               <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border ${getDivisiColor(item.divisi)}`}>
                   {item.divisi.split(' ')[0]}
                </span>
             </div>
@@ -309,7 +324,14 @@ export const KaryawanPage: React.FC = () => {
             columns={[
               { header: 'NIK', accessor: 'nik' },
               { header: 'Nama', accessor: 'nama' },
-              { header: 'Divisi', accessor: 'divisi' },
+              { 
+                header: 'Divisi', 
+                accessor: (i) => (
+                  <span className={`px-2 py-1 rounded text-xs font-bold border ${getDivisiColor(i.divisi)}`}>
+                    {i.divisi}
+                  </span>
+                ) 
+              },
               { header: 'No HP', accessor: 'hp' },
               { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) },
               { header: 'No BPJS', accessor: 'noBpjs' },
