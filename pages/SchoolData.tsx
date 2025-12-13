@@ -1,7 +1,6 @@
 
-
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
 import { FileText, Download, Eye, AlertTriangle, Filter, School, Users, Phone, Pencil, Trash2, MapPin, ShieldAlert } from 'lucide-react';
@@ -27,6 +26,9 @@ export const SchoolPage: React.FC = () => {
 
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
+  
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const { showToast } = useToast();
 
@@ -187,7 +189,7 @@ export const SchoolPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'NPSN': item.npsn,
       'Nama Sekolah': item.nama,
@@ -351,7 +353,7 @@ export const SchoolPage: React.FC = () => {
         title="Data PM Sekolah" 
         onSearch={setSearch} 
         onAdd={canAdd ? openAdd : undefined} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         onImport={canImport ? handleImport : undefined}
         layoutMode={layout}
         onLayoutChange={setLayout}
@@ -486,6 +488,27 @@ export const SchoolPage: React.FC = () => {
       ) : (
         renderGrid()
       )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data PM Sekolah"
+        data={data}
+        columns={[
+            { header: 'NPSN', accessor: 'npsn' },
+            { header: 'Nama Sekolah', accessor: 'nama' },
+            { header: 'Desa', accessor: 'desa' },
+            { header: 'Jenis', accessor: 'jenis' },
+            { header: 'Siswa', accessor: 'jmlsiswa' },
+            { header: 'PM Besar', accessor: 'pmBesar' },
+            { header: 'PM Kecil', accessor: 'pmKecil' },
+            { header: 'Guru', accessor: 'jmlguru' },
+            { header: 'Narahubung', accessor: 'narahubung' },
+            { header: 'No HP', accessor: 'hp' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       {canDelete && (
         <ConfirmationModal 
