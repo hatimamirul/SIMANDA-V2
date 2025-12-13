@@ -28,13 +28,16 @@ export const LaporanBahanKeluarPage: React.FC = () => {
 
     // 1. Subscribe to Bahan Keluar List
     const unsubBahan = api.subscribeBahanKeluar((items) => {
+        // Sort Descending (Terbaru paling atas)
+        const sortedItems = items.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+
         if (search) {
             const lower = search.toLowerCase();
-            setData(items.filter(i => 
+            setData(sortedItems.filter(i => 
               i.namaBahan.toLowerCase().includes(lower)
             ));
         } else {
-            setData(items);
+            setData(sortedItems);
         }
         setLoading(false);
     });
