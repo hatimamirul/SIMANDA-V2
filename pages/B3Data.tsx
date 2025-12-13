@@ -19,8 +19,9 @@ export const B3Page: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Filtering by Desa
+  // Filtering States
   const [filterDesa, setFilterDesa] = useState('');
+  const [filterJenis, setFilterJenis] = useState('');
   
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
@@ -36,6 +37,9 @@ export const B3Page: React.FC = () => {
 
   const desaOptions = desaOptionsRaw.map(d => ({ value: d, label: d }));
 
+  // List of Jenis B3
+  const jenisOptionsRaw = ['BALITA', 'IBU HAMIL', 'IBU MENYUSUI'];
+
   // Get current user to check role
   const currentUser: User | null = (() => {
     try {
@@ -47,7 +51,7 @@ export const B3Page: React.FC = () => {
   const canAdd = role !== 'KOORDINATORDIVISI';
   const hideActions = role === 'PETUGAS';
 
-  // Realtime Subscription
+  // Realtime Subscription with Integrated Filtering
   useEffect(() => {
     setLoading(true);
     const unsubscribe = api.subscribeB3s((items) => {
@@ -64,11 +68,16 @@ export const B3Page: React.FC = () => {
         filtered = filtered.filter(i => i.desa === filterDesa);
       }
 
+      // Filter by Jenis
+      if (filterJenis) {
+        filtered = filtered.filter(i => i.jenis === filterJenis);
+      }
+
       setData(filtered);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [search, filterDesa]);
+  }, [search, filterDesa, filterJenis]);
 
   const handleSubmit = async () => {
     // Validation
@@ -236,24 +245,56 @@ export const B3Page: React.FC = () => {
       />
 
       {/* Filter Control */}
-      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold">
+      <div className="mb-4 bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center gap-3">
+         <div className="flex items-center gap-2 text-gray-500 text-sm font-semibold shrink-0">
             <Filter size={16} /> Filter:
          </div>
-         <select 
-            value={filterDesa} 
-            onChange={(e) => setFilterDesa(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
-         >
-            <option value="">-- Semua Desa --</option>
-            {desaOptionsRaw.map(desa => (
-               <option key={desa} value={desa}>{desa}</option>
-            ))}
-         </select>
-         {filterDesa && (
-           <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md">
-             Menampilkan data desa: {filterDesa}
-           </span>
+         
+         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+             {/* Filter Desa */}
+             <select 
+                value={filterDesa} 
+                onChange={(e) => setFilterDesa(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+             >
+                <option value="">-- Semua Desa --</option>
+                {desaOptionsRaw.map(desa => (
+                   <option key={desa} value={desa}>{desa}</option>
+                ))}
+             </select>
+
+             {/* Filter Jenis */}
+             <select 
+                value={filterJenis} 
+                onChange={(e) => setFilterJenis(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+             >
+                <option value="">-- Semua Jenis --</option>
+                {jenisOptionsRaw.map(jenis => (
+                   <option key={jenis} value={jenis}>{jenis}</option>
+                ))}
+             </select>
+         </div>
+
+         {(filterDesa || filterJenis) && (
+           <div className="flex flex-wrap gap-2 md:ml-auto">
+             {filterDesa && (
+               <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                 Desa: {filterDesa}
+               </span>
+             )}
+             {filterJenis && (
+                <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                  Jenis: {filterJenis}
+                </span>
+             )}
+             <button 
+                onClick={() => { setFilterDesa(''); setFilterJenis(''); }}
+                className="text-xs text-gray-500 hover:text-red-500 underline"
+             >
+                Reset
+             </button>
+           </div>
          )}
       </div>
 
