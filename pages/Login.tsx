@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/mockService';
 import { User } from '../types';
 import { Input, Button, Card, Logo } from '../components/UIComponents';
-import { CheckCircle2, AlertCircle, ScanLine } from 'lucide-react';
+import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (token: string, user: User) => void;
