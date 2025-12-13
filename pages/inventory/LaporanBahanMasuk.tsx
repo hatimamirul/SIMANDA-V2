@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Button, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, Select } from '../../components/UIComponents';
 import { api } from '../../services/mockService';
 import { BahanMasuk, Supplier, MasterBarang } from '../../types';
-import { Plus, Trash2, CalendarDays, Archive, Search } from 'lucide-react';
+import { Plus, Trash2, CalendarDays, Archive, Search, Package, Truck, Hash, Scale, FileText } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -75,7 +75,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
         namaBahan: '', 
         jumlah: undefined, 
         satuan: 'kg', 
-        hargaTotal: undefined, 
+        hargaTotal: 0, // Default 0
         keterangan: '' 
     }]);
     setEditItem(null);
@@ -90,7 +90,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
         namaBahan: '', 
         jumlah: undefined, 
         satuan: 'kg', 
-        hargaTotal: undefined, 
+        hargaTotal: 0, 
         keterangan: '' 
      }]);
   };
@@ -111,9 +111,6 @@ export const LaporanBahanMasukPage: React.FC = () => {
          newList[index].namaSupplier = supp ? supp.nama : '';
       }
 
-      // If user types name that exists in master, allow it. New names are also allowed.
-      // Datalist handles the UI part. Logic handles saving.
-      
       setInputList(newList);
   };
 
@@ -127,9 +124,9 @@ export const LaporanBahanMasukPage: React.FC = () => {
 
       for (let i = 0; i < inputList.length; i++) {
           const item = inputList[i];
-          if (!item.namaBahan || !item.supplierId || !item.jumlah || !item.hargaTotal) {
+          if (!item.namaBahan || !item.supplierId || !item.jumlah) {
               isValid = false;
-              showToast(`Baris ke-${i+1} belum lengkap. Mohon lengkapi Nama, Suplayer, Jumlah, dan Harga.`, "error");
+              showToast(`Baris ke-${i+1} belum lengkap. Mohon lengkapi Nama, Suplayer, dan Jumlah.`, "error");
               break;
           }
       }
@@ -139,10 +136,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
       // Duplicate Check in current batch
       const names = inputList.map(i => i.namaBahan?.toLowerCase());
       const hasDuplicates = names.some((name, idx) => names.indexOf(name) !== idx);
-      // NOTE: Requirement says "Cannot be same as Name Item stored in Role Model" for *Manual/New* items.
-      // But standard logic is: Use existing if matches, Create new if unique.
-      // We will allow selecting existing. If it's a new name, it will be added to master.
-      // We only strictly prevent duplicates within the *same batch* to avoid double entry error.
+      
       if (hasDuplicates) {
          if(!confirm("Terdapat nama barang yang sama dalam satu penginputan ini. Lanjutkan?")) return;
       }
@@ -158,7 +152,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                  namaBahan: item.namaBahan!,
                  jumlah: Number(item.jumlah),
                  satuan: item.satuan || 'kg',
-                 hargaTotal: Number(item.hargaTotal),
+                 hargaTotal: 0, // Ignored / Default
                  keterangan: item.keterangan
              };
              // Service will handle saving to BahanMasuk AND updating MasterBarang if it's new
@@ -176,12 +170,12 @@ export const LaporanBahanMasukPage: React.FC = () => {
   // --- EDIT SINGLE ITEM LOGIC ---
   const handleEditSingle = async () => {
       if (!editItem) return;
-      if (!editItem.tanggal || !editItem.namaBahan || !editItem.jumlah || !editItem.hargaTotal) {
+      if (!editItem.tanggal || !editItem.namaBahan || !editItem.jumlah) {
           showToast("Data tidak lengkap", "error");
           return;
       }
       setLoading(true);
-      await api.saveBahanMasuk(editItem as BahanMasuk);
+      await api.saveBahanMasuk({ ...editItem, hargaTotal: 0 } as BahanMasuk);
       setLoading(false);
       setIsModalOpen(false);
       showToast("Data berhasil diperbarui", "success");
@@ -207,11 +201,6 @@ export const LaporanBahanMasukPage: React.FC = () => {
     }
   };
 
-  const formatCurrency = (val?: number) => {
-    if (val === undefined || val === null) return '-';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-  };
-
   const handleExport = () => {
     const dataToExport = data.map(item => ({
       'Tanggal': item.tanggal,
@@ -219,7 +208,6 @@ export const LaporanBahanMasukPage: React.FC = () => {
       'Nama Bahan': item.namaBahan,
       'Jumlah': item.jumlah,
       'Satuan': item.satuan,
-      'Harga Total': item.hargaTotal,
       'Keterangan': item.keterangan || '-'
     }));
 
@@ -241,7 +229,9 @@ export const LaporanBahanMasukPage: React.FC = () => {
       {value: 'karton', label: 'Karton'},
       {value: 'ikat', label: 'Ikat'},
       {value: 'box', label: 'Box'},
-      {value: 'karung', label: 'Karung'}
+      {value: 'karung', label: 'Karung'},
+      {value: 'bal', label: 'Bal'},
+      {value: 'ons', label: 'Ons'},
   ];
 
   return (
@@ -266,7 +256,6 @@ export const LaporanBahanMasukPage: React.FC = () => {
               { header: 'Nama Bahan', accessor: 'namaBahan' },
               { header: 'Suplayer', accessor: 'namaSupplier' },
               { header: 'Jumlah', accessor: (i) => `${i.jumlah} ${i.satuan}` },
-              { header: 'Harga Total', accessor: (i) => formatCurrency(i.hargaTotal) },
               { header: 'Keterangan', accessor: (i) => i.keterangan || '-' },
             ]}
             onEdit={openEdit}
@@ -298,57 +287,66 @@ export const LaporanBahanMasukPage: React.FC = () => {
          title={editItem ? "Edit Data Bahan Masuk" : "Catat Bahan Masuk (Batch)"}
       >
         {!editItem ? (
-           // === BATCH ENTRY MODE ===
+           // === BATCH ENTRY MODE (NEW LAYOUT) ===
            <div className="space-y-6">
               {/* Date Selection */}
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center gap-4">
-                 <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm">
-                    <CalendarDays size={24} />
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center gap-4 shadow-sm">
+                 <div className="bg-white p-2.5 rounded-lg text-blue-600 shadow-sm">
+                    <CalendarDays size={20} />
                  </div>
                  <div className="flex-1">
                     <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Tanggal Transaksi</label>
                     <input 
                         type="date" 
-                        className="bg-transparent font-bold text-gray-800 outline-none w-full cursor-pointer"
+                        className="bg-transparent font-bold text-gray-800 outline-none w-full cursor-pointer text-lg"
                         value={entryDate}
                         onChange={(e) => setEntryDate(e.target.value)}
                     />
                  </div>
               </div>
 
-              {/* Items List */}
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {/* Items List Container */}
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 pb-2">
                  {inputList.map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-4 rounded-xl border border-gray-200 relative group animate-fade-in">
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div key={index} className="bg-white p-5 rounded-xl border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] relative group hover:border-blue-300 transition-all">
+                        {/* Header: Item Index & Remove */}
+                        <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Item #{index + 1}</span>
                             {inputList.length > 1 && (
-                                <button onClick={() => removeRow(index)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
+                                <button 
+                                    onClick={() => removeRow(index)} 
+                                    className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                    title="Hapus baris ini"
+                                >
                                     <Trash2 size={16} />
                                 </button>
                             )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                           {/* Item Name with Role Model Datalist */}
-                           <div className="md:col-span-4">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Nama Item {index + 1}</label>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-4">
+                           {/* Row 1: Nama & Supplier */}
+                           <div className="md:col-span-7">
+                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                                  <Package size={14} className="text-primary"/> Nama Barang
+                               </label>
                                <div className="relative">
                                   <input 
                                      list="masterBarangList"
-                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+                                     className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-medium"
                                      placeholder="Ketik nama barang..."
                                      value={item.namaBahan}
                                      onChange={(e) => handleRowChange(index, 'namaBahan', e.target.value)}
                                   />
-                                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14}/>
+                                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16}/>
                                </div>
                            </div>
                            
-                           {/* Supplier */}
-                           <div className="md:col-span-3">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Suplayer</label>
+                           <div className="md:col-span-5">
+                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                                  <Truck size={14} className="text-primary"/> Suplayer
+                               </label>
                                <select 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-gray-50/50"
                                   value={item.supplierId}
                                   onChange={(e) => handleRowChange(index, 'supplierId', e.target.value)}
                                >
@@ -356,83 +354,81 @@ export const LaporanBahanMasukPage: React.FC = () => {
                                </select>
                            </div>
 
-                           {/* Qty & Unit */}
-                           <div className="md:col-span-2">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Jumlah</label>
+                           {/* Row 2: Qty, Unit, Desc */}
+                           <div className="md:col-span-3">
+                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                                  <Hash size={14} className="text-primary"/> Jumlah
+                               </label>
                                <input 
                                   type="number"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-center"
                                   value={item.jumlah ?? ''}
                                   onChange={(e) => handleRowChange(index, 'jumlah', e.target.value)}
                                />
                            </div>
                            <div className="md:col-span-3">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Satuan</label>
+                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                                  <Scale size={14} className="text-primary"/> Satuan
+                               </label>
                                <select 
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-white"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm bg-gray-50/50"
                                   value={item.satuan}
                                   onChange={(e) => handleRowChange(index, 'satuan', e.target.value)}
                                >
                                   {satuanOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                </select>
                            </div>
-
-                           {/* Price Total */}
-                           <div className="md:col-span-4">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Total Harga (Rp)</label>
-                               <input 
-                                  type="number"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
-                                  value={item.hargaTotal ?? ''}
-                                  onChange={(e) => handleRowChange(index, 'hargaTotal', e.target.value)}
-                               />
-                           </div>
                            
-                           {/* Desc */}
-                           <div className="md:col-span-8">
-                               <label className="block text-xs font-medium text-gray-500 mb-1">Keterangan</label>
+                           <div className="md:col-span-6">
+                               <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 mb-1.5">
+                                  <FileText size={14} className="text-primary"/> Keterangan
+                               </label>
                                <input 
                                   type="text"
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
                                   value={item.keterangan}
                                   onChange={(e) => handleRowChange(index, 'keterangan', e.target.value)}
-                                  placeholder="Opsional..."
+                                  placeholder="Opsional (Kualitas, dll)"
                                />
                            </div>
                         </div>
                     </div>
                  ))}
                  
-                 <Button variant="secondary" onClick={addRow} className="w-full border-dashed" icon={<Plus size={16}/>}>
-                    Tambah Item Lain
+                 <Button variant="secondary" onClick={addRow} className="w-full py-3 border-2 border-dashed border-gray-300 text-gray-500 hover:border-primary hover:text-primary hover:bg-blue-50 transition-all" icon={<Plus size={18}/>}>
+                    Tambah Baris Item
                  </Button>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                <Button onClick={handleSaveBatch} isLoading={loading}>Simpan Semua</Button>
+                <Button onClick={handleSaveBatch} isLoading={loading} className="px-6 shadow-lg shadow-primary/20">Simpan Data Masuk</Button>
               </div>
            </div>
         ) : (
-           // === SINGLE EDIT MODE (Legacy Logic) ===
-           <div className="space-y-4">
-              <div>
+           // === SINGLE EDIT MODE (Legacy Logic - Updated Layout) ===
+           <div className="space-y-5">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <Input label="Tanggal" type="date" value={editItem.tanggal} onChange={e => setEditItem({...editItem, tanggal: e.target.value})} />
               </div>
-              <div>
-                <Select 
-                    label="Suplayer" 
-                    value={editItem.supplierId} 
-                    onChange={(e) => {
-                       const supp = suppliers.find(s => s.id === e.target.value);
-                       setEditItem({...editItem, supplierId: e.target.value, namaSupplier: supp?.nama || ''});
-                    }} 
-                    options={supplierOptions} 
-                />
+              
+              <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Input label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value})} />
+                  </div>
+                  <div>
+                    <Select 
+                        label="Suplayer" 
+                        value={editItem.supplierId} 
+                        onChange={(e) => {
+                        const supp = suppliers.find(s => s.id === e.target.value);
+                        setEditItem({...editItem, supplierId: e.target.value, namaSupplier: supp?.nama || ''});
+                        }} 
+                        options={supplierOptions} 
+                    />
+                  </div>
               </div>
-              <div>
-                <Input label="Nama Bahan" value={editItem.namaBahan} onChange={e => setEditItem({...editItem, namaBahan: e.target.value})} />
-              </div>
+
               <div className="grid grid-cols-2 gap-4">
                  <div>
                     <Input label="Jumlah" type="number" value={editItem.jumlah ?? ''} onChange={e => setEditItem({...editItem, jumlah: parseFloat(e.target.value)})} />
@@ -446,9 +442,7 @@ export const LaporanBahanMasukPage: React.FC = () => {
                     />
                  </div>
               </div>
-              <div>
-                <Input label="Harga Total (Rp)" type="number" value={editItem.hargaTotal ?? ''} onChange={e => setEditItem({...editItem, hargaTotal: parseFloat(e.target.value)})} />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                 <textarea 
