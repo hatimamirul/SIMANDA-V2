@@ -1,18 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { DashboardStats, User, Role } from '../types';
 import { 
-  Users, School, Baby, Activity, Calendar, Clock, 
-  TrendingUp, ArrowRight, CheckSquare, FileText,
-  GraduationCap, Package, UserCog, Bell, ChevronRight,
+  Users, School, Baby, Activity, Calendar, 
+  TrendingUp, ArrowRight, CheckSquare,
+  Package, UserCog, Bell,
   ArrowUpRight, ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
-  PieChart, Pie, Legend, AreaChart, Area
+  PieChart, Pie, Legend
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
