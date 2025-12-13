@@ -3,14 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../components/UIComponents';
 import { api } from '../services/mockService';
-import { PMSekolah, User, Role } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Users, Phone, Pencil, Trash2, MapPin } from 'lucide-react';
+import { PMSekolah, User, Role, AlergiSiswa } from '../types';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Users, Phone, Pencil, Trash2, MapPin, ShieldAlert } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
 
 export const SchoolPage: React.FC = () => {
   const [data, setData] = useState<PMSekolah[]>([]);
+  const [allergies, setAllergies] = useState<AlergiSiswa[]>([]); // State for Allergy Data
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<PMSekolah | null>(null);
@@ -60,21 +61,23 @@ export const SchoolPage: React.FC = () => {
   // Realtime Subscription with Integrated Filtering
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = api.subscribePMs((items) => {
+    
+    // 1. Subscribe to Schools
+    const unsubscribePM = api.subscribePMs((items) => {
       let filtered = items;
       
-      // 1. Filter by Search
+      // Filter by Search
       if (search) {
         const lower = search.toLowerCase();
         filtered = filtered.filter(i => i.nama.toLowerCase().includes(lower) || i.npsn.includes(lower));
       }
 
-      // 2. Filter by Desa
+      // Filter by Desa
       if (filterDesa) {
         filtered = filtered.filter(i => i.desa === filterDesa);
       }
 
-      // 3. Filter by Jenis
+      // Filter by Jenis
       if (filterJenis) {
         filtered = filtered.filter(i => i.jenis === filterJenis);
       }
@@ -82,7 +85,16 @@ export const SchoolPage: React.FC = () => {
       setData(filtered);
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // 2. Subscribe to Allergies (to show indicators)
+    const unsubscribeAlergi = api.subscribeAlergi((items) => {
+      setAllergies(items);
+    });
+
+    return () => {
+      unsubscribePM();
+      unsubscribeAlergi();
+    };
   }, [search, filterDesa, filterJenis]);
 
   const validate = (): boolean => {
@@ -249,10 +261,17 @@ export const SchoolPage: React.FC = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  // Helper to count allergies
+  const getAllergyCount = (sekolahId: string) => {
+    return allergies.filter(a => a.sekolahId === sekolahId).length;
+  };
+
   // Grid Renderer
   const renderGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       {data.map(item => (
+       {data.map(item => {
+         const allergyCount = getAllergyCount(item.id);
+         return (
          <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-5 flex flex-col group">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
@@ -261,7 +280,14 @@ export const SchoolPage: React.FC = () => {
                  </div>
                  <div>
                     <h3 className="font-bold text-gray-800 line-clamp-1 text-sm">{item.nama}</h3>
-                    <p className="text-xs text-gray-500">NPSN: {item.npsn}</p>
+                    <div className="flex flex-wrap gap-2 mt-0.5">
+                      <p className="text-xs text-gray-500">NPSN: {item.npsn}</p>
+                      {allergyCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
+                          <ShieldAlert size={10} /> {allergyCount} Alergi
+                        </span>
+                      )}
+                    </div>
                  </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 text-gray-600 uppercase border border-gray-200">
@@ -315,7 +341,7 @@ export const SchoolPage: React.FC = () => {
                )}
             </div>
          </div>
-       ))}
+       )}}
     </div>
   );
 
@@ -395,7 +421,22 @@ export const SchoolPage: React.FC = () => {
             hideActions={hideActions} 
             columns={[
               { header: 'NPSN', accessor: 'npsn' },
-              { header: 'Nama Sekolah', accessor: 'nama' },
+              { 
+                header: 'Nama Sekolah', 
+                accessor: (i) => {
+                  const allergyCount = getAllergyCount(i.id);
+                  return (
+                    <div className="flex items-center gap-2">
+                       <span>{i.nama}</span>
+                       {allergyCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100" title={`${allergyCount} Siswa memiliki alergi`}>
+                            <ShieldAlert size={12} /> Ada Alergi
+                          </span>
+                       )}
+                    </div>
+                  );
+                }
+              },
               { 
                 header: 'Desa', 
                 accessor: (i) => (
