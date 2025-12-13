@@ -143,6 +143,13 @@ export interface Supplier {
   keterangan?: string;
 }
 
+// Master Barang for Autocomplete (Role Model)
+export interface MasterBarang {
+  id: string;
+  namaBarang: string; // Unique Key
+  satuanDefault?: string;
+}
+
 export interface BahanMasuk {
   id: string;
   tanggal: string;
