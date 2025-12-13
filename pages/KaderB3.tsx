@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { KaderB3, PMB3, User } from '../types';
 
@@ -16,6 +16,9 @@ export const KaderB3Page: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   // List of Desa sorted alphabetically (Same as B3Page)
@@ -132,7 +135,7 @@ export const KaderB3Page: React.FC = () => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'NIK': item.nik,
       'Nama Kader': item.nama,
@@ -205,7 +208,7 @@ export const KaderB3Page: React.FC = () => {
         title="Data Kader B3" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         onImport={isPetugas ? undefined : handleImport}
         searchPlaceholder="Cari Nama atau NIK..."
       />
@@ -231,6 +234,23 @@ export const KaderB3Page: React.FC = () => {
           onDelete={setDeleteItem}
         />
       </Card>
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data Kader B3"
+        data={data}
+        columns={[
+            { header: 'NIK', accessor: 'nik' },
+            { header: 'Nama Kader', accessor: 'nama' },
+            { header: 'Alamat', accessor: 'alamat' },
+            { header: 'Desa', accessor: 'desa' },
+            { header: 'Jumlah Paket', accessor: 'jumlahPaket' },
+            { header: 'Honor/Paket', accessor: (i) => formatCurrency(i.honorHarian) }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
