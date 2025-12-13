@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
@@ -49,8 +48,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, user, token, 
   );
 };
 
-// Auto Logout Time (30 Minutes)
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+// Auto Logout Time (60 Minutes)
+const INACTIVITY_TIMEOUT = 60 * 60 * 1000;
 
 // Inner App Component to use Toast Hook properly
 const MainApp = () => {
@@ -87,9 +86,22 @@ const MainApp = () => {
         return;
       }
 
+      // --- NEW: Single Device Login Check (Session ID Mismatch) ---
+      if (updatedUser.sessionId && user.sessionId && updatedUser.sessionId !== user.sessionId) {
+          alert("Akun anda telah digunakan login di perangkat lain. Anda akan logout otomatis.");
+          handleLogout();
+          return;
+      }
+
       // Update local user state for non-critical changes (name, role, division)
-      if (updatedUser.nama !== user.nama || updatedUser.jabatan !== user.jabatan || updatedUser.jabatanDivisi !== user.jabatanDivisi) {
-         const mergedUser = { ...updatedUser, password: user.password };
+      // We also update sessionId here if it wasn't present locally (first sync)
+      if (
+          updatedUser.nama !== user.nama || 
+          updatedUser.jabatan !== user.jabatan || 
+          updatedUser.jabatanDivisi !== user.jabatanDivisi ||
+          (!user.sessionId && updatedUser.sessionId)
+      ) {
+         const mergedUser = { ...updatedUser, password: user.password, sessionId: updatedUser.sessionId };
          setUser(mergedUser);
          localStorage.setItem('simanda_user', JSON.stringify(mergedUser));
       }
@@ -105,7 +117,7 @@ const MainApp = () => {
     let timeoutId: any;
 
     const handleInactivity = () => {
-      alert("Sesi anda telah berakhir karena tidak ada aktivitas selama 30 menit. Silahkan login kembali.");
+      alert("Sesi anda telah berakhir karena tidak ada aktivitas selama 60 menit. Silahkan login kembali.");
       handleLogout();
     };
 
@@ -311,3 +323,4 @@ function App() {
 }
 
 export default App;
+
