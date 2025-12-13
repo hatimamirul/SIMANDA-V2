@@ -1,8 +1,7 @@
 
-
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
 import { Eye, FileText, Download, User as UserIcon, Phone, CreditCard, Activity, Pencil, Trash2 } from 'lucide-react';
@@ -44,6 +43,9 @@ export const KaryawanPage: React.FC = () => {
 
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
+  
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Switch to Realtime Subscription
   useEffect(() => {
@@ -138,7 +140,7 @@ export const KaryawanPage: React.FC = () => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'NIK': item.nik,
       'Nama Karyawan': item.nama,
@@ -271,13 +273,13 @@ export const KaryawanPage: React.FC = () => {
                        <Eye size={16} />
                     </button>
                  )}
-                 <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
+                 <button onClick={() => { setFormData(item); setIsModalOpen(true); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
                     <Pencil size={16} />
                  </button>
                  {canDelete && (
-                   <button onClick={() => setDeleteItem(item)} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Hapus">
-                      <Trash2 size={16} />
-                   </button>
+                    <button onClick={() => setDeleteItem(item)} className="p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors" title="Hapus">
+                       <Trash2 size={16} />
+                    </button>
                  )}
                </div>
             </div>
@@ -292,8 +294,9 @@ export const KaryawanPage: React.FC = () => {
         title="Data Karyawan" 
         onSearch={setSearch} 
         onAdd={canAdd ? openAdd : undefined} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         onImport={canImport ? handleImport : undefined}
+        searchPlaceholder="Cari Nama atau NIK..."
         layoutMode={layout}
         onLayoutChange={setLayout}
       />
@@ -305,97 +308,100 @@ export const KaryawanPage: React.FC = () => {
           <Table<Karyawan> 
             isLoading={loading}
             data={data}
-            hideActions={false}
             columns={[
               { header: 'NIK', accessor: 'nik' },
               { header: 'Nama', accessor: 'nama' },
-              { header: 'Divisi', accessor: (i) => <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-sm font-medium">{i.divisi}</span> },
+              { header: 'Divisi', accessor: 'divisi' },
               { header: 'No HP', accessor: 'hp' },
               { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) },
-              { header: 'BPJS', accessor: 'noBpjs' },
+              { header: 'No BPJS', accessor: 'noBpjs' },
               { header: 'Bank', accessor: 'bank' },
-              { header: 'Rekening', accessor: 'rekening' },
-              { 
-                header: 'SERTIFIKAT PENUNJANG', 
-                accessor: (i) => i.sertifikat ? (
-                  <button 
-                    type="button"
-                    onClick={() => handlePreview(i.sertifikat!)}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
-                  >
-                    <Eye size={12} /> Lihat
-                  </button>
-                ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
-              },
+              { header: 'No Rekening', accessor: 'rekening' },
+              { header: 'Sertifikat', accessor: (i) => i.sertifikat ? (
+                <button 
+                  type="button"
+                  onClick={() => handlePreview(i.sertifikat!)}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium hover:bg-green-100 transition-colors"
+                >
+                  <Eye size={12} /> Lihat
+                </button>
+              ) : <span className="text-gray-400 text-xs italic">Tidak ada</span> },
             ]}
             onEdit={openEdit}
-            onDelete={canDelete ? setDeleteItem : (() => {})} 
+            onDelete={setDeleteItem}
           />
         </Card>
       ) : (
         renderGrid()
       )}
 
-      {canDelete && (
-        <ConfirmationModal 
-          isOpen={!!deleteItem}
-          onClose={() => setDeleteItem(null)}
-          onConfirm={handleDelete}
-          title="Hapus Karyawan"
-          message={`Apakah anda yakin ingin menghapus data karyawan ${deleteItem?.nama}?`}
-          isLoading={loading}
-        />
-      )}
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data Karyawan"
+        data={data}
+        columns={[
+            { header: 'NIK', accessor: 'nik' },
+            { header: 'Nama Karyawan', accessor: 'nama' },
+            { header: 'Divisi', accessor: 'divisi' },
+            { header: 'No HP', accessor: 'hp' },
+            { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) },
+            { header: 'No BPJS', accessor: 'noBpjs' },
+            { header: 'Bank', accessor: 'bank' },
+            { header: 'No Rekening', accessor: 'rekening' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
+
+      <ConfirmationModal 
+        isOpen={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={handleDelete}
+        title="Hapus Karyawan"
+        message={`Apakah anda yakin ingin menghapus data karyawan ${deleteItem?.nama}?`}
+        isLoading={loading}
+      />
 
       <PreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} src={previewSrc} title="Preview Sertifikat" />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={formData.id ? "Edit Karyawan" : "Tambah Karyawan"}>
         <div className="space-y-4">
-          <div>
-            <Input label="NIK" value={formData.nik} onChange={e => setFormData({...formData, nik: e.target.value})} />
-          </div>
-          <div>
-            <Input label="Nama" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Input label="NIK" value={formData.nik} onChange={e => setFormData({...formData, nik: e.target.value})} />
+            </div>
+            <div>
+              <Input label="Nama Lengkap" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Select 
-                label="Divisi / Role Model"
-                value={formData.divisi}
-                onChange={e => setFormData({...formData, divisi: e.target.value})}
-                options={divisionOptions}
-              />
+              <Select label="Divisi" value={formData.divisi} onChange={e => setFormData({...formData, divisi: e.target.value})} options={divisionOptions} />
             </div>
             <div>
-              <Input label="No HP" value={formData.hp} onChange={e => setFormData({...formData, hp: e.target.value})} />
+              <Input label="No HP (WA)" value={formData.hp} onChange={e => setFormData({...formData, hp: e.target.value})} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Input 
-                label="Honor/Hari (Rp)" 
+                label="Honor Harian (Rp)" 
                 type="number" 
                 value={formData.honorHarian ?? ''} 
                 onChange={e => setFormData({...formData, honorHarian: e.target.value ? parseInt(e.target.value) : undefined})} 
-                disabled={!canEditHonor} // Restricted
-                className={!canEditHonor ? 'bg-gray-100 cursor-not-allowed' : ''}
               />
             </div>
             <div>
-              <Input label="No BPJS" value={formData.noBpjs} onChange={e => setFormData({...formData, noBpjs: e.target.value})} />
+              <Input label="No BPJS Ketenagakerjaan" value={formData.noBpjs} onChange={e => setFormData({...formData, noBpjs: e.target.value})} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Select 
-                label="Bank"
-                value={formData.bank}
-                onChange={e => setFormData({...formData, bank: e.target.value as any})}
-                options={bankOptions}
-              />
+              <Select label="Bank" value={formData.bank} onChange={e => setFormData({...formData, bank: e.target.value as any})} options={bankOptions} />
             </div>
             <div>
               <Input label="No Rekening" value={formData.rekening} onChange={e => setFormData({...formData, rekening: e.target.value})} />
@@ -403,9 +409,9 @@ export const KaryawanPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sertifikat Penunjang</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Sertifikat Pelatihan</label>
             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition-colors">
-               <div className="space-y-1 text-center">
+              <div className="space-y-1 text-center">
                 {formData.sertifikat ? (
                   <div className="flex flex-col items-center">
                     <FileText className="mx-auto h-12 w-12 text-green-500" />
@@ -422,18 +428,16 @@ export const KaryawanPage: React.FC = () => {
                   <>
                     <Download className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600 justify-center">
-                      <label htmlFor="file-upload-sertif" className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-blue-500 focus-within:outline-none">
-                        <span>Upload file</span>
-                        <input id="file-upload-sertif" name="file-upload-sertif" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,.pdf" />
+                      <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary hover:text-blue-500 focus-within:outline-none">
+                        <span>Upload a file</span>
+                        <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*,.pdf" />
                       </label>
                     </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
                   </>
                 )}
               </div>
             </div>
-             <p className="text-xs text-amber-600 mt-2 italic">
-              apabila sertifikat lebih dari satu, silahkan jadikan satu file pdf terlebih dahulu
-            </p>
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
