@@ -341,7 +341,7 @@ export const SchoolPage: React.FC = () => {
                )}
             </div>
          </div>
-       )}}
+       )})}
     </div>
   );
 
