@@ -1,14 +1,13 @@
 
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../components/UIComponents';
 import { api } from '../services/mockService';
-import { DashboardStats } from '../types';
+import { DashboardStats, User, Role } from '../types';
 import { 
   Users, School, Baby, Activity, Calendar, Clock, 
   TrendingUp, ArrowRight, PlusCircle, CheckSquare, FileText,
-  GraduationCap
+  GraduationCap, Package, UserCog
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -30,6 +29,14 @@ export const Dashboard: React.FC = () => {
   });
 
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Get current user for Role-based Quick Access
+  const currentUser: User | null = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('simanda_user') || '{}');
+    } catch { return null; }
+  })();
+  const role = currentUser?.jabatan as Role;
 
   useEffect(() => {
     // Clock Timer
@@ -118,7 +125,7 @@ export const Dashboard: React.FC = () => {
                <Calendar size={16} /> {dateStr}
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">
-              {greeting}, <span className="text-blue-200">Admin!</span>
+              {greeting}, <span className="text-blue-200">{currentUser?.nama || 'Admin'}!</span>
             </h1>
             <p className="text-blue-100 max-w-xl text-sm md:text-base leading-relaxed opacity-90">
               Selamat datang di Dashboard SIMANDA SPPG. Berikut adalah ringkasan aktivitas dan statistik data terkini.
@@ -255,6 +262,7 @@ export const Dashboard: React.FC = () => {
               <Activity size={20} className="text-primary"/> Akses Cepat
             </h3>
             <div className="space-y-3">
+              {/* Universal: Absensi */}
               <button 
                 onClick={() => navigate('/absensi')}
                 className="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl transition-colors group text-left"
@@ -271,37 +279,81 @@ export const Dashboard: React.FC = () => {
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
               </button>
 
-              <button 
-                onClick={() => navigate('/karyawan')}
-                className="w-full flex items-center justify-between p-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl transition-colors group text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-lg text-indigo-600 shadow-sm">
-                    <PlusCircle size={18} />
+              {/* High Level Roles: Karyawan */}
+              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                <button 
+                  onClick={() => navigate('/karyawan')}
+                  className="w-full flex items-center justify-between p-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 rounded-xl transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-indigo-600 shadow-sm">
+                      <PlusCircle size={18} />
+                    </div>
+                    <div>
+                      <span className="font-semibold block text-sm">Data Karyawan</span>
+                      <span className="text-xs opacity-70">Kelola data pegawai</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-semibold block text-sm">Data Karyawan</span>
-                    <span className="text-xs opacity-70">Kelola data pegawai</span>
-                  </div>
-                </div>
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-              </button>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                </button>
+              )}
 
-              <button 
-                onClick={() => navigate('/honor-karyawan')}
-                className="w-full flex items-center justify-between p-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl transition-colors group text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
-                    <FileText size={18} />
+              {/* Finance Roles: Laporan Gaji */}
+              {['SUPERADMIN', 'KSPPG'].includes(role) && (
+                <button 
+                  onClick={() => navigate('/honor-karyawan')}
+                  className="w-full flex items-center justify-between p-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <span className="font-semibold block text-sm">Laporan Gaji</span>
+                      <span className="text-xs opacity-70">Cek honorarium periode</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-semibold block text-sm">Laporan Gaji</span>
-                    <span className="text-xs opacity-70">Cek honorarium periode</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                </button>
+              )}
+
+              {/* Inventory Management: For Superadmin, KSPPG, AdminSPPG */}
+              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                <button 
+                  onClick={() => navigate('/inventory/bahan-masuk')}
+                  className="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 text-orange-800 rounded-xl transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-orange-600 shadow-sm">
+                      <Package size={18} />
+                    </div>
+                    <div>
+                      <span className="font-semibold block text-sm">Bahan Masuk</span>
+                      <span className="text-xs opacity-70">Input stok harian</span>
+                    </div>
                   </div>
-                </div>
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
-              </button>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                </button>
+              )}
+
+              {/* User Management: Superadmin Only */}
+              {role === 'SUPERADMIN' && (
+                <button 
+                  onClick={() => navigate('/users')}
+                  className="w-full flex items-center justify-between p-4 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg text-purple-600 shadow-sm">
+                      <UserCog size={18} />
+                    </div>
+                    <div>
+                      <span className="font-semibold block text-sm">Kelola User</span>
+                      <span className="text-xs opacity-70">Manajemen akun sistem</span>
+                    </div>
+                  </div>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                </button>
+              )}
             </div>
           </Card>
 
@@ -332,3 +384,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
