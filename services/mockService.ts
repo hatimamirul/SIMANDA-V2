@@ -49,8 +49,8 @@ const INITIAL_KARYAWAN: Karyawan[] = [
 ];
 
 const INITIAL_PM_SEKOLAH: PMSekolah[] = [
-  { id: '1', nama: 'TK Harapan Bangsa', npsn: '1010101', jenis: 'TK', jmlsiswa: 45, pmBesar: 45, pmKecil: 0, jmlguru: 5, narahubung: 'Ibu Ratna', hp: '08123456789' },
-  { id: '2', nama: 'SD Negeri 1 Pertiwi', npsn: '2022022', jenis: 'SD/MI', jmlsiswa: 150, pmBesar: 100, pmKecil: 50, jmlguru: 12, narahubung: 'Pak Joko', hp: '08129876543', buktiScan: MOCK_SCAN_FILE }
+  { id: '1', nama: 'TK Harapan Bangsa', npsn: '1010101', desa: 'Ngadiluwih', jenis: 'TK', jmlsiswa: 45, pmBesar: 45, pmKecil: 0, jmlguru: 5, narahubung: 'Ibu Ratna', hp: '08123456789' },
+  { id: '2', nama: 'SD Negeri 1 Pertiwi', npsn: '2022022', desa: 'Tales', jenis: 'SD/MI', jmlsiswa: 150, pmBesar: 100, pmKecil: 50, jmlguru: 12, narahubung: 'Pak Joko', hp: '08129876543', buktiScan: MOCK_SCAN_FILE }
 ];
 
 const INITIAL_PM_B3: PMB3[] = [
@@ -116,7 +116,7 @@ const createSubscriber = <T>(
     try {
       const q = customQuery || collection(db, collectionName);
       const unsubscribe = onSnapshot(q, (snapshot: any) => {
-        const items = snapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id }));
+        const items = snapshot.docs.map((doc: any) => ({ ...(doc.data() as any), id: doc.id }));
         // Also update local storage for offline backup
         localDb.set(localKey, items); 
         callback(items);
@@ -155,7 +155,7 @@ const saveData = async (collectionName: string, localKey: string, item: any, isD
   } else {
     if (item.id) {
       const idx = data.findIndex(x => x.id === item.id);
-      if (idx > -1) data[idx] = { ...data[idx], ...item };
+      if (idx > -1) data[idx] = { ...(data[idx] as any), ...item };
       else data.push(item);
     } else {
       item.id = Date.now().toString();
