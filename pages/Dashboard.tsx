@@ -1,18 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { DashboardStats, User, Role } from '../types';
 import { 
-  Users, School, Activity, Calendar, 
-  ArrowRight, CheckSquare, 
-  Package, UserCog, Bell, 
-  TrendingUp, Zap, PieChart as PieIcon,
-  Layers
+  Users, School, Baby, Activity, Calendar, Clock, 
+  TrendingUp, ArrowRight, CheckSquare, FileText,
+  GraduationCap, Package, UserCog, Bell, ChevronRight,
+  ArrowUpRight, ShieldCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
-  PieChart, Pie, Legend
+  PieChart, Pie, Legend, AreaChart, Area
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
@@ -40,323 +39,337 @@ export const Dashboard: React.FC = () => {
   const role = currentUser?.jabatan as Role;
 
   useEffect(() => {
+    // Clock Timer
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    
+    // Stats Subscription
     const unsubscribe = api.subscribeStats(setStats);
+    
     return () => {
       clearInterval(timer);
       unsubscribe();
     };
   }, []);
 
+  // Time & Greeting Logic
+  const hour = currentTime.getHours();
+  let greeting = 'Selamat Pagi';
+  if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+  else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+  else if (hour >= 18) greeting = 'Selamat Malam';
+
   const dateStr = currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   // --- DATA PREPARATION ---
-  
-  // 1. Data Komposisi PM B3 (Donut Chart)
+
+  // 1. Donut Chart: Komposisi PM B3
   const pieDataB3 = [
-    { name: 'Balita', value: stats.balita, color: '#3B82F6' },      // Blue
-    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink
-    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald
+    { name: 'Balita', value: stats.balita, color: '#F59E0B' },      // Amber 500
+    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink 500
+    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald 500
   ].filter(d => d.value > 0);
 
-  // 2. Data Statistik Sekolah (Area/Bar Chart)
-  const chartDataSekolah = [
-    { name: 'Guru', value: stats.guru, fill: '#8B5CF6' }, // Violet
-    { name: 'PM Kecil', value: stats.pmKecil, fill: '#F59E0B' }, // Amber
-    { name: 'PM Besar', value: stats.pmBesar, fill: '#0EA5E9' }, // Sky
+  // 2. Bar Chart: Statistik Sekolah
+  const barDataSekolah = [
+    { name: 'Guru', value: stats.guru, color: '#3B82F6' }, // Blue 500
+    { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' }, // Indigo 500
+    { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' }, // Violet 500
   ];
 
-  // Total Penerima Manfaat
-  const totalPMSekolah = (stats.pmKecil || 0) + (stats.pmBesar || 0);
-  const totalPM = totalPMSekolah + stats.pmb3;
-  
-  // Percentages for Progress Bars
-  const pctSekolah = totalPM > 0 ? Math.round((totalPMSekolah / totalPM) * 100) : 0;
-  const pctB3 = totalPM > 0 ? Math.round((stats.pmb3 / totalPM) * 100) : 0;
+  // Total Penerima Manfaat (Sekolah + B3)
+  const totalPM = (stats.pmKecil || 0) + (stats.pmBesar || 0) + stats.pmb3;
 
   // Mock Recent Activity
   const recentActivities = [
-    { id: 1, text: "Absensi hari ini telah di-update", time: "10 menit lalu", type: 'success' },
-    { id: 2, text: "Stok Beras IR 64 masuk (100kg)", time: "1 jam lalu", type: 'info' },
-    { id: 3, text: "Data PM Sekolah disinkronisasi", time: "3 jam lalu", type: 'warning' },
+    { id: 1, text: "Data Absensi Harian diperbarui", time: "10 menit lalu", icon: <CheckSquare size={14} />, color: "bg-green-100 text-green-600" },
+    { id: 2, text: "Stok Bahan Baku (Beras) masuk", time: "1 jam lalu", icon: <Package size={14} />, color: "bg-blue-100 text-blue-600" },
+    { id: 3, text: "Laporan PM Sekolah diverifikasi", time: "3 jam lalu", icon: <School size={14} />, color: "bg-purple-100 text-purple-600" },
   ];
 
   // --- COMPONENTS ---
 
-  const QuickActionCard = ({ icon, label, sub, onClick, colorClass, bgClass }: any) => (
+  const StatCard = ({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
+    <div className="bg-white rounded-2xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+          {icon}
+        </div>
+        {trend && (
+           <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+             <TrendingUp size={10} /> {trend}
+           </div>
+        )}
+      </div>
+      <div className="relative z-10">
+        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
+        <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
+      </div>
+      
+      {/* Decorative Background Icon */}
+      <div className={`absolute -right-4 -bottom-4 opacity-5 transform rotate-12 group-hover:scale-125 transition-transform duration-500 ${colorClass}`}>
+         {React.cloneElement(icon as React.ReactElement<any>, { size: 80 })}
+      </div>
+    </div>
+  );
+
+  const QuickActionBtn = ({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
     <button 
       onClick={onClick}
-      className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group w-full h-full min-h-[140px]"
+      className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md hover:bg-blue-50/30 transition-all duration-200 text-left group w-full"
     >
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 ${bgClass} ${colorClass} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+      <div className={`p-3 rounded-xl text-white shadow-md group-hover:scale-110 transition-transform duration-300 ${color}`}>
         {icon}
       </div>
-      <h4 className="font-bold text-gray-700 text-sm text-center group-hover:text-primary transition-colors">{label}</h4>
-      <p className="text-[10px] text-gray-400 text-center mt-1">{sub}</p>
+      <div>
+        <h4 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{label}</h4>
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{desc}</p>
+      </div>
+      <div className="ml-auto self-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
+        <ArrowRight size={16} />
+      </div>
     </button>
   );
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-12">
       
-      {/* === HEADER SECTION === */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-4">
-         <div>
-            <div className="flex items-center gap-2 text-gray-500 mb-1">
-               <Calendar size={14} /> 
-               <span className="text-xs font-semibold uppercase tracking-wider">{dateStr}</span>
+      {/* === HERO SECTION === */}
+      <div className="relative bg-gradient-to-br from-[#1e40af] via-[#2A6F97] to-[#0ea5e9] rounded-3xl p-8 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
+        {/* Abstract Shapes */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-400 opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-blue-100 font-medium text-sm backdrop-blur-sm bg-white/10 px-3 py-1 rounded-full w-fit">
+               <Calendar size={14} /> {dateStr}
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 tracking-tight">
-               Dashboard <span className="text-primary">Overview</span>
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight">
+              {greeting}, <span className="text-yellow-300">{currentUser?.nama?.split(' ')[0] || 'Admin'}</span>
             </h1>
-         </div>
-         <div className="flex items-center gap-4">
-            <div className="bg-white px-5 py-2 rounded-full shadow-sm border border-gray-100 flex items-center gap-3">
-               <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-               <span className="text-lg font-mono font-bold text-gray-700">{timeStr}</span>
-            </div>
-         </div>
+            <p className="text-blue-100 max-w-lg text-sm md:text-base leading-relaxed opacity-90">
+              Selamat datang di Dashboard SIMANDA. Semua sistem berjalan normal hari ini.
+            </p>
+          </div>
+          
+          <div className="flex flex-col items-end gap-2">
+             <div className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl text-center min-w-[140px]">
+                <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold block mb-1">Waktu Server</span>
+                <span className="text-3xl font-mono font-bold tracking-widest">{timeStr}</span>
+             </div>
+             <div className="flex items-center gap-2 text-xs text-blue-200">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                System Online
+             </div>
+          </div>
+        </div>
       </div>
 
-      {/* === HERO & KEY METRICS GRID === */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-         
-         {/* 1. HERO CARD: TOTAL IMPACT (Spans 2 columns) */}
-         <div className="lg:col-span-2 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800 rounded-3xl p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden flex flex-col justify-between min-h-[280px]">
-            {/* Background Decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500 opacity-10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
-            
-            <div className="relative z-10">
-               <div className="flex items-center gap-2 text-blue-100 mb-2">
-                  <Activity size={18} />
-                  <span className="text-sm font-bold uppercase tracking-wide">Total Penerima Manfaat</span>
-               </div>
-               <div className="flex items-baseline gap-2">
-                  <h2 className="text-6xl font-extrabold tracking-tight">{new Intl.NumberFormat('id-ID').format(totalPM)}</h2>
-                  <span className="text-xl font-medium text-blue-200">Jiwa</span>
-               </div>
-               <p className="text-blue-100 mt-2 max-w-md text-sm leading-relaxed">
-                  Akumulasi total penerima manfaat program Gizi dari sektor Sekolah (Siswa) dan B3 (Balita, Ibu Hamil/Menyusui).
-               </p>
-            </div>
-
-            {/* Breakdown Visualizer */}
-            <div className="relative z-10 mt-8">
-               <div className="flex justify-between text-xs font-semibold mb-2 text-blue-100">
-                  <span>PM Sekolah ({pctSekolah}%)</span>
-                  <span>PM B3 ({pctB3}%)</span>
-               </div>
-               <div className="w-full h-4 bg-black/20 rounded-full overflow-hidden flex">
-                  <div style={{ width: `${pctSekolah}%` }} className="h-full bg-white/90 shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
-                  <div style={{ width: `${pctB3}%` }} className="h-full bg-yellow-400/90"></div>
-               </div>
-               <div className="flex justify-between mt-2 text-sm font-bold">
-                  <div className="flex items-center gap-2">
-                     <span className="w-3 h-3 rounded-full bg-white"></span> {new Intl.NumberFormat('id-ID').format(totalPMSekolah)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                     {new Intl.NumberFormat('id-ID').format(stats.pmb3)} <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
-                  </div>
-               </div>
-            </div>
-         </div>
-
-         {/* 2. OPERATIONAL METRICS (Vertical Stack) */}
-         <div className="space-y-6 flex flex-col">
-            {/* Card Karyawan */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
-               <div className="absolute right-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-full"></div>
-               <div>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Karyawan</p>
-                  <h3 className="text-3xl font-extrabold text-gray-800">{stats.karyawan}</h3>
-                  <button onClick={() => navigate('/karyawan')} className="text-xs text-blue-600 font-bold mt-2 flex items-center gap-1 hover:underline">
-                     Kelola Data <ArrowRight size={12} />
-                  </button>
-               </div>
-               <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                  <Users size={28} />
-               </div>
-            </div>
-
-            {/* Card Sekolah */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex-1 flex items-center justify-between group hover:shadow-md transition-all relative overflow-hidden">
-               <div className="absolute right-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-full"></div>
-               <div>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Sekolah</p>
-                  <h3 className="text-3xl font-extrabold text-gray-800">{stats.pmsekolah}</h3>
-                  <button onClick={() => navigate('/sekolah')} className="text-xs text-indigo-600 font-bold mt-2 flex items-center gap-1 hover:underline">
-                     Lihat Detail <ArrowRight size={12} />
-                  </button>
-               </div>
-               <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                  <School size={28} />
-               </div>
-            </div>
-         </div>
+      {/* === KEY METRICS === */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard 
+          title="Total Karyawan" 
+          count={stats.karyawan} 
+          icon={<Users size={22} />} 
+          bgClass="bg-blue-50"
+          colorClass="text-blue-600"
+          trend="+2 Baru"
+        />
+        <StatCard 
+          title="Total Sekolah" 
+          count={stats.pmsekolah} 
+          icon={<School size={22} />} 
+          bgClass="bg-indigo-50"
+          colorClass="text-indigo-600"
+        />
+        <StatCard 
+          title="PM B3 (Balita/Ibu)" 
+          count={stats.pmb3} 
+          icon={<Baby size={22} />} 
+          bgClass="bg-pink-50"
+          colorClass="text-pink-600"
+          trend="Stabil"
+        />
+        <StatCard 
+          title="Total Penerima Manfaat" 
+          count={totalPM} 
+          icon={<Activity size={22} />} 
+          bgClass="bg-emerald-50"
+          colorClass="text-emerald-600"
+          trend="Aktif"
+        />
       </div>
 
-      {/* === CHARTS SECTION (Bento Grid) === */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-         
-         {/* CHART 1: SEKOLAH BREAKDOWN (Bar Chart Style) */}
-         <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-               <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                     <TrendingUp size={20} />
-                  </div>
-                  <div>
-                     <h3 className="font-bold text-gray-800">Statistik Sekolah</h3>
-                     <p className="text-xs text-gray-400">Komposisi Guru, PM Kecil, dan PM Besar</p>
-                  </div>
-               </div>
-            </div>
-            
-            <div className="h-[250px] w-full">
-               <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartDataSekolah} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
-                     <XAxis type="number" hide />
-                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#6b7280', fontSize: 12, fontWeight: 600}} width={80} />
-                     <Tooltip 
-                        cursor={{fill: 'transparent'}}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                     />
-                     <Bar dataKey="value" barSize={30} radius={[0, 6, 6, 0]}>
-                        {chartDataSekolah.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                     </Bar>
-                  </BarChart>
-               </ResponsiveContainer>
-            </div>
-         </div>
-
-         {/* CHART 2: B3 DEMOGRAPHICS (Donut) */}
-         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-               <div className="flex items-center gap-3">
-                  <div className="p-2 bg-pink-50 text-pink-600 rounded-lg">
-                     <PieIcon size={20} />
-                  </div>
-                  <div>
-                     <h3 className="font-bold text-gray-800">Demografi B3</h3>
-                     <p className="text-xs text-gray-400">Kategori Penerima</p>
-                  </div>
-               </div>
-            </div>
-
-            <div className="flex-1 relative min-h-[220px]">
-               <ResponsiveContainer width="100%" height="100%">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* === LEFT COLUMN: CHARTS (2/3 width) === */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Pie Chart */}
+            <Card className="p-6 flex flex-col min-h-[380px] hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">Komposisi PM B3</h3>
+                  <p className="text-xs text-gray-400 mt-1">Balita vs Ibu Hamil vs Ibu Menyusui</p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600"><ArrowUpRight size={18}/></button>
+              </div>
+              <div className="flex-1 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                     <Pie
-                        data={pieDataB3}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                        cornerRadius={6}
-                     >
-                        {pieDataB3.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                     </Pie>
-                     <Tooltip contentStyle={{ borderRadius: '12px', fontSize: '12px' }} />
-                     <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} wrapperStyle={{fontSize: '11px'}} />
+                    <Pie
+                      data={pieDataB3}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {pieDataB3.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.1))' }} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
                   </PieChart>
-               </ResponsiveContainer>
-               {/* Center Text */}
-               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                  <span className="text-3xl font-extrabold text-gray-700">{stats.pmb3}</span>
-                  <span className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Total B3</span>
-               </div>
-            </div>
-         </div>
-      </div>
+                </ResponsiveContainer>
+                {/* Center Label */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                   <span className="text-3xl font-bold text-gray-700">{stats.pmb3}</span>
+                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
+                </div>
+              </div>
+            </Card>
 
-      {/* === BOTTOM SECTION: ACTIONS & ACTIVITY === */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-         
-         {/* APP DOCK (Quick Actions) - Spans 3 columns */}
-         <div className="lg:col-span-3">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 ml-1 flex items-center gap-2">
-               <Zap size={16} /> Akses Cepat Aplikasi
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-               <QuickActionCard 
-                  icon={<CheckSquare size={24} />} 
-                  label="Input Absensi" 
-                  sub="Harian Pegawai"
-                  colorClass="text-white"
-                  bgClass="bg-gradient-to-br from-blue-400 to-blue-600"
-                  onClick={() => navigate('/absensi')}
-               />
-               
-               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                  <QuickActionCard 
-                     icon={<Package size={24} />} 
-                     label="Stok Gudang" 
-                     sub="Cek Persediaan"
-                     colorClass="text-white"
-                     bgClass="bg-gradient-to-br from-orange-400 to-orange-600"
-                     onClick={() => navigate('/inventory/stok-saat-ini')}
-                  />
-               )}
+            {/* Bar Chart */}
+            <Card className="p-6 flex flex-col min-h-[380px] hover:shadow-md transition-shadow">
+               <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">Statistik Sekolah</h3>
+                  <p className="text-xs text-gray-400 mt-1">Distribusi Guru & Siswa</p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600"><ArrowUpRight size={18}/></button>
+              </div>
+              <div className="flex-1 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barDataSekolah} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: '#9CA3AF', fontSize: 11}} 
+                      dy={10}
+                    />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
+                    <Tooltip 
+                      cursor={{fill: '#F9FAFB'}}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500}>
+                      {barDataSekolah.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        </div>
 
-               {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
-                  <QuickActionCard 
-                     icon={<UserCog size={24} />} 
-                     label="Karyawan" 
-                     sub="Database Pegawai"
-                     colorClass="text-white"
-                     bgClass="bg-gradient-to-br from-purple-400 to-purple-600"
-                     onClick={() => navigate('/karyawan')}
-                  />
-               )}
-
-               <QuickActionCard 
-                  icon={<Layers size={24} />} 
-                  label="Laporan" 
-                  sub="Export Data"
-                  colorClass="text-white"
-                  bgClass="bg-gradient-to-br from-emerald-400 to-emerald-600"
-                  onClick={() => { /* Open Report/Export Modal if exist, or route */ }}
-               />
-            </div>
-         </div>
-
-         {/* ACTIVITY FEED - Spans 1 column */}
-         <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">
-                  <Bell size={16} className="text-gray-400" /> Aktivitas
-               </h3>
+        {/* === RIGHT COLUMN: ACTIONS & INFO (1/3 width) === */}
+        <div className="space-y-6">
+          
+          {/* Quick Actions Grid */}
+          <div>
+            <div className="flex items-center justify-between mb-4 px-1">
+               <h3 className="font-bold text-gray-800 text-lg">Akses Cepat</h3>
+               <span className="text-xs text-primary font-medium cursor-pointer hover:underline">Lihat Semua</span>
             </div>
             
-            <div className="flex-1 space-y-4 relative">
-               <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-gray-100 rounded-full"></div>
-               {recentActivities.map((act) => (
-                  <div key={act.id} className="relative pl-6">
-                     <div className={`absolute left-0 top-1.5 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10 
-                        ${act.type === 'success' ? 'bg-green-500' : act.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'}
-                     `}></div>
-                     <p className="text-xs font-semibold text-gray-700 leading-tight">{act.text}</p>
-                     <p className="text-[10px] text-gray-400 mt-0.5">{act.time}</p>
-                  </div>
-               ))}
-            </div>
-            <button className="w-full mt-4 py-2 text-xs font-bold text-gray-500 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-               Lihat Semua Log
-            </button>
-         </div>
+            <div className="grid grid-cols-1 gap-3">
+              <QuickActionBtn 
+                label="Input Absensi" 
+                desc="Isi kehadiran harian karyawan"
+                icon={<CheckSquare size={20} />} 
+                onClick={() => navigate('/absensi')}
+                color="bg-blue-500"
+              />
 
+              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                <QuickActionBtn 
+                  label="Data Karyawan" 
+                  desc="Kelola database pegawai"
+                  icon={<UserCog size={20} />} 
+                  onClick={() => navigate('/karyawan')}
+                  color="bg-indigo-500"
+                />
+              )}
+
+              {['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role) && (
+                <QuickActionBtn 
+                  label="Stok Bahan" 
+                  desc="Cek ketersediaan stok gudang"
+                  icon={<Package size={20} />} 
+                  onClick={() => navigate('/inventory/stok-saat-ini')}
+                  color="bg-orange-500"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity (Mock) */}
+          <Card className="p-5">
+             <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                   <Bell size={16} className="text-gray-400" /> Aktivitas Terbaru
+                </h3>
+             </div>
+             <div className="space-y-0 relative">
+                {/* Timeline Line */}
+                <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-gray-100"></div>
+
+                {recentActivities.map((act, idx) => (
+                   <div key={act.id} className="flex gap-4 relative py-3 group">
+                      <div className={`w-5 h-5 rounded-full ${act.color} flex items-center justify-center border-2 border-white shadow-sm shrink-0 z-10`}>
+                         {act.icon}
+                      </div>
+                      <div>
+                         <p className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors cursor-pointer">{act.text}</p>
+                         <p className="text-[10px] text-gray-400 mt-0.5">{act.time}</p>
+                      </div>
+                   </div>
+                ))}
+             </div>
+             <button className="w-full text-center text-xs text-gray-400 mt-2 pt-2 border-t border-gray-50 hover:text-primary transition-colors">
+                Tampilkan Lebih Banyak
+             </button>
+          </Card>
+
+          {/* System Status Mini Widget */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
+                   <ShieldCheck size={20} />
+                </div>
+                <div>
+                   <p className="text-xs font-bold text-emerald-800 uppercase">Status Keamanan</p>
+                   <p className="text-xs text-emerald-600">Semua data aman & terenkripsi</p>
+                </div>
+             </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
 };
-
