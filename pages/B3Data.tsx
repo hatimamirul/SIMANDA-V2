@@ -1,7 +1,6 @@
 
-
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMB3, User, Role } from '../types';
 import { FileText, Download, Eye, Filter, Baby, Phone, MapPin, Pencil, Trash2 } from 'lucide-react';
@@ -25,6 +24,9 @@ export const B3Page: React.FC = () => {
   
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
+  
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const { showToast } = useToast();
 
@@ -146,7 +148,7 @@ export const B3Page: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Nama PM': item.nama,
       'Jenis': item.jenis,
@@ -238,7 +240,7 @@ export const B3Page: React.FC = () => {
         title="Data PM B3" 
         onSearch={setSearch} 
         onAdd={canAdd ? openAdd : undefined} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         searchPlaceholder="Cari Nama atau Desa..."
         layoutMode={layout}
         onLayoutChange={setLayout}
@@ -340,6 +342,24 @@ export const B3Page: React.FC = () => {
       ) : (
         renderGrid()
       )}
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data PM B3"
+        data={data}
+        columns={[
+            { header: 'Nama PM', accessor: 'nama' },
+            { header: 'Jenis', accessor: 'jenis' },
+            { header: 'Desa', accessor: 'desa' },
+            { header: 'RT', accessor: 'rt' },
+            { header: 'RW', accessor: 'rw' },
+            { header: 'Kecamatan', accessor: 'kecamatan' },
+            { header: 'No HP', accessor: 'hp' }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       {/* Confirmation Modal logic needs conditional rendering based on hideActions or check inside */}
       {!hideActions && (
