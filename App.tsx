@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
@@ -17,6 +18,7 @@ import { AbsensiPage } from './pages/Absensi';
 import { DataSupplierPage } from './pages/inventory/DataSupplier';
 import { LaporanBahanMasukPage } from './pages/inventory/LaporanBahanMasuk';
 import { LaporanStokOpnamePage } from './pages/inventory/LaporanStokOpname';
+import { StokSaatIniPage } from './pages/inventory/StokSaatIni';
 import { Layout } from './components/Layout';
 import { ToastProvider, useToast } from './components/UIComponents';
 import { User, Role } from './types';
@@ -239,6 +241,14 @@ const MainApp = () => {
             element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <LaporanBahanMasukPage />
+              </ProtectedRoute>
+            } 
+          />
+           <Route 
+            path="/inventory/stok-saat-ini" 
+            element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <StokSaatIniPage />
               </ProtectedRoute>
             } 
           />
