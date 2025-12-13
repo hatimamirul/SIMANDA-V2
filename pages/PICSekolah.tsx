@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, FormHelperText, useToast, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PICSekolah, PMSekolah, User } from '../types';
 
@@ -16,6 +16,9 @@ export const PICSekolahPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
   const { showToast } = useToast();
 
   // Get current user to check role
@@ -127,7 +130,7 @@ export const PICSekolahPage: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Nama Sekolah': item.namaSekolah,
       'PIC Sekolah': item.namaPic,
@@ -205,7 +208,7 @@ export const PICSekolahPage: React.FC = () => {
         title="Data PIC Sekolah" 
         onSearch={setSearch} 
         onAdd={openAdd} 
-        onExport={handleExport}
+        onExport={() => setIsExportModalOpen(true)}
         onImport={isPetugas ? undefined : handleImport}
         searchPlaceholder="Cari Sekolah atau PIC..."
       />
@@ -232,6 +235,22 @@ export const PICSekolahPage: React.FC = () => {
           onDelete={setDeleteItem}
         />
       </Card>
+
+      {/* Export Modal */}
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Data PIC Sekolah"
+        data={data}
+        columns={[
+            { header: 'Nama Sekolah', accessor: 'namaSekolah' },
+            { header: 'PIC Sekolah', accessor: 'namaPic' },
+            { header: 'Jabatan', accessor: 'jabatan' },
+            { header: 'Jumlah Siswa', accessor: 'jmlSiswa' },
+            { header: 'Honor/Hari', accessor: (i) => formatCurrency(i.honorHarian) }
+        ]}
+        onExportExcel={handleExportExcel}
+      />
 
       <ConfirmationModal 
         isOpen={!!deleteItem}
