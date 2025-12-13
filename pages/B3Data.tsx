@@ -1,10 +1,10 @@
 
 
 import React, { useEffect, useState } from 'react';
-import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast } from '../components/UIComponents';
+import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMB3, User, Role } from '../types';
-import { FileText, Download, Eye, Filter } from 'lucide-react';
+import { FileText, Download, Eye, Filter, Baby, Phone, MapPin, Pencil, Trash2 } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -22,6 +22,9 @@ export const B3Page: React.FC = () => {
   // Filtering by Desa
   const [filterDesa, setFilterDesa] = useState('');
   
+  // Layout State
+  const [layout, setLayout] = useState<'table' | 'grid'>('table');
+
   const { showToast } = useToast();
 
   // List of Desa sorted alphabetically
@@ -159,6 +162,66 @@ export const B3Page: React.FC = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+  
+  const getJenisBadgeColor = (jenis: string) => {
+     switch (jenis) {
+      case 'BALITA': return 'border-blue-200 bg-blue-50';
+      case 'IBU HAMIL': return 'border-pink-200 bg-pink-50';
+      case 'IBU MENYUSUI': return 'border-purple-200 bg-purple-50';
+      default: return 'border-gray-200 bg-gray-50';
+     }
+  };
+
+  // Grid Renderer
+  const renderGrid = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+       {data.map(item => (
+         <div key={item.id} className={`bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow p-5 flex flex-col group ${getJenisBadgeColor(item.jenis)}`}>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 shadow-sm border border-gray-100">
+                    <Baby size={20} />
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-gray-800 line-clamp-1">{item.nama}</h3>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{item.jenis}</p>
+                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-3 border border-gray-100 space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin size={14} className="text-gray-400" /> 
+                  <span className="truncate">RT {item.rt} / RW {item.rw}, {item.desa}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone size={14} className="text-gray-400" /> {item.hp}
+                </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 mt-auto">
+               <span className="text-xs text-gray-400">Kec. {item.kecamatan}</span>
+               
+               {!hideActions && (
+                 <div className="flex gap-2">
+                   {item.buktiScan && (
+                       <button onClick={() => handlePreview(item.buktiScan!)} className="p-1.5 bg-white hover:bg-green-50 text-green-600 rounded-lg transition-colors shadow-sm border border-gray-100" title="Lihat Scan">
+                         <Eye size={16} />
+                       </button>
+                   )}
+                   <button onClick={() => { setFormData(item); setIsModalOpen(true); }} className="p-1.5 bg-white hover:bg-blue-50 text-blue-600 rounded-lg transition-colors shadow-sm border border-gray-100" title="Edit">
+                       <Pencil size={16} />
+                   </button>
+                   <button onClick={() => setDeleteItem(item)} className="p-1.5 bg-white hover:bg-red-50 text-red-600 rounded-lg transition-colors shadow-sm border border-gray-100" title="Hapus">
+                       <Trash2 size={16} />
+                   </button>
+                 </div>
+               )}
+            </div>
+         </div>
+       ))}
+    </div>
+  );
 
   return (
     <div>
@@ -168,6 +231,8 @@ export const B3Page: React.FC = () => {
         onAdd={canAdd ? openAdd : undefined} 
         onExport={handleExport}
         searchPlaceholder="Cari Nama atau Desa..."
+        layoutMode={layout}
+        onLayoutChange={setLayout}
       />
 
       {/* Filter Control */}
@@ -192,42 +257,48 @@ export const B3Page: React.FC = () => {
          )}
       </div>
 
-      <Card>
-        <Table<PMB3> 
-          isLoading={loading}
-          data={data}
-          hideActions={hideActions}
-          columns={[
-            { header: 'Nama', accessor: 'nama' },
-            { 
-              header: 'Jenis', 
-              accessor: (i) => (
-                <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getJenisColor(i.jenis)}`}>
-                  {i.jenis}
-                </span>
-              ) 
-            },
-            { header: 'Desa', accessor: 'desa' },
-            { header: 'RT/RW', accessor: (i) => `RT ${i.rt} / RW ${i.rw}` },
-            { header: 'Kecamatan', accessor: 'kecamatan' },
-            { header: 'No HP', accessor: 'hp' },
-            { 
-              header: 'BUKTI SCAN PENDATAAN', 
-              accessor: (i) => i.buktiScan ? (
-                <button 
-                  type="button"
-                  onClick={() => handlePreview(i.buktiScan!)}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
-                >
-                  <Eye size={12} /> Lihat
-                </button>
-              ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
-            },
-          ]}
-          onEdit={(i) => { setFormData(i); setIsModalOpen(true); }}
-          onDelete={setDeleteItem}
-        />
-      </Card>
+      {loading ? (
+        <LoadingSpinner />
+      ) : layout === 'table' ? (
+        <Card>
+          <Table<PMB3> 
+            isLoading={loading}
+            data={data}
+            hideActions={hideActions}
+            columns={[
+              { header: 'Nama', accessor: 'nama' },
+              { 
+                header: 'Jenis', 
+                accessor: (i) => (
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getJenisColor(i.jenis)}`}>
+                    {i.jenis}
+                  </span>
+                ) 
+              },
+              { header: 'Desa', accessor: 'desa' },
+              { header: 'RT/RW', accessor: (i) => `RT ${i.rt} / RW ${i.rw}` },
+              { header: 'Kecamatan', accessor: 'kecamatan' },
+              { header: 'No HP', accessor: 'hp' },
+              { 
+                header: 'BUKTI SCAN PENDATAAN', 
+                accessor: (i) => i.buktiScan ? (
+                  <button 
+                    type="button"
+                    onClick={() => handlePreview(i.buktiScan!)}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    <Eye size={12} /> Lihat
+                  </button>
+                ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
+              },
+            ]}
+            onEdit={(i) => { setFormData(i); setIsModalOpen(true); }}
+            onDelete={setDeleteItem}
+          />
+        </Card>
+      ) : (
+        renderGrid()
+      )}
 
       {/* Confirmation Modal logic needs conditional rendering based on hideActions or check inside */}
       {!hideActions && (
