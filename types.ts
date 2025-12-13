@@ -133,3 +133,36 @@ export interface DashboardStats {
   ibuHamil: number;
   ibuMenyusui: number;
 }
+
+// === NEW: INVENTORY MANAGEMENT TYPES ===
+export interface Supplier {
+  id: string;
+  nama: string;
+  alamat: string;
+  hp: string;
+  keterangan?: string;
+}
+
+export interface BahanMasuk {
+  id: string;
+  tanggal: string;
+  supplierId: string;
+  namaSupplier: string; // Denormalized
+  namaBahan: string;
+  jumlah: number;
+  satuan: string; // kg, liter, pcs, ikat, dll
+  hargaTotal: number;
+  keterangan?: string;
+  buktiFoto?: string;
+}
+
+export interface StokOpname {
+  id: string;
+  tanggal: string;
+  namaBahan: string;
+  stokFisik: number;
+  satuan: string;
+  kondisi: 'BAIK' | 'RUSAK' | 'KADALUARSA';
+  keterangan?: string;
+  petugas?: string;
+}
