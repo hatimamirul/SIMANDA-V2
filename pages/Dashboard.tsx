@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from '../components/UIComponents';
 import { Card } from '../components/UIComponents';
 import { api } from '../services/mockService';
@@ -76,21 +76,21 @@ export const Dashboard: React.FC = () => {
   const dateStr = currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-  // --- DATA PREPARATION ---
+  // --- DATA PREPARATION (Memoized to prevent flickering) ---
 
   // 1. Donut Chart: Komposisi PM B3
-  const pieDataB3 = [
-    { name: 'Balita', value: stats.balita, color: '#F59E0B' },      // Amber 500
-    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899' }, // Pink 500
-    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981' }, // Emerald 500
-  ].filter(d => d.value > 0);
+  const pieDataB3 = useMemo(() => [
+    { name: 'Balita', value: stats.balita, color: '#F59E0B', gradientId: 'gradBalita' },      // Amber
+    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899', gradientId: 'gradHamil' }, // Pink
+    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981', gradientId: 'gradMenyusui' }, // Emerald
+  ].filter(d => d.value > 0), [stats.balita, stats.ibuHamil, stats.ibuMenyusui]);
 
   // 2. Bar Chart: Statistik Sekolah
-  const barDataSekolah = [
+  const barDataSekolah = useMemo(() => [
     { name: 'Guru', value: stats.guru, color: '#3B82F6' }, // Blue 500
     { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' }, // Indigo 500
     { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' }, // Violet 500
-  ];
+  ], [stats.guru, stats.pmKecil, stats.pmBesar]);
 
   // Total Penerima Manfaat (Sekolah + B3)
   const totalPM = (stats.pmKecil || 0) + (stats.pmBesar || 0) + stats.pmb3;
@@ -128,8 +128,8 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
-  // NEW STATIC GAUGE DESIGN: Proposal Status Widget
-  const ProposalStatusWidget = ({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+  // STATIC GAUGE DESIGN: Proposal Status Widget (No Flicker)
+  const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
      const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
      
      // Color Themes & Gradients
@@ -185,7 +185,7 @@ export const Dashboard: React.FC = () => {
                                 stroke="none"
                                 fill="#F3F4F6"
                                 cornerRadius={10}
-                                isAnimationActive={false} // Disable movement
+                                isAnimationActive={false} // CRITICAL: Disable animation to stop flickering
                             />
                             
                             {/* Value Layer (Gradient Progress) */}
@@ -202,7 +202,7 @@ export const Dashboard: React.FC = () => {
                                     stroke="none"
                                     cornerRadius={10}
                                     fill={`url(#${gradientId})`}
-                                    isAnimationActive={false} // Disable movement
+                                    isAnimationActive={false} // CRITICAL: Disable animation to stop flickering
                                 />
                             )}
                         </PieChart>
@@ -244,7 +244,7 @@ export const Dashboard: React.FC = () => {
             </div>
         </div>
      );
-  };
+  });
 
   const QuickActionBtn = ({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
     <button 
@@ -371,44 +371,84 @@ export const Dashboard: React.FC = () => {
         {/* === LEFT COLUMN: CHARTS (2/3 width) === */}
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pie Chart */}
-            <Card className="p-6 flex flex-col min-h-[380px] hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-center mb-6">
+            
+            {/* === IMPROVED PIE CHART (KOMPOSISI B3) === */}
+            <Card className="p-0 flex flex-col min-h-[380px] hover:shadow-md transition-shadow overflow-hidden">
+              <div className="p-6 pb-0 flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-gray-800 text-lg">Komposisi PM B3</h3>
                   <p className="text-xs text-gray-400 mt-1">Balita vs Ibu Hamil vs Ibu Menyusui</p>
                 </div>
                 <button className="text-gray-400 hover:text-gray-600"><ArrowUpRight size={18}/></button>
               </div>
-              <div className="flex-1 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
+              
+              <div className="flex-1 w-full relative flex flex-col items-center justify-center p-6">
+                <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
+                    <defs>
+                      <linearGradient id="gradBalita" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F59E0B" />
+                        <stop offset="100%" stopColor="#D97706" />
+                      </linearGradient>
+                      <linearGradient id="gradHamil" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#EC4899" />
+                        <stop offset="100%" stopColor="#BE185D" />
+                      </linearGradient>
+                      <linearGradient id="gradMenyusui" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" />
+                        <stop offset="100%" stopColor="#059669" />
+                      </linearGradient>
+                    </defs>
                     <Pie
                       data={pieDataB3}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
+                      innerRadius={65}
                       outerRadius={90}
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
-                      isAnimationActive={false}
+                      cornerRadius={6}
+                      isAnimationActive={false} // Fix flickering
                     >
                       {pieDataB3.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.1))' }} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={`url(#${entry.gradientId})`} 
+                          style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.15))' }}
+                        />
                       ))}
                     </Pie>
                     <Tooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
                   </PieChart>
                 </ResponsiveContainer>
+                
                 {/* Center Label */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                   <span className="text-3xl font-bold text-gray-700">{stats.pmb3}</span>
-                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total</span>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none pb-2">
+                   <span className="text-3xl font-extrabold text-gray-800">{stats.pmb3}</span>
+                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Total</span>
                 </div>
+              </div>
+
+              {/* Custom Legend */}
+              <div className="bg-gray-50/50 p-4 border-t border-gray-100 grid grid-cols-3 divide-x divide-gray-200">
+                 <div className="flex flex-col items-center gap-1 text-center px-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 mb-1"></div>
+                    <span className="text-[10px] uppercase text-gray-500 font-bold">Balita</span>
+                    <span className="text-sm font-bold text-gray-800">{stats.balita}</span>
+                 </div>
+                 <div className="flex flex-col items-center gap-1 text-center px-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 mb-1"></div>
+                    <span className="text-[10px] uppercase text-gray-500 font-bold">Ibu Hamil</span>
+                    <span className="text-sm font-bold text-gray-800">{stats.ibuHamil}</span>
+                 </div>
+                 <div className="flex flex-col items-center gap-1 text-center px-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 mb-1"></div>
+                    <span className="text-[10px] uppercase text-gray-500 font-bold">Ibu Menyusui</span>
+                    <span className="text-sm font-bold text-gray-800">{stats.ibuMenyusui}</span>
+                 </div>
               </div>
             </Card>
 
@@ -437,7 +477,12 @@ export const Dashboard: React.FC = () => {
                       cursor={{fill: '#F9FAFB'}}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} isAnimationActive={false}>
+                    <Bar 
+                      dataKey="value" 
+                      radius={[6, 6, 0, 0]} 
+                      barSize={40} 
+                      isAnimationActive={false} // Fix flickering
+                    >
                       {barDataSekolah.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -570,3 +615,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
