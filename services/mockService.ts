@@ -1,6 +1,7 @@
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 // ==========================================
 // CONFIGURATION FOR HOSTING / REALTIME
@@ -21,10 +22,14 @@ const USE_FIREBASE = true;
 
 // Initialize Firebase (Conditional)
 let db: any;
+let storage: any;
+
 if (USE_FIREBASE) {
   try {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
+    storage = getStorage(app);
+    console.log("Firebase & Storage initialized successfully. Mode: CLOUD");
   } catch (e) {
     console.error("Firebase init error (check config):", e);
   }
@@ -33,6 +38,7 @@ if (USE_FIREBASE) {
 // ==========================================
 // MOCK DATA & LOCAL STORAGE HELPERS
 // ==========================================
+// Gunakan placeholder kecil untuk inisialisasi agar hemat memori lokal
 const MOCK_SCAN_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 const INITIAL_USERS: User[] = [
@@ -43,58 +49,17 @@ const INITIAL_USERS: User[] = [
   { id: '5', nama: 'Koor Lapangan', email: 'koor@simanda.com', username: 'koor', password: '123', jabatan: 'KOORDINATORDIVISI', jabatanDivisi: 'Asisten Lapangan', status: 'AKTIF' },
 ];
 
-const INITIAL_KARYAWAN: Karyawan[] = [
-  { id: '1', nik: '2023001', nama: 'Budi Santoso', divisi: 'Asisten Lapangan', hp: '081234567890', honorHarian: 150000, noBpjs: '00012345678', bank: 'BANK BRI', rekening: '1234567890', sertifikat: MOCK_SCAN_FILE },
-  { id: '2', nik: '2023002', nama: 'Siti Aminah', divisi: 'Produksi (Masak)', hp: '089876543210', honorHarian: 175000, noBpjs: '00087654321', bank: 'BANK MANDIRI', rekening: '0987654321' }
-];
-
-const INITIAL_PM_SEKOLAH: PMSekolah[] = [
-  { id: '1', nama: 'TK Harapan Bangsa', npsn: '1010101', desa: 'Ngadiluwih', jenis: 'TK', jmlsiswa: 45, pmBesar: 45, pmKecil: 0, jmlguru: 5, narahubung: 'Ibu Ratna', hp: '08123456789' },
-  { id: '2', nama: 'SD Negeri 1 Pertiwi', npsn: '2022022', desa: 'Tales', jenis: 'SD/MI', jmlsiswa: 150, pmBesar: 100, pmKecil: 50, jmlguru: 12, narahubung: 'Pak Joko', hp: '08129876543', buktiScan: MOCK_SCAN_FILE }
-];
-
-const INITIAL_PM_B3: PMB3[] = [
-  { id: '1', nama: 'Ani Lestari', jenis: 'IBU HAMIL', rt: '01', rw: '02', desa: 'Sukamaju', kecamatan: 'Cibadak', hp: '08567890123' },
-  { id: '2', nama: 'Rina Wati', jenis: 'BALITA', rt: '05', rw: '03', desa: 'Cibadak Kota', kecamatan: 'Cibadak', hp: '08134567890', buktiScan: MOCK_SCAN_FILE }
-];
-
-const INITIAL_PIC_SEKOLAH: PICSekolah[] = [
-  { id: '1', sekolahId: '1', namaSekolah: 'TK Harapan Bangsa', namaPic: 'Ibu Ratna', jabatan: 'ASN/P3K', jmlSiswa: 45, honorHarian: 50000 },
-  { id: '2', sekolahId: '2', namaSekolah: 'SD Negeri 1 Pertiwi', namaPic: 'Pak Joko', jabatan: 'NON ASN/P3K', jmlSiswa: 150, honorHarian: 75000 }
-];
-
-const INITIAL_KADER_B3: KaderB3[] = [
-  { id: '1', nik: '350101010101', nama: 'Bu Ani Kader', alamat: 'Jl. Melati No 5', desa: 'Sukamaju', jumlahPaket: 1, honorHarian: 50000 }
-];
-
-const INITIAL_ALERGI: AlergiSiswa[] = [
-  { id: '1', sekolahId: '1', namaSekolah: 'TK Harapan Bangsa', namaSiswa: 'Doni', keterangan: 'Alergi Telur' },
-  { id: '2', sekolahId: '2', namaSekolah: 'SD Negeri 1 Pertiwi', namaSiswa: 'Sari', keterangan: 'Alergi Kacang' }
-];
-
-// Mock Inventory Data
-const INITIAL_SUPPLIERS: Supplier[] = [
-  { id: '1', nama: 'Toko Sayur Segar Jaya', alamat: 'Pasar Ngadiluwih Blok A', hp: '081233344455', keterangan: 'Langganan Sayur' },
-  { id: '2', nama: 'UD. Beras Makmur', alamat: 'Jl. Raya Kediri No 10', hp: '085677788899', keterangan: 'Suplayer Beras Premium' }
-];
-
-const INITIAL_MASTER_BARANG: MasterBarang[] = [
-    { id: '1', namaBarang: 'BERAS IR 64', satuanDefault: 'kg' },
-    { id: '2', namaBarang: 'TELUR AYAM', satuanDefault: 'kg' },
-    { id: '3', namaBarang: 'WORTEL', satuanDefault: 'kg' },
-    { id: '4', namaBarang: 'MINYAK GORENG', satuanDefault: 'liter' },
-];
-
-const INITIAL_BAHAN_MASUK: BahanMasuk[] = [
-  { id: '1', tanggal: '2025-01-20', supplierId: '1', namaSupplier: 'Toko Sayur Segar Jaya', namaBahan: 'WORTEL', jumlah: 50, satuan: 'kg', hargaTotal: 500000, keterangan: 'Kualitas Bagus' },
-  { id: '2', tanggal: '2025-01-21', supplierId: '2', namaSupplier: 'UD. Beras Makmur', namaBahan: 'BERAS IR 64', jumlah: 100, satuan: 'kg', hargaTotal: 1200000 }
-];
-
+const INITIAL_KARYAWAN: Karyawan[] = [];
+const INITIAL_PM_SEKOLAH: PMSekolah[] = [];
+const INITIAL_PM_B3: PMB3[] = [];
+const INITIAL_PIC_SEKOLAH: PICSekolah[] = [];
+const INITIAL_KADER_B3: KaderB3[] = [];
+const INITIAL_ALERGI: AlergiSiswa[] = [];
+const INITIAL_SUPPLIERS: Supplier[] = [];
+const INITIAL_MASTER_BARANG: MasterBarang[] = [];
+const INITIAL_BAHAN_MASUK: BahanMasuk[] = [];
 const INITIAL_BAHAN_KELUAR: BahanKeluar[] = [];
-
-const INITIAL_STOK_OPNAME: StokOpname[] = [
-  { id: '1', tanggal: '2025-01-25', namaBahan: 'BERAS IR 64', stokFisik: 85, satuan: 'kg', kondisi: 'BAIK', keterangan: 'Sisa stok gudang', petugas: 'Admin' }
-];
+const INITIAL_STOK_OPNAME: StokOpname[] = [];
 
 // Keys
 const KEYS = {
@@ -107,7 +72,6 @@ const KEYS = {
   ALERGI: 'simanda_alergi_v1',
   PERIODE: 'simanda_periode_v1',
   ABSENSI: 'simanda_absensi_v2',
-  // New Inventory Keys
   SUPPLIER: 'simanda_supplier_v1',
   MASTER_BARANG: 'simanda_master_barang_v1',
   BAHAN_MASUK: 'simanda_bahan_masuk_v1',
@@ -118,36 +82,91 @@ const KEYS = {
 // Realtime Broadcast Channel for Local Sync (Fallback)
 const channel = new BroadcastChannel('simanda_sync_channel');
 
+// Flag to stop trying local storage if full
+let isLocalStorageFull = false;
+
 const localDb = {
   get: <T>(key: string, initial: T): T => {
+    if (isLocalStorageFull) return initial; // Skip if full
     try {
       const s = localStorage.getItem(key);
-      if (!s) {
-        // Try to initialize, safeguard against full storage
-        try {
-            localStorage.setItem(key, JSON.stringify(initial));
-        } catch (e) {
-            console.warn("Storage full during init of", key);
-        }
-        return initial;
-      }
+      if (!s) return initial;
       return JSON.parse(s);
     } catch (e) { return initial; }
   },
   set: <T>(key: string, data: T) => {
+    if (isLocalStorageFull) return; // Skip if already known to be full
+    
     try {
       localStorage.setItem(key, JSON.stringify(data));
-      channel.postMessage({ key, type: 'update' }); // Notify other tabs
+      channel.postMessage({ key, type: 'update' }); 
     } catch (e: any) {
-      // Handle QuotaExceededError specifically
+      // HANDLE QUOTA EXCEEDED
       if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
-         console.error("Local Storage is FULL!", e);
-         alert("PERINGATAN: Penyimpanan Browser Penuh! Data tidak tersimpan secara lokal. Mohon hapus cache browser atau data lama, atau gunakan koneksi internet agar data tersimpan di Cloud.");
+         console.warn(`[STORAGE FULL] LocalStorage penuh saat menyimpan ${key}. Beralih ke mode CLOUD-ONLY.`);
+         isLocalStorageFull = true; // Set flag globally
       } else {
          console.error("Local Storage Error:", e);
       }
     }
   }
+};
+
+// ==========================================
+// FIREBASE STORAGE HELPER
+// ==========================================
+const uploadImageToCloud = async (base64String: string, folder: string): Promise<string> => {
+  if (!USE_FIREBASE || !storage) return base64String;
+  if (!base64String || !base64String.startsWith('data:image')) return base64String; // Return as is if url or empty
+
+  try {
+    // Create a unique filename: timestamp_random.jpg
+    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    
+    // Upload the Base64 string
+    await uploadString(storageRef, base64String, 'data_url');
+    
+    // Get the public URL
+    const downloadURL = await getDownloadURL(storageRef);
+    console.log(`Uploaded ${folder}:`, downloadURL);
+    return downloadURL;
+  } catch (error) {
+    console.error(`Failed to upload image to ${folder}:`, error);
+    return base64String; // Fallback to base64 if upload fails
+  }
+};
+
+const processDataForUpload = async (item: any, collectionName: string) => {
+  const newItem = { ...item };
+  
+  // 1. Check Standard Fields
+  const imageFields = ['sertifikat', 'buktiScan', 'buktiFoto'];
+  for (const field of imageFields) {
+    if (newItem[field] && typeof newItem[field] === 'string' && newItem[field].startsWith('data:image')) {
+       newItem[field] = await uploadImageToCloud(newItem[field], collectionName);
+    }
+  }
+
+  // 2. Check Nested Absensi Details (Foto Masuk/Pulang)
+  if (newItem.detailHari) {
+    // Create a deep copy of detailHari to avoid mutation issues
+    const newDetailHari = { ...newItem.detailHari };
+    for (const key in newDetailHari) {
+       const detail = { ...newDetailHari[key] };
+       
+       if (detail.fotoMasuk && detail.fotoMasuk.startsWith('data:image')) {
+          detail.fotoMasuk = await uploadImageToCloud(detail.fotoMasuk, 'absensi/masuk');
+       }
+       if (detail.fotoPulang && detail.fotoPulang.startsWith('data:image')) {
+          detail.fotoPulang = await uploadImageToCloud(detail.fotoPulang, 'absensi/pulang');
+       }
+       newDetailHari[key] = detail;
+    }
+    newItem.detailHari = newDetailHari;
+  }
+
+  return newItem;
 };
 
 // ==========================================
@@ -163,17 +182,20 @@ const createSubscriber = <T>(
   customQuery?: any
 ) => {
   if (USE_FIREBASE && db) {
-    // FIREBASE MODE
+    // FIREBASE MODE - Primary Source
     try {
       const q = customQuery || collection(db, collectionName);
       const unsubscribe = onSnapshot(q, (snapshot: any) => {
         const items = snapshot.docs.map((doc: any) => ({ ...(doc.data() as any), id: doc.id }));
-        // Also update local storage for offline backup
+        
+        // Update local cache (fire & forget)
         localDb.set(localKey, items); 
+        
+        // Pass data to UI
         callback(items);
       }, (error: any) => {
         console.error(`Firebase error on ${collectionName}:`, error);
-        // Fallback to local if Firebase fails
+        // Fallback to local only if Firebase fails
         callback(localDb.get(localKey, initialData));
       });
       return unsubscribe;
@@ -182,16 +204,13 @@ const createSubscriber = <T>(
     }
   } 
   
-  // LOCAL STORAGE POLLING / EVENT LISTENER
+  // LOCAL STORAGE POLLING / EVENT LISTENER (Fallback Mode)
   const notify = () => {
     const data = localDb.get<T[]>(localKey, initialData);
     callback(data);
   };
   
-  // Initial call
   notify();
-
-  // Listen to changes from this tab or others
   const msgHandler = (e: MessageEvent) => { if (e.data.key === localKey) notify(); };
   channel.addEventListener('message', msgHandler);
   
@@ -199,33 +218,47 @@ const createSubscriber = <T>(
 };
 
 const saveData = async (collectionName: string, localKey: string, item: any, isDelete = false) => {
-  // ALWAYS save to local as backup/hybrid
-  let data = localDb.get<any[]>(localKey, []);
-  if (isDelete) {
-    data = data.filter(x => x.id !== item.id);
-  } else {
-    if (item.id) {
-      const idx = data.findIndex(x => x.id === item.id);
-      if (idx > -1) data[idx] = { ...(data[idx] as any), ...item };
-      else data.push(item);
-    } else {
-      item.id = Date.now().toString();
-      data.push(item);
-    }
+  // 1. PRE-PROCESS: Upload Images to Firebase Storage if any
+  // This converts Base64 -> URL before saving to DB
+  let itemToSave = { ...item };
+  if (!isDelete && USE_FIREBASE && storage) {
+     itemToSave = await processDataForUpload(item, collectionName);
   }
-  localDb.set(localKey, data);
 
-  // IF FIREBASE ENABLED, SYNC TO CLOUD
+  // 2. GENERATE ID LOCALLY IF MISSING (For URL consistency)
+  if (!isDelete && (!itemToSave.id || itemToSave.id.startsWith('temp-'))) {
+      itemToSave.id = `doc_${Date.now()}_${Math.random().toString(36).substr(2,5)}`;
+  }
+
+  // 3. UPDATE LOCAL STATE (Optimistic UI - with URLs)
+  try {
+    let data = localDb.get<any[]>(localKey, []);
+    if (isDelete) {
+      data = data.filter(x => x.id !== item.id);
+    } else {
+      const idx = data.findIndex(x => x.id === itemToSave.id);
+      if (idx > -1) data[idx] = { ...(data[idx] as any), ...itemToSave };
+      else data.push(itemToSave);
+    }
+    localDb.set(localKey, data);
+  } catch (e) {
+    // Ignore local errors
+  }
+
+  // 4. SYNC TO FIREBASE FIRESTORE (Primary Storage)
   if (USE_FIREBASE && db) {
     try {
       if (isDelete) {
         await deleteDoc(doc(db, collectionName, item.id));
       } else {
-        await setDoc(doc(db, collectionName, item.id), item, { merge: true });
+        await setDoc(doc(db, collectionName, itemToSave.id), itemToSave, { merge: true });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Firebase save error:", e);
-      throw e;
+      if (e.code === 'resource-exhausted') {
+         alert("Kuota Firebase terlampaui. Hubungi admin.");
+      }
+      throw e; 
     }
   }
 };
@@ -248,14 +281,10 @@ export const api = {
     const user = users.find(user => user.username === u && user.password === p);
     if (user) {
       if (user.status === 'AKTIF') {
-        // --- NEW: Generate Unique Session ID ---
         const newSessionId = `sess-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const userWithSession = { ...user, sessionId: newSessionId };
         
-        // Save session ID to DB so other devices can see it changed
         await saveData('users', KEYS.USERS, userWithSession);
-
-        // Return full user with session
         return { status: 'success', token: 'mock-jwt-' + Date.now(), user: userWithSession };
       }
       return { status: 'error', message: 'Akun Tidak Aktif' };
@@ -263,7 +292,6 @@ export const api = {
     return { status: 'error', message: 'Username atau password salah' };
   },
 
-  // Monitor Single User (For Auto-Logout/Profile Sync)
   subscribeUser: (userId: string, callback: (user: User | null) => void) => {
     if (USE_FIREBASE && db) {
       return onSnapshot(doc(db, 'users', userId), (doc) => {
@@ -271,7 +299,6 @@ export const api = {
         else callback(null);
       });
     } else {
-      // Polling for local storage changes
       const check = () => {
         const users = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
         const u = users.find(x => x.id === userId) || null;
@@ -312,7 +339,6 @@ export const api = {
   },
   
   // === GENERIC REALTIME CRUD ===
-  // Users
   getUsers: (q: string = '') => { return Promise.resolve(localDb.get(KEYS.USERS, INITIAL_USERS)); }, 
   subscribeUsers: (cb: (data: User[]) => void) => createSubscriber('users', KEYS.USERS, INITIAL_USERS, cb),
   saveUser: (item: User) => saveData('users', KEYS.USERS, item),
@@ -355,76 +381,61 @@ export const api = {
   deleteAlergi: (id: string) => saveData('alergi_siswa', KEYS.ALERGI, { id }, true),
 
   // === INVENTORY MANAGEMENT (NEW) ===
-  // Supplier
   subscribeSuppliers: (cb: (data: Supplier[]) => void) => createSubscriber('suppliers', KEYS.SUPPLIER, INITIAL_SUPPLIERS, cb),
   saveSupplier: (item: Supplier) => saveData('suppliers', KEYS.SUPPLIER, item),
   deleteSupplier: (id: string) => saveData('suppliers', KEYS.SUPPLIER, { id }, true),
 
-  // Master Barang (Role Model)
   subscribeMasterBarang: (cb: (data: MasterBarang[]) => void) => createSubscriber('master_barang', KEYS.MASTER_BARANG, INITIAL_MASTER_BARANG, cb),
   saveMasterBarang: (item: MasterBarang) => saveData('master_barang', KEYS.MASTER_BARANG, item),
 
-  // Bahan Masuk
   subscribeBahanMasuk: (cb: (data: BahanMasuk[]) => void) => createSubscriber('bahan_masuk', KEYS.BAHAN_MASUK, INITIAL_BAHAN_MASUK, cb),
-  
-  // Updated saveBahanMasuk with Auto-Add to Master Logic
   saveBahanMasuk: async (item: BahanMasuk) => {
     await saveData('bahan_masuk', KEYS.BAHAN_MASUK, item);
-    
-    // Check if this item exists in MasterBarang, if not add it (Role Model)
+    // Auto-update master barang
     let masters = localDb.get<MasterBarang[]>(KEYS.MASTER_BARANG, INITIAL_MASTER_BARANG);
-    
-    // Check uniqueness case-insensitive
+    if (USE_FIREBASE && db) {
+        // Fetch masters from DB to be sure
+        const snap = await getDocs(collection(db, 'master_barang'));
+        masters = snap.docs.map(d => ({...d.data(), id: d.id} as MasterBarang));
+    }
     const exists = masters.some(m => m.namaBarang.toLowerCase() === item.namaBahan.toLowerCase());
-    
     if (!exists) {
-        // Auto create new Role Model
         const newMaster: MasterBarang = {
-            id: 'mb-' + Date.now() + Math.random().toString(36).substr(2, 5),
-            namaBarang: item.namaBahan, // Already UPPERCASE from UI
+            id: 'mb-' + Date.now(),
+            namaBarang: item.namaBahan, 
             satuanDefault: item.satuan
         };
         await saveData('master_barang', KEYS.MASTER_BARANG, newMaster);
     }
   },
-  
   deleteBahanMasuk: (id: string) => saveData('bahan_masuk', KEYS.BAHAN_MASUK, { id }, true),
 
-  // Bahan Keluar
   subscribeBahanKeluar: (cb: (data: BahanKeluar[]) => void) => createSubscriber('bahan_keluar', KEYS.BAHAN_KELUAR, INITIAL_BAHAN_KELUAR, cb),
   saveBahanKeluar: (item: BahanKeluar) => saveData('bahan_keluar', KEYS.BAHAN_KELUAR, item),
   deleteBahanKeluar: (id: string) => saveData('bahan_keluar', KEYS.BAHAN_KELUAR, { id }, true),
 
-  // Stok Summary (Aggregated View - Now includes Deductions)
   subscribeStokSummary: (cb: (data: StokSummary[]) => void) => {
       let bahanMasuk: BahanMasuk[] = [];
       let bahanKeluar: BahanKeluar[] = [];
 
       const compute = () => {
-          // 1. Calculate Total Keluar per NamaBahan
           const totalKeluarMap = new Map<string, number>();
           bahanKeluar.forEach(bk => {
               const key = bk.namaBahan.toLowerCase();
-              const current = totalKeluarMap.get(key) || 0;
-              totalKeluarMap.set(key, current + bk.jumlah);
+              totalKeluarMap.set(key, (totalKeluarMap.get(key) || 0) + bk.jumlah);
           });
 
-          // 2. Process Masuk and Deduct logic
           const map = new Map<string, StokSummary>();
-          
-          // First, group by Name+Supplier to allow standard aggregation
           bahanMasuk.forEach(item => {
               const key = `${item.namaBahan.toLowerCase()}_${item.namaSupplier.toLowerCase()}`;
               if (map.has(key)) {
                   const existing = map.get(key)!;
                   existing.totalStok += item.jumlah;
-                  if (item.tanggal > existing.lastUpdated) {
-                      existing.lastUpdated = item.tanggal;
-                  }
+                  if (item.tanggal > existing.lastUpdated) existing.lastUpdated = item.tanggal;
               } else {
                   map.set(key, {
                       id: key,
-                      namaBahan: item.namaBahan, // Keep original casing
+                      namaBahan: item.namaBahan,
                       namaSupplier: item.namaSupplier,
                       totalStok: item.jumlah,
                       satuan: item.satuan,
@@ -433,13 +444,7 @@ export const api = {
               }
           });
 
-          // 3. Apply Deduction (Simple FIFO/Reduction Logic)
-          // Since StokSummary is split by Supplier, but BahanKeluar is global (by Name)
-          // We need to reduce the stocks available in the map.
-          
           const summaryList = Array.from(map.values());
-
-          // Group summary list by Name to apply deduction sequentially
           const groupedByName = new Map<string, StokSummary[]>();
           summaryList.forEach(s => {
               const nameKey = s.namaBahan.toLowerCase();
@@ -447,49 +452,28 @@ export const api = {
               groupedByName.get(nameKey)!.push(s);
           });
 
-          // Iterate and deduct
           groupedByName.forEach((items, nameKey) => {
               let amountToDeduct = totalKeluarMap.get(nameKey) || 0;
-              
-              if (amountToDeduct > 0) {
-                  // Sort items (maybe by date, or just array order)
-                  // Here we just use array order
-                  for (const stockItem of items) {
-                      if (amountToDeduct <= 0) break;
-
-                      if (stockItem.totalStok >= amountToDeduct) {
-                          stockItem.totalStok -= amountToDeduct;
-                          amountToDeduct = 0;
-                      } else {
-                          amountToDeduct -= stockItem.totalStok;
-                          stockItem.totalStok = 0;
-                      }
+              for (const stockItem of items) {
+                  if (amountToDeduct <= 0) break;
+                  if (stockItem.totalStok >= amountToDeduct) {
+                      stockItem.totalStok -= amountToDeduct;
+                      amountToDeduct = 0;
+                  } else {
+                      amountToDeduct -= stockItem.totalStok;
+                      stockItem.totalStok = 0;
                   }
               }
           });
-
-          // Filter out 0 stock items if desired, OR keep them to show "Habis"
-          // User request: "otomatis berkurang". We return the modified list.
-          // Optional: filter out negative or zero if you want to hide empty stocks
-          // For now, we return all, but UI might filter.
           
           cb(summaryList.filter(s => s.totalStok > 0)); 
       };
 
-      // Subscribe to both
-      const unsubMasuk = api.subscribeBahanMasuk((data) => {
-          bahanMasuk = data;
-          compute();
-      });
-      const unsubKeluar = api.subscribeBahanKeluar((data) => {
-          bahanKeluar = data;
-          compute();
-      });
-
+      const unsubMasuk = api.subscribeBahanMasuk((data) => { bahanMasuk = data; compute(); });
+      const unsubKeluar = api.subscribeBahanKeluar((data) => { bahanKeluar = data; compute(); });
       return () => { unsubMasuk(); unsubKeluar(); };
   },
 
-  // Stok Opname
   subscribeStokOpname: (cb: (data: StokOpname[]) => void) => createSubscriber('stok_opname', KEYS.STOK_OPNAME, INITIAL_STOK_OPNAME, cb),
   saveStokOpname: (item: StokOpname) => saveData('stok_opname', KEYS.STOK_OPNAME, item),
   deleteStokOpname: (id: string) => saveData('stok_opname', KEYS.STOK_OPNAME, { id }, true),
@@ -501,9 +485,7 @@ export const api = {
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
   deletePeriode: (id: string) => saveData('periode', KEYS.PERIODE, { id }, true),
 
-  // REALTIME ABSENSI (Synced with Master Karyawan)
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
-    // Helper to init empty days and details
     const createEmptyDays = () => {
       const days: { [key: number]: boolean } = {};
       const details: { [key: number]: AbsensiDetail } = {};
@@ -519,30 +501,17 @@ export const api = {
 
     const processData = () => {
        if (!periodeId) return;
-       
-       // 1. Filter Absensi by this Period (from DB/Storage)
        const rawAbsensi = allAbsensi.filter(a => a.periodeId === periodeId);
-       
-       // 2. Map existing records by Karyawan ID for O(1) lookup
        const absensiMap = new Map(rawAbsensi.map(r => [r.karyawanId, r]));
 
-       // 3. Build the final list based STRICTLY on active Karyawan (Left Join)
-       // This handles Adding (new Karyawan appears) and Deleting (deleted Karyawan disappears)
        const syncedRecords = allKaryawan.map(karyawan => {
           const record = absensiMap.get(karyawan.id);
-
           if (record) {
-             // Return existing record (update name/divisi from master to ensure sync)
-             return {
-                ...record,
-                namaKaryawan: karyawan.nama,
-                divisi: karyawan.divisi
-             };
+             return { ...record, namaKaryawan: karyawan.nama, divisi: karyawan.divisi };
           } else {
-             // New Karyawan found! Create virtual empty record
              const { days, details } = createEmptyDays();
              return {
-                id: `auto-${periodeId}-${karyawan.id}`, // Temporary/Virtual ID until saved
+                id: `auto-${periodeId}-${karyawan.id}`, 
                 periodeId: periodeId,
                 karyawanId: karyawan.id,
                 namaKaryawan: karyawan.nama,
@@ -553,11 +522,9 @@ export const api = {
              } as AbsensiRecord;
           }
        });
-
        cb(syncedRecords);
     };
 
-    // If Firebase, use query to be efficient
     const absensiQuery = (USE_FIREBASE && db) 
         ? query(collection(db, 'absensi'), where('periodeId', '==', periodeId)) 
         : undefined;
@@ -568,29 +535,22 @@ export const api = {
     return () => { unsubA(); unsubK(); };
   },
 
-  // Updated to support saving single record (Auto-Save on checkbox)
   saveAbsensiRecord: async (record: AbsensiRecord) => {
-     // Ensure ID is set (if it was virtual 'auto-...')
      if (!record.id || record.id.startsWith('auto-')) {
          record.id = `abs-${record.periodeId}-${record.karyawanId}`;
      }
      await saveData('absensi', KEYS.ABSENSI, record);
   },
 
-  // === HONORARIUM (REALTIME JOIN) ===
-  // This combines Absensi Data and Karyawan Data (for Bank info/Honor rate) in Realtime
   subscribeHonorariumKaryawan: (periodeId: string, cb: (data: HonorariumRow[]) => void) => {
       let absensiRecords: AbsensiRecord[] = [];
       let karyawanData: Karyawan[] = [];
       
       const update = () => {
            if (!periodeId) { cb([]); return; }
-           
            const rows = absensiRecords.map(abs => {
-               // Find matching Karyawan to get current Honor Rate and Bank Info
                const k = karyawanData.find(x => x.id === abs.karyawanId);
                const honorHarian = k?.honorHarian || 0;
-               
                return {
                   id: `honor-${abs.id}`,
                   karyawanId: abs.karyawanId,
@@ -606,18 +566,8 @@ export const api = {
            cb(rows);
       };
 
-      // Reuse subscribeAbsensi to get virtual records + attendance counts
-      const unsubAbsensi = api.subscribeAbsensi(periodeId, (data) => {
-          absensiRecords = data;
-          update();
-      });
-      
-      // Subscribe to Karyawan to get realtime Bank/Honor Rate updates
-      const unsubKaryawan = createSubscriber('karyawan', KEYS.KARYAWAN, INITIAL_KARYAWAN, (data) => {
-          karyawanData = data;
-          update();
-      });
-
+      const unsubAbsensi = api.subscribeAbsensi(periodeId, (data) => { absensiRecords = data; update(); });
+      const unsubKaryawan = createSubscriber('karyawan', KEYS.KARYAWAN, INITIAL_KARYAWAN, (data) => { karyawanData = data; update(); });
       return () => { unsubAbsensi(); unsubKaryawan(); };
   }
 };
