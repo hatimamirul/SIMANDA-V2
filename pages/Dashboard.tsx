@@ -9,7 +9,7 @@ import {
   TrendingUp, ArrowRight, CheckSquare,
   Package, UserCog, Bell,
   ArrowUpRight, Database, AlertCircle, CheckCircle2,
-  FileCheck, FileClock, GraduationCap, FileText
+  FileCheck, FileClock, GraduationCap, FileText, PieChart as PieIcon
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -128,80 +128,100 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
-  // NEW DESIGN: Proposal Status Widget
-  const ProposalStatusWidget = ({ title, icon, total, sudah, belum, type }: { title: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+  // NEW MODERN DESIGN: Proposal Status Widget
+  const ProposalStatusWidget = ({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
      const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
      
-     // Colors
-     const themeColor = type === 'siswa' ? '#3B82F6' : '#8B5CF6'; // Blue vs Violet
-     const bgIcon = type === 'siswa' ? 'bg-blue-100 text-blue-600' : 'bg-violet-100 text-violet-600';
-     const lightBg = type === 'siswa' ? 'bg-blue-50' : 'bg-violet-50';
+     // Color Themes & Gradients
+     const isSiswa = type === 'siswa';
+     const lightBg = isSiswa ? 'bg-blue-50' : 'bg-purple-50';
+     const mainColor = isSiswa ? 'text-blue-600' : 'text-purple-600';
+     const gradientId = isSiswa ? 'gradSiswa' : 'gradGuru';
 
+     // Chart Data: [0] = Progress (Colored), [1] = Remainder (Grey Track)
      const chartData = [
-       { name: 'Sudah', value: sudah, color: '#10B981' }, // Emerald
-       { name: 'Belum', value: belum, color: '#F59E0B' }, // Amber
+       { name: 'Sudah', value: sudah }, 
+       { name: 'Belum', value: belum }, 
      ];
 
      return (
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row gap-6 relative overflow-hidden">
-            {/* Left: Chart Section */}
-            <div className={`flex flex-col items-center justify-center p-4 rounded-2xl ${lightBg} sm:w-1/3 min-w-[140px] relative`}>
-                <div className="relative w-28 h-28">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={chartData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={38}
-                                outerRadius={50}
-                                startAngle={90}
-                                endAngle={-270}
-                                dataKey="value"
-                                stroke="none"
-                                cornerRadius={4}
-                                paddingAngle={5}
-                            >
-                                {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                        </PieChart>
-                    </ResponsiveContainer>
-                    {/* Centered Percentage */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-xl font-bold text-gray-800">{percentSudah}%</span>
-                        <span className="text-[10px] font-medium text-gray-500 uppercase">Selesai</span>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden flex flex-col h-full group">
+            {/* Header Section */}
+            <div className="flex justify-between items-start mb-4 z-10">
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${lightBg} ${mainColor} shadow-inner`}>
+                        {icon}
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{subtitle}</p>
+                        <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
                     </div>
                 </div>
             </div>
 
-            {/* Right: Info Section */}
-            <div className="flex-1 flex flex-col justify-center gap-4">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-                    <div className={`p-2 rounded-lg ${bgIcon} shadow-sm`}>
-                        {icon}
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
-                        <p className="text-xs text-gray-500 mt-0.5">Total Target: <span className="font-bold text-gray-700">{total.toLocaleString()}</span></p>
+            <div className="flex items-center gap-6 z-10 mt-2">
+                {/* Modern Gradient Radial Chart */}
+                <div className="relative w-36 h-36 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <defs>
+                                <linearGradient id="gradSiswa" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#3B82F6" />
+                                    <stop offset="100%" stopColor="#06B6D4" />
+                                </linearGradient>
+                                <linearGradient id="gradGuru" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#8B5CF6" />
+                                    <stop offset="100%" stopColor="#EC4899" />
+                                </linearGradient>
+                            </defs>
+                            <Pie
+                                data={chartData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={70}
+                                startAngle={90}
+                                endAngle={-270}
+                                dataKey="value"
+                                stroke="none"
+                                cornerRadius={10} // Rounded Caps for modern look
+                                paddingAngle={0}
+                            >
+                                {/* Cell 0: Gradient Progress */}
+                                <Cell key="cell-sudah" fill={`url(#${gradientId})`} />
+                                {/* Cell 1: Track Background */}
+                                <Cell key="cell-belum" fill="#F3F4F6" />
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                    
+                    {/* Centered Percentage with Shadow */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className={`text-3xl font-extrabold ${mainColor} drop-shadow-sm`}>{percentSudah}%</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Selesai</span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-emerald-50 rounded-lg p-2.5 border border-emerald-100">
-                        <div className="flex items-center gap-1.5 text-emerald-700 mb-1">
-                            <CheckCircle2 size={14} />
-                            <span className="text-[10px] font-bold uppercase tracking-wide">Sudah</span>
-                        </div>
-                        <span className="text-xl font-bold text-emerald-800">{sudah.toLocaleString()}</span>
+                {/* Right Side: Detailed Stats */}
+                <div className="flex-1 space-y-4">
+                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Target Total</p>
+                        <p className="text-xl font-bold text-gray-800">{total.toLocaleString()}</p>
                     </div>
-                    <div className="bg-amber-50 rounded-lg p-2.5 border border-amber-100">
-                        <div className="flex items-center gap-1.5 text-amber-700 mb-1">
-                            <FileClock size={14} />
-                            <span className="text-[10px] font-bold uppercase tracking-wide">Belum</span>
+                    
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1.5 font-medium text-gray-600">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Sudah
+                            </span>
+                            <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
                         </div>
-                        <span className="text-xl font-bold text-amber-800">{belum.toLocaleString()}</span>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1.5 font-medium text-gray-600">
+                                <span className="w-2 h-2 rounded-full bg-gray-300"></span> Belum
+                            </span>
+                            <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -300,7 +320,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* === PROPOSAL STATUS SUMMARY (IMPROVED DESIGN) === */}
+      {/* === PROPOSAL STATUS SUMMARY (UPDATED GRAPHICS) === */}
       <div>
          <div className="flex items-center justify-between mb-4 px-1">
              <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -309,16 +329,18 @@ export const Dashboard: React.FC = () => {
          </div>
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <ProposalStatusWidget 
-                title="Siswa" 
-                icon={<School size={22} />} 
+                title="Siswa Penerima Manfaat"
+                subtitle="Data Sekolah" 
+                icon={<School size={24} />} 
                 total={(stats.pmBesar || 0) + (stats.pmKecil || 0)}
                 sudah={stats.siswaSudahProposal}
                 belum={stats.siswaBelumProposal}
                 type="siswa"
              />
              <ProposalStatusWidget 
-                title="Guru" 
-                icon={<GraduationCap size={22} />} 
+                title="Guru / Tenaga Pendidik"
+                subtitle="Data Sekolah" 
+                icon={<GraduationCap size={24} />} 
                 total={stats.guru}
                 sudah={stats.guruSudahProposal}
                 belum={stats.guruBelumProposal}
