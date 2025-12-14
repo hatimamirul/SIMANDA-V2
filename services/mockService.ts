@@ -1,7 +1,7 @@
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
-// Storage import is kept optional, we will fallback if it fails
+// Storage imports are kept but unused in this "Database-Only" mode
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 // ==========================================
@@ -28,14 +28,14 @@ if (USE_FIREBASE) {
   try {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-    // Kita coba init storage, tapi jika gagal/belum aktif, tidak apa-apa.
+    // Kita inisialisasi storage hanya untuk mencegah error, 
+    // tapi TIDAK AKAN DIGUNAKAN untuk upload (Mode Database Only).
     try {
         storage = getStorage(app);
     } catch (e) {
-        console.warn("Firebase Storage tidak aktif (Mode Hemat Database aktif).");
         storage = null;
     }
-    console.log("Firebase initialized successfully.");
+    console.log("Firebase initialized successfully (Database Mode).");
   } catch (e) {
     console.error("Firebase init error (check config):", e);
   }
@@ -45,7 +45,6 @@ if (USE_FIREBASE) {
 // IMAGE COMPRESSION HELPER (SOLUSI GRATIS)
 // ==========================================
 // Fungsi ini mengecilkan gambar agar muat disimpan di Database (Firestore)
-// Tanpa perlu Firebase Storage yang berbayar.
 const compressImage = (base64Str: string, maxWidth = 500, quality = 0.6): Promise<string> => {
   return new Promise((resolve) => {
     // Jika bukan gambar base64 valid, kembalikan aslinya
@@ -161,26 +160,15 @@ const localDb = {
 // UPLOAD / PROCESS HELPER
 // ==========================================
 const processImageUpload = async (base64String: string, folder: string): Promise<string> => {
-  // 1. Coba Kompres dulu agar ringan
+  // 1. KOMPRESI GAMBAR (Wajib untuk menghemat Database)
   const compressed = await compressImage(base64String);
 
-  // 2. Jika Firebase Storage Aktif (dan user sudah bayar), upload ke sana
-  if (USE_FIREBASE && storage) {
-    try {
-        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-        const storageRef = ref(storage, `${folder}/${fileName}`);
-        await uploadString(storageRef, compressed, 'data_url');
-        const downloadURL = await getDownloadURL(storageRef);
-        console.log(`Uploaded to Storage (${folder}):`, downloadURL);
-        return downloadURL;
-    } catch (error: any) {
-        console.warn(`Gagal upload ke Storage (mungkin belum aktif/berbayar). Menyimpan ke Database sebagai text.`, error.code);
-        // Fallback: Kembalikan string yang sudah dikompres
-        return compressed;
-    }
-  }
-
-  // 3. Jika Storage Tidak Aktif, Kembalikan Compressed String (Simpan di DB)
+  // 2. DATABASE ONLY MODE
+  // Kita LEWATI proses upload ke Firebase Storage.
+  // Data dikembalikan langsung sebagai string base64 yang sudah dikompres
+  // untuk disimpan di dalam dokumen Firestore.
+  // Ini menjamin sistem GRATIS SELAMANYA (selama database rajin dibersihkan).
+  
   return compressed;
 };
 
