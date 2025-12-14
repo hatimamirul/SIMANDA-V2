@@ -39,6 +39,7 @@ export interface PMSekolah {
   narahubung: string;
   hp: string;
   buktiScan?: string;
+  statusProposal?: 'SUDAH' | 'BELUM'; // New Field for Flagging
 }
 
 export interface AlergiSiswa {
@@ -193,4 +194,3 @@ export interface StokOpname {
   keterangan?: string;
   petugas?: string;
 }
-
