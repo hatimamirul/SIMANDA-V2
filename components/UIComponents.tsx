@@ -2,6 +2,100 @@
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
 import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText } from 'lucide-react';
 
+// === CUSTOM ROUTER IMPLEMENTATION ===
+// This replaces react-router-dom to fix module resolution errors in the environment.
+
+const RouterContext = createContext<{ path: string; navigate: (to: string, opts?: { replace?: boolean }) => void }>({ 
+  path: window.location.pathname, 
+  navigate: () => {} 
+});
+
+export const BrowserRouter: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [path, setPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const navigate = (to: string, { replace }: { replace?: boolean } = {}) => {
+    if (replace) {
+      window.history.replaceState({}, '', to);
+    } else {
+      window.history.pushState({}, '', to);
+    }
+    setPath(to);
+    window.scrollTo(0, 0);
+  };
+
+  return <RouterContext.Provider value={{ path, navigate }}>{children}</RouterContext.Provider>;
+};
+
+export const Routes: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { path } = useContext(RouterContext);
+  let elementToRender: React.ReactNode = null;
+  let found = false;
+
+  React.Children.forEach(children, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    const { path: routePath, element } = child.props as any;
+    
+    // Simple matching
+    if (routePath === path || routePath === '*') {
+      elementToRender = element;
+      if (routePath === path) found = true; // Exact match takes precedence
+    }
+  });
+
+  return <>{elementToRender}</>;
+};
+
+export const Route: React.FC<{ path: string; element: React.ReactNode }> = () => null;
+
+export const useNavigate = () => {
+  const { navigate } = useContext(RouterContext);
+  return navigate;
+};
+
+export const useLocation = () => {
+  const { path } = useContext(RouterContext);
+  return { pathname: path };
+};
+
+export const Navigate: React.FC<{ to: string; replace?: boolean }> = ({ to, replace }) => {
+  const { navigate } = useContext(RouterContext);
+  useEffect(() => {
+    navigate(to, { replace });
+  }, [to, replace, navigate]);
+  return null;
+};
+
+export const NavLink: React.FC<{ 
+  to: string; 
+  children: React.ReactNode; 
+  className?: string | ((props: { isActive: boolean }) => string);
+  onClick?: () => void;
+}> = ({ to, children, className, onClick }) => {
+  const { path, navigate } = useContext(RouterContext);
+  const isActive = path === to || (to !== '/' && path.startsWith(to));
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onClick) onClick();
+    navigate(to);
+  };
+
+  const appliedClassName = typeof className === 'function' ? className({ isActive }) : className;
+
+  return (
+    <a href={to} onClick={handleClick} className={appliedClassName}>
+      {children}
+    </a>
+  );
+};
+// =====================================
+
 // === Logo ===
 // Using a more reliable Google Drive direct link format
 const LOGO_URI = "https://lh3.googleusercontent.com/d/1ocxhsbrHv2rNUe3r3kEma6oV167MGWea";
@@ -960,4 +1054,3 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
-
