@@ -16,46 +16,189 @@ import {
   PieChart, Pie, Legend
 } from 'recharts';
 
+// --- SUB-COMPONENTS (Defined OUTSIDE to prevent re-mounting/flickering) ---
+
+const StatCard = React.memo(({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
+  <div className="bg-white rounded-2xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+    <div className="flex justify-between items-start mb-4 relative z-10">
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+        {icon}
+      </div>
+      {trend && (
+         <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+           <TrendingUp size={10} /> {trend}
+         </div>
+      )}
+    </div>
+    <div className="relative z-10">
+      <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
+      <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
+    </div>
+    
+    {/* Decorative Background Icon */}
+    <div className={`absolute -right-4 -bottom-4 opacity-5 transform rotate-12 group-hover:scale-125 transition-transform duration-500 ${colorClass}`}>
+       {React.cloneElement(icon as React.ReactElement<any>, { size: 80 })}
+    </div>
+  </div>
+));
+
+const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+   const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
+   
+   // Color Themes & Gradients
+   const isSiswa = type === 'siswa';
+   const lightBg = isSiswa ? 'bg-blue-50' : 'bg-purple-50';
+   const iconColor = isSiswa ? 'text-blue-600' : 'text-purple-600';
+   const gradientId = isSiswa ? 'gradSiswa' : 'gradGuru';
+   const startColor = isSiswa ? '#3B82F6' : '#8B5CF6'; // Blue-500 / Violet-500
+   const endColor = isSiswa ? '#0EA5E9' : '#D946EF';   // Sky-500 / Fuchsia-500
+
+   // Chart Setup: Gauge Shape (Start 220, Sweep 260)
+   const startAngle = 220;
+   const maxAngleSpan = 260;
+   const endAngleTrack = startAngle - maxAngleSpan;
+   const endAngleValue = startAngle - ((percentSudah / 100) * maxAngleSpan);
+
+   // Stable data for Recharts to prevent unnecessary processing
+   const trackData = useMemo(() => [{ value: 1 }], []);
+
+   return (
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-shadow h-full flex flex-col relative overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-6">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${lightBg} ${iconColor} shadow-inner`}>
+                  {icon}
+              </div>
+              <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{subtitle}</p>
+                  <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
+              </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-8">
+              {/* Static Radial Chart */}
+              <div className="relative w-40 h-40 flex-shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                          <defs>
+                              <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                                  <stop offset="0%" stopColor={startColor} />
+                                  <stop offset="100%" stopColor={endColor} />
+                              </linearGradient>
+                          </defs>
+                          
+                          {/* Track Layer (Grey) */}
+                          <Pie
+                              data={trackData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={72}
+                              startAngle={startAngle}
+                              endAngle={endAngleTrack}
+                              dataKey="value"
+                              stroke="none"
+                              fill="#F3F4F6"
+                              cornerRadius={10}
+                              isAnimationActive={false} 
+                          />
+                          
+                          {/* Value Layer (Gradient) */}
+                          {percentSudah > 0 && (
+                              <Pie
+                                  data={trackData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={72}
+                                  startAngle={startAngle}
+                                  endAngle={endAngleValue}
+                                  dataKey="value"
+                                  stroke="none"
+                                  cornerRadius={10}
+                                  fill={`url(#${gradientId})`}
+                                  isAnimationActive={false} 
+                              />
+                          )}
+                      </PieChart>
+                  </ResponsiveContainer>
+                  
+                  {/* Centered Percentage */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-2">
+                      <span className={`text-4xl font-extrabold ${iconColor} drop-shadow-sm`}>{percentSudah}%</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selesai</span>
+                  </div>
+              </div>
+
+              {/* Stats Info */}
+              <div className="flex-1 w-full space-y-5">
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target Total</p>
+                      <p className="text-2xl font-bold text-gray-800">{total.toLocaleString()}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                          <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                              <span className="text-gray-600 font-medium">Sudah</span>
+                          </div>
+                          <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                          <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                              <span className="text-gray-600 font-medium">Belum</span>
+                          </div>
+                          <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+   );
+});
+
+const QuickActionBtn = React.memo(({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
+  <button 
+    onClick={onClick}
+    className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md hover:bg-blue-50/30 transition-all duration-200 text-left group w-full"
+  >
+    <div className={`p-3 rounded-xl text-white shadow-md group-hover:scale-110 transition-transform duration-300 ${color}`}>
+      {icon}
+    </div>
+    <div>
+      <h4 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{label}</h4>
+      <p className="text-xs text-gray-500 mt-1 leading-relaxed">{desc}</p>
+    </div>
+    <div className="ml-auto self-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
+      <ArrowRight size={16} />
+    </div>
+  </button>
+));
+
+// --- MAIN DASHBOARD COMPONENT ---
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({ 
-    karyawan: 0, 
-    pmsekolah: 0, 
-    pmb3: 0,
-    pmKecil: 0,
-    pmBesar: 0,
-    guru: 0,
-    balita: 0,
-    ibuHamil: 0,
-    ibuMenyusui: 0,
-    siswaSudahProposal: 0,
-    siswaBelumProposal: 0,
-    guruSudahProposal: 0,
-    guruBelumProposal: 0
+    karyawan: 0, pmsekolah: 0, pmb3: 0, pmKecil: 0, pmBesar: 0, guru: 0,
+    balita: 0, ibuHamil: 0, ibuMenyusui: 0,
+    siswaSudahProposal: 0, siswaBelumProposal: 0, guruSudahProposal: 0, guruBelumProposal: 0
   });
 
   const [storageStats, setStorageStats] = useState({ usedMB: "0", totalMB: 1024, percentage: "0" });
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Get current user for Role-based Quick Access
   const currentUser: User | null = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('simanda_user') || '{}');
-    } catch { return null; }
+    try { return JSON.parse(localStorage.getItem('simanda_user') || '{}'); } catch { return null; }
   })();
   const role = currentUser?.jabatan as Role;
 
   useEffect(() => {
-    // Clock Timer
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
-    // Stats Subscription
     const unsubscribe = api.subscribeStats(setStats);
-
-    // Update Storage Stats every 5 seconds (not strictly realtime to save perf)
-    const updateStorage = () => {
-       setStorageStats(api.getStorageStats());
-    };
+    const updateStorage = () => setStorageStats(api.getStorageStats());
     updateStorage();
     const storageTimer = setInterval(updateStorage, 5000);
     
@@ -66,7 +209,6 @@ export const Dashboard: React.FC = () => {
     };
   }, []);
 
-  // Time & Greeting Logic
   const hour = currentTime.getHours();
   let greeting = 'Selamat Pagi';
   if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
@@ -76,200 +218,32 @@ export const Dashboard: React.FC = () => {
   const dateStr = currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-  // --- DATA PREPARATION (Memoized to prevent flickering) ---
-
-  // 1. Donut Chart: Komposisi PM B3
+  // Memoized Data
   const pieDataB3 = useMemo(() => [
-    { name: 'Balita', value: stats.balita, color: '#F59E0B', gradientId: 'gradBalita' },      // Amber
-    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899', gradientId: 'gradHamil' }, // Pink
-    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981', gradientId: 'gradMenyusui' }, // Emerald
+    { name: 'Balita', value: stats.balita, color: '#F59E0B', gradientId: 'gradBalita' },
+    { name: 'Ibu Hamil', value: stats.ibuHamil, color: '#EC4899', gradientId: 'gradHamil' },
+    { name: 'Ibu Menyusui', value: stats.ibuMenyusui, color: '#10B981', gradientId: 'gradMenyusui' },
   ].filter(d => d.value > 0), [stats.balita, stats.ibuHamil, stats.ibuMenyusui]);
 
-  // 2. Bar Chart: Statistik Sekolah
   const barDataSekolah = useMemo(() => [
-    { name: 'Guru', value: stats.guru, color: '#3B82F6' }, // Blue 500
-    { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' }, // Indigo 500
-    { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' }, // Violet 500
+    { name: 'Guru', value: stats.guru, color: '#3B82F6' },
+    { name: 'PM Kecil', value: stats.pmKecil, color: '#6366F1' },
+    { name: 'PM Besar', value: stats.pmBesar, color: '#8B5CF6' },
   ], [stats.guru, stats.pmKecil, stats.pmBesar]);
 
-  // Total Penerima Manfaat (Sekolah + B3)
   const totalPM = (stats.pmKecil || 0) + (stats.pmBesar || 0) + stats.pmb3;
 
-  // Mock Recent Activity
-  const recentActivities = [
+  const recentActivities = useMemo(() => [
     { id: 1, text: "Data Absensi Harian diperbarui", time: "10 menit lalu", icon: <CheckSquare size={14} />, color: "bg-green-100 text-green-600" },
     { id: 2, text: "Stok Bahan Baku (Beras) masuk", time: "1 jam lalu", icon: <Package size={14} />, color: "bg-blue-100 text-blue-600" },
     { id: 3, text: "Laporan PM Sekolah diverifikasi", time: "3 jam lalu", icon: <School size={14} />, color: "bg-purple-100 text-purple-600" },
-  ];
-
-  // --- COMPONENTS ---
-
-  const StatCard = ({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
-    <div className="bg-white rounded-2xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-          {icon}
-        </div>
-        {trend && (
-           <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-             <TrendingUp size={10} /> {trend}
-           </div>
-        )}
-      </div>
-      <div className="relative z-10">
-        <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
-        <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
-      </div>
-      
-      {/* Decorative Background Icon */}
-      <div className={`absolute -right-4 -bottom-4 opacity-5 transform rotate-12 group-hover:scale-125 transition-transform duration-500 ${colorClass}`}>
-         {React.cloneElement(icon as React.ReactElement<any>, { size: 80 })}
-      </div>
-    </div>
-  );
-
-  // STATIC GAUGE DESIGN: Proposal Status Widget (No Flicker)
-  const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
-     const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
-     
-     // Color Themes & Gradients
-     const isSiswa = type === 'siswa';
-     const lightBg = isSiswa ? 'bg-blue-50' : 'bg-purple-50';
-     const iconColor = isSiswa ? 'text-blue-600' : 'text-purple-600';
-     const gradientId = isSiswa ? 'gradSiswa' : 'gradGuru';
-     const startColor = isSiswa ? '#3B82F6' : '#8B5CF6'; // Blue-500 / Violet-500
-     const endColor = isSiswa ? '#0EA5E9' : '#D946EF';   // Sky-500 / Fuchsia-500
-
-     // Chart Setup
-     // Start Angle 220, Sweep 260 degrees (Gauge Shape)
-     const startAngle = 220;
-     const maxAngleSpan = 260;
-     const endAngleTrack = startAngle - maxAngleSpan;
-     const endAngleValue = startAngle - ((percentSudah / 100) * maxAngleSpan);
-
-     return (
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-shadow h-full flex flex-col relative overflow-hidden">
-            {/* Header: Icon & Title Top Left */}
-            <div className="flex items-center gap-4 mb-6">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${lightBg} ${iconColor} shadow-inner`}>
-                    {icon}
-                </div>
-                <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{subtitle}</p>
-                    <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
-                </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-8">
-                {/* Static Radial Chart (Left) */}
-                <div className="relative w-40 h-40 flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <defs>
-                                <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stopColor={startColor} />
-                                    <stop offset="100%" stopColor={endColor} />
-                                </linearGradient>
-                            </defs>
-                            
-                            {/* Track Layer (Grey Background) */}
-                            <Pie
-                                data={[{ value: 1 }]}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={72}
-                                startAngle={startAngle}
-                                endAngle={endAngleTrack}
-                                dataKey="value"
-                                stroke="none"
-                                fill="#F3F4F6"
-                                cornerRadius={10}
-                                isAnimationActive={false} // CRITICAL: Disable animation to stop flickering
-                            />
-                            
-                            {/* Value Layer (Gradient Progress) */}
-                            {percentSudah > 0 && (
-                                <Pie
-                                    data={[{ value: 1 }]}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={72}
-                                    startAngle={startAngle}
-                                    endAngle={endAngleValue}
-                                    dataKey="value"
-                                    stroke="none"
-                                    cornerRadius={10}
-                                    fill={`url(#${gradientId})`}
-                                    isAnimationActive={false} // CRITICAL: Disable animation to stop flickering
-                                />
-                            )}
-                        </PieChart>
-                    </ResponsiveContainer>
-                    
-                    {/* Centered Percentage */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-2">
-                        <span className={`text-4xl font-extrabold ${iconColor} drop-shadow-sm`}>{percentSudah}%</span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selesai</span>
-                    </div>
-                </div>
-
-                {/* Right Side Stats */}
-                <div className="flex-1 w-full space-y-5">
-                    {/* Target Total Box */}
-                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target Total</p>
-                        <p className="text-2xl font-bold text-gray-800">{total.toLocaleString()}</p>
-                    </div>
-
-                    {/* Stats List */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                                <span className="text-gray-600 font-medium">Sudah</span>
-                            </div>
-                            <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                                <span className="text-gray-600 font-medium">Belum</span>
-                            </div>
-                            <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-     );
-  });
-
-  const QuickActionBtn = ({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
-    <button 
-      onClick={onClick}
-      className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md hover:bg-blue-50/30 transition-all duration-200 text-left group w-full"
-    >
-      <div className={`p-3 rounded-xl text-white shadow-md group-hover:scale-110 transition-transform duration-300 ${color}`}>
-        {icon}
-      </div>
-      <div>
-        <h4 className="font-bold text-gray-800 group-hover:text-primary transition-colors">{label}</h4>
-        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{desc}</p>
-      </div>
-      <div className="ml-auto self-center opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
-        <ArrowRight size={16} />
-      </div>
-    </button>
-  );
+  ], []);
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       
       {/* === HERO SECTION === */}
       <div className="relative bg-gradient-to-br from-[#1e40af] via-[#2A6F97] to-[#0ea5e9] rounded-3xl p-8 text-white shadow-xl shadow-blue-900/10 overflow-hidden">
-        {/* Abstract Shapes */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-400 opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4"></div>
 
@@ -337,7 +311,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* === PROPOSAL STATUS SUMMARY (STATIC GAUGE DESIGN) === */}
+      {/* === PROPOSAL STATUS SUMMARY === */}
       <div>
          <div className="flex items-center justify-between mb-4 px-1">
              <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -368,7 +342,7 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* === LEFT COLUMN: CHARTS (2/3 width) === */}
+        {/* === LEFT COLUMN: CHARTS === */}
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
@@ -398,24 +372,37 @@ export const Dashboard: React.FC = () => {
                         <stop offset="0%" stopColor="#10B981" />
                         <stop offset="100%" stopColor="#059669" />
                       </linearGradient>
+                      
+                      {/* Glow Filter */}
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+                        <feOffset in="blur" dx="0" dy="2" result="offsetBlur"/>
+                        <feFlood floodColor="rgba(0,0,0,0.15)" result="color"/>
+                        <feComposite in="color" in2="offsetBlur" operator="in" result="shadow"/>
+                        <feMerge>
+                          <feMergeNode in="shadow"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
                     </defs>
                     <Pie
                       data={pieDataB3}
                       cx="50%"
                       cy="50%"
-                      innerRadius={65}
-                      outerRadius={90}
-                      paddingAngle={5}
+                      innerRadius={70} 
+                      outerRadius={95}
+                      paddingAngle={4}
                       dataKey="value"
-                      stroke="none"
+                      stroke="#fff"
+                      strokeWidth={2}
                       cornerRadius={6}
-                      isAnimationActive={false} // Fix flickering
+                      isAnimationActive={false} // Disable animation to stop flicker on re-render
                     >
                       {pieDataB3.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
                           fill={`url(#${entry.gradientId})`} 
-                          style={{ filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.15))' }}
+                          style={{ filter: 'url(#glow)' }}
                         />
                       ))}
                     </Pie>
@@ -435,17 +422,17 @@ export const Dashboard: React.FC = () => {
               {/* Custom Legend */}
               <div className="bg-gray-50/50 p-4 border-t border-gray-100 grid grid-cols-3 divide-x divide-gray-200">
                  <div className="flex flex-col items-center gap-1 text-center px-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 mb-1"></div>
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 mb-1 ring-2 ring-white shadow-sm"></div>
                     <span className="text-[10px] uppercase text-gray-500 font-bold">Balita</span>
                     <span className="text-sm font-bold text-gray-800">{stats.balita}</span>
                  </div>
                  <div className="flex flex-col items-center gap-1 text-center px-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 mb-1"></div>
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 mb-1 ring-2 ring-white shadow-sm"></div>
                     <span className="text-[10px] uppercase text-gray-500 font-bold">Ibu Hamil</span>
                     <span className="text-sm font-bold text-gray-800">{stats.ibuHamil}</span>
                  </div>
                  <div className="flex flex-col items-center gap-1 text-center px-2">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 mb-1"></div>
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 mb-1 ring-2 ring-white shadow-sm"></div>
                     <span className="text-[10px] uppercase text-gray-500 font-bold">Ibu Menyusui</span>
                     <span className="text-sm font-bold text-gray-800">{stats.ibuMenyusui}</span>
                  </div>
@@ -481,7 +468,7 @@ export const Dashboard: React.FC = () => {
                       dataKey="value" 
                       radius={[6, 6, 0, 0]} 
                       barSize={40} 
-                      isAnimationActive={false} // Fix flickering
+                      isAnimationActive={false}
                     >
                       {barDataSekolah.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -494,7 +481,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* === RIGHT COLUMN: ACTIONS & INFO (1/3 width) === */}
+        {/* === RIGHT COLUMN: ACTIONS & INFO === */}
         <div className="space-y-6">
           
           {/* Quick Actions Grid */}
@@ -535,7 +522,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Activity (Mock) */}
+          {/* Recent Activity */}
           <Card className="p-5">
              <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
@@ -563,7 +550,7 @@ export const Dashboard: React.FC = () => {
              </button>
           </Card>
 
-          {/* DATABASE CAPACITY MONITOR WIDGET (UPDATED) */}
+          {/* DATABASE MONITOR */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100 shadow-sm flex flex-col gap-3">
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -582,7 +569,6 @@ export const Dashboard: React.FC = () => {
                 </div>
              </div>
 
-             {/* Progress Bar */}
              <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-blue-100 shadow-inner relative">
                 <div 
                    className={`h-full rounded-full transition-all duration-1000 ease-out 
@@ -591,7 +577,6 @@ export const Dashboard: React.FC = () => {
                    `}
                    style={{ width: `${storageStats.percentage}%` }}
                 ></div>
-                {/* Stripe Pattern Overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:10px_10px] opacity-30"></div>
              </div>
 
@@ -615,4 +600,3 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
-
