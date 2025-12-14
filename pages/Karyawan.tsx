@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from '../components/UIComponents';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
