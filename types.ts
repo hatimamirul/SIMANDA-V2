@@ -133,6 +133,12 @@ export interface DashboardStats {
   balita: number;
   ibuHamil: number;
   ibuMenyusui: number;
+  
+  // New Fields for Proposal Summary
+  siswaSudahProposal: number;
+  siswaBelumProposal: number;
+  guruSudahProposal: number;
+  guruBelumProposal: number;
 }
 
 // === NEW: INVENTORY MANAGEMENT TYPES ===
