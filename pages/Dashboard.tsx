@@ -309,7 +309,7 @@ export const Dashboard: React.FC = () => {
          </div>
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
              <ProposalStatusWidget 
-                title="Proposal Siswa" 
+                title="Siswa" 
                 icon={<School size={22} />} 
                 total={(stats.pmBesar || 0) + (stats.pmKecil || 0)}
                 sudah={stats.siswaSudahProposal}
@@ -317,7 +317,7 @@ export const Dashboard: React.FC = () => {
                 type="siswa"
              />
              <ProposalStatusWidget 
-                title="Proposal Guru" 
+                title="Guru" 
                 icon={<GraduationCap size={22} />} 
                 total={stats.guru}
                 sudah={stats.guruSudahProposal}
@@ -530,3 +530,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
