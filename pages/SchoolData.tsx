@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -22,6 +22,7 @@ export const SchoolPage: React.FC = () => {
   // Filtering States
   const [filterDesa, setFilterDesa] = useState('');
   const [filterJenis, setFilterJenis] = useState('');
+  const [filterProposal, setFilterProposal] = useState(''); // New Filter
 
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
@@ -83,6 +84,11 @@ export const SchoolPage: React.FC = () => {
         filtered = filtered.filter(i => i.jenis === filterJenis);
       }
 
+      // Filter by Proposal Status
+      if (filterProposal) {
+        filtered = filtered.filter(i => (i.statusProposal || 'BELUM') === filterProposal);
+      }
+
       setData(filtered);
       setLoading(false);
     });
@@ -96,7 +102,7 @@ export const SchoolPage: React.FC = () => {
       unsubscribePM();
       unsubscribeAlergi();
     };
-  }, [search, filterDesa, filterJenis]);
+  }, [search, filterDesa, filterJenis, filterProposal]);
 
   const validate = (): boolean => {
     if (
@@ -166,7 +172,8 @@ export const SchoolPage: React.FC = () => {
       jmlguru: undefined, 
       narahubung: '', 
       hp: '', 
-      buktiScan: '' 
+      buktiScan: '',
+      statusProposal: 'BELUM' // Default
     });
     setValidationError('');
     setIsModalOpen(true);
@@ -194,6 +201,7 @@ export const SchoolPage: React.FC = () => {
       'Nama Sekolah': item.nama,
       'Desa': item.desa,
       'Jenis': item.jenis,
+      'Status Proposal': item.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk',
       'Jumlah Siswa': item.jmlsiswa,
       'PM Besar': item.pmBesar,
       'PM Kecil': item.pmKecil,
@@ -243,7 +251,8 @@ export const SchoolPage: React.FC = () => {
               jmlguru: parseInt(row['Jumlah Guru'] || '0'),
               narahubung: row['Narahubung'] || '',
               hp: String(row['No HP'] || ''),
-              buktiScan: '' // Cannot import files via excel
+              buktiScan: '', // Cannot import files via excel
+              statusProposal: 'BELUM' // Default
             };
 
             await api.savePM(newItem);
@@ -267,22 +276,46 @@ export const SchoolPage: React.FC = () => {
     return allergies.filter(a => a.sekolahId === sekolahId).length;
   };
 
+  // Helper for Status UI
+  const getStatusBadge = (status?: 'SUDAH' | 'BELUM') => {
+     if (status === 'SUDAH') {
+         return (
+             <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">
+                 <FileCheck size={12} /> Sudah Masuk Proposal
+             </span>
+         );
+     }
+     return (
+         <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded border border-amber-200">
+             <FileClock size={12} /> Belum Masuk Proposal
+         </span>
+     );
+  };
+
   // Grid Renderer
   const renderGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
        {data.map(item => {
          const allergyCount = getAllergyCount(item.id);
          return (
-         <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-5 flex flex-col group">
-            <div className="flex justify-between items-start mb-4">
+         <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow p-5 flex flex-col group relative">
+            
+            {/* Status Flag Top Right */}
+            <div className="absolute top-4 right-4">
+                {getStatusBadge(item.statusProposal)}
+            </div>
+
+            <div className="flex justify-between items-start mb-4 mt-6">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                 <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
                     <School size={20} />
                  </div>
                  <div>
-                    <h3 className="font-bold text-gray-800 line-clamp-1 text-sm">{item.nama}</h3>
+                    <h3 className="font-bold text-gray-800 line-clamp-1 text-sm pr-20">{item.nama}</h3>
                     <div className="flex flex-wrap gap-2 mt-0.5">
-                      <p className="text-xs text-gray-500">NPSN: {item.npsn}</p>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 uppercase border border-gray-200">
+                        {item.jenis}
+                      </span>
                       {allergyCount > 0 && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
                           <ShieldAlert size={10} /> {allergyCount} Alergi
@@ -291,13 +324,13 @@ export const SchoolPage: React.FC = () => {
                     </div>
                  </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 text-gray-600 uppercase border border-gray-200">
-                {item.jenis}
-              </span>
             </div>
             
             <div className="flex items-center gap-2 mb-4 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-               <MapPin size={14} className="text-red-400" /> Desa {item.desa || '-'}
+               <MapPin size={14} className="text-red-400" /> 
+               <span>Desa {item.desa || '-'}</span>
+               <span className="text-gray-300">|</span>
+               <span>NPSN: {item.npsn}</span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 mb-6">
@@ -364,7 +397,7 @@ export const SchoolPage: React.FC = () => {
             <Filter size={16} /> Filter:
          </div>
          
-         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto flex-wrap">
              {/* Filter Desa */}
              <select 
                 value={filterDesa} 
@@ -388,9 +421,20 @@ export const SchoolPage: React.FC = () => {
                    <option key={jenis} value={jenis}>{jenis}</option>
                 ))}
              </select>
+
+             {/* Filter Proposal */}
+             <select 
+                value={filterProposal} 
+                onChange={(e) => setFilterProposal(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
+             >
+                <option value="">-- Status Proposal --</option>
+                <option value="SUDAH">Sudah Masuk</option>
+                <option value="BELUM">Belum Masuk</option>
+             </select>
          </div>
 
-         {(filterDesa || filterJenis) && (
+         {(filterDesa || filterJenis || filterProposal) && (
            <div className="flex flex-wrap gap-2 md:ml-auto">
              {filterDesa && (
                 <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
@@ -402,8 +446,13 @@ export const SchoolPage: React.FC = () => {
                   Jenjang: {filterJenis}
                 </span>
              )}
+             {filterProposal && (
+                <span className={`text-xs font-medium px-2 py-1 rounded-md border ${filterProposal === 'SUDAH' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                  Prop: {filterProposal}
+                </span>
+             )}
              <button 
-                onClick={() => { setFilterDesa(''); setFilterJenis(''); }}
+                onClick={() => { setFilterDesa(''); setFilterJenis(''); setFilterProposal(''); }}
                 className="text-xs text-gray-500 hover:text-red-500 underline"
              >
                 Reset
@@ -421,6 +470,10 @@ export const SchoolPage: React.FC = () => {
             data={data}
             hideActions={hideActions} 
             columns={[
+              { 
+                header: 'Status Proposal', 
+                accessor: (i) => getStatusBadge(i.statusProposal)
+              },
               { header: 'NPSN', accessor: 'npsn' },
               { 
                 header: 'Nama Sekolah', 
@@ -495,6 +548,7 @@ export const SchoolPage: React.FC = () => {
         title="Data PM Sekolah"
         data={data}
         columns={[
+            { header: 'Status Proposal', accessor: (i) => i.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk' },
             { header: 'NPSN', accessor: 'npsn' },
             { header: 'Nama Sekolah', accessor: 'nama' },
             { header: 'Desa', accessor: 'desa' },
@@ -549,6 +603,23 @@ export const SchoolPage: React.FC = () => {
               />
               {!formData.id && <FormHelperText />}
             </div>
+          </div>
+
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+             <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700">Status Proposal</h4>
+                <div className="w-1/2">
+                    <Select 
+                        value={formData.statusProposal || 'BELUM'} 
+                        onChange={e => setFormData({...formData, statusProposal: e.target.value as any})} 
+                        options={[
+                            {value: 'BELUM', label: 'Belum Masuk Proposal'},
+                            {value: 'SUDAH', label: 'Sudah Masuk Proposal'}
+                        ]}
+                        className={formData.statusProposal === 'SUDAH' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-amber-50 border-amber-300 text-amber-800'}
+                    />
+                </div>
+             </div>
           </div>
           
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
