@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from '../components/UIComponents';
 import { 
   LayoutDashboard, 
   Users, 
@@ -42,7 +42,7 @@ const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string;
     <NavLink
       to={to}
       onClick={() => onClick && onClick()}
-      className={({ isActive }) =>
+      className={({ isActive }: { isActive: boolean }) =>
         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
           isActive 
             ? 'bg-gradient-to-r from-primary to-[#3482ad] text-white shadow-md' 
