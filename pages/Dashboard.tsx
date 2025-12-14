@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from '../components/UIComponents';
 import { Card } from '../components/UIComponents';
@@ -7,7 +8,8 @@ import {
   Users, School, Baby, Activity, Calendar, 
   TrendingUp, ArrowRight, CheckSquare,
   Package, UserCog, Bell,
-  ArrowUpRight, Database, AlertCircle, CheckCircle2
+  ArrowUpRight, Database, AlertCircle, CheckCircle2,
+  FileCheck, FileClock, GraduationCap
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -25,7 +27,11 @@ export const Dashboard: React.FC = () => {
     guru: 0,
     balita: 0,
     ibuHamil: 0,
-    ibuMenyusui: 0
+    ibuMenyusui: 0,
+    siswaSudahProposal: 0,
+    siswaBelumProposal: 0,
+    guruSudahProposal: 0,
+    guruBelumProposal: 0
   });
 
   const [storageStats, setStorageStats] = useState({ usedMB: "0", totalMB: 1024, percentage: "0" });
@@ -122,6 +128,54 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
+  const ProposalSummaryCard = ({ title, icon, total, sudah, belum, type }: { title: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+     const percentSudah = total > 0 ? (sudah / total) * 100 : 0;
+     const percentBelum = total > 0 ? (belum / total) * 100 : 0;
+     
+     const colorBase = type === 'siswa' ? 'blue' : 'purple';
+     const bgIcon = type === 'siswa' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600';
+
+     return (
+        <Card className="p-5 flex flex-col relative overflow-hidden group">
+            <div className="flex items-center gap-3 mb-4 z-10">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgIcon}`}>
+                    {icon}
+                </div>
+                <div>
+                    <h3 className="font-bold text-gray-800 text-base">{title}</h3>
+                    <p className="text-xs text-gray-500">Total: <strong>{total}</strong></p>
+                </div>
+            </div>
+
+            <div className="space-y-4 z-10">
+                {/* Sudah Masuk */}
+                <div>
+                    <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-emerald-700 flex items-center gap-1"><FileCheck size={12}/> Sudah Masuk Proposal</span>
+                        <span className="font-bold text-emerald-700">{sudah}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${percentSudah}%` }}></div>
+                    </div>
+                </div>
+                {/* Belum Masuk */}
+                <div>
+                    <div className="flex justify-between text-xs mb-1">
+                        <span className="font-medium text-amber-600 flex items-center gap-1"><FileClock size={12}/> Belum Masuk Proposal</span>
+                        <span className="font-bold text-amber-600">{belum}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: `${percentBelum}%` }}></div>
+                    </div>
+                </div>
+            </div>
+            
+             {/* Decorative Background */}
+             <div className="absolute right-0 top-0 w-32 h-32 bg-gray-50 rounded-full -mr-10 -mt-10 z-0 opacity-50 group-hover:scale-110 transition-transform"></div>
+        </Card>
+     );
+  };
+
   const QuickActionBtn = ({ label, desc, icon, onClick, color }: { label: string, desc: string, icon: React.ReactNode, onClick: () => void, color: string }) => (
     <button 
       onClick={onClick}
@@ -211,6 +265,33 @@ export const Dashboard: React.FC = () => {
           colorClass="text-emerald-600"
           trend="Aktif"
         />
+      </div>
+
+      {/* === PROPOSAL STATUS SUMMARY (NEW SECTION) === */}
+      <div>
+         <div className="flex items-center justify-between mb-4 px-1">
+             <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                 <FileCheck className="text-primary" size={20}/> Status Proposal Sekolah
+             </h3>
+         </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <ProposalSummaryCard 
+                title="Proposal Siswa" 
+                icon={<School size={20} />} 
+                total={(stats.pmBesar || 0) + (stats.pmKecil || 0)}
+                sudah={stats.siswaSudahProposal}
+                belum={stats.siswaBelumProposal}
+                type="siswa"
+             />
+             <ProposalSummaryCard 
+                title="Proposal Guru" 
+                icon={<GraduationCap size={20} />} 
+                total={stats.guru}
+                sudah={stats.guruSudahProposal}
+                belum={stats.guruBelumProposal}
+                type="guru"
+             />
+         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
