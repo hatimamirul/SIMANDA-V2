@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from '../components/UIComponents';
+import { useLocation } from '../components/UIComponents'; // Import useLocation for manual active check
 import { 
   LayoutDashboard, 
   Users, 
@@ -37,23 +37,39 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+// MODIFIED: SidebarItem now uses native anchor behavior with forced reload for fresh data
 const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string; onClick?: () => void; isSubItem?: boolean }> = ({ to, icon, label, onClick, isSubItem }) => {
+  // Manual Active State Check
+  const isActive = window.location.pathname === to || (to !== '/' && window.location.pathname.startsWith(to));
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default SPA router behavior
+    
+    if (onClick) onClick();
+
+    // FORCE REFRESH: Navigate using window.location to trigger a full page reload
+    // This ensures data is 100% fresh and re-initializes real-time connections
+    if (window.location.pathname === to) {
+        window.location.reload(); // If same page, just reload
+    } else {
+        window.location.href = to; // If different page, navigate (which causes load)
+    }
+  };
+
   return (
-    <NavLink
-      to={to}
-      onClick={() => onClick && onClick()}
-      className={({ isActive }: { isActive: boolean }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-          isActive 
-            ? 'bg-gradient-to-r from-primary to-[#3482ad] text-white shadow-md' 
-            : 'text-gray-600 hover:bg-white hover:text-primary'
-        } ${isSubItem ? 'pl-11 py-2.5 text-sm' : ''}`
-      }
+    <a
+      href={to}
+      onClick={handleClick}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer ${
+        isActive 
+          ? 'bg-gradient-to-r from-primary to-[#3482ad] text-white shadow-md' 
+          : 'text-gray-600 hover:bg-white hover:text-primary'
+      } ${isSubItem ? 'pl-11 py-2.5 text-sm' : ''}`}
     >
       {icon && <span className="group-hover:scale-110 transition-transform">{icon}</span>}
       {!icon && isSubItem && <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50"></span>}
       <span className="font-medium">{label}</span>
-    </NavLink>
+    </a>
   );
 };
 
@@ -317,3 +333,4 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     </div>
   );
 };
+
