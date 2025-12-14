@@ -135,18 +135,24 @@ const SidebarDropdown: React.FC<{
 };
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  // FIX: Initialize based on window width directly to prevent flash or wrong state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isOpen, setIsOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
+      const width = window.innerWidth;
+      const mobile = width < 1024;
       setIsMobile(mobile);
-      if (mobile) setIsOpen(false);
-      else setIsOpen(true);
+      
+      // FIX: Only force open on Desktop. 
+      // Do NOT auto-close on Mobile resize events (like address bar scrolling).
+      if (!mobile) {
+         setIsOpen(true);
+      }
     };
-    handleResize();
+    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -187,17 +193,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   return (
     <div className="flex h-screen bg-[#F4F8FF] overflow-hidden">
-      {/* Mobile Backdrop */}
+      {/* Mobile Backdrop (Increased z-index to 40) */}
       {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-black/30 z-20 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (Increased z-index to 50 to be on top of everything) */}
       <aside 
-        className={`fixed lg:relative z-30 h-full bg-[#f8fbff] border-r border-white/50 shadow-xl transition-all duration-300 ease-in-out flex flex-col left-0
+        className={`fixed lg:relative z-50 h-full bg-[#f8fbff] border-r border-white/50 shadow-xl transition-all duration-300 ease-in-out flex flex-col left-0
           ${isOpen ? 'w-64 translate-x-0' : '-translate-x-full w-64 lg:w-20 lg:translate-x-0'}
         `}
       >
@@ -345,8 +351,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-        {/* Navbar for Mobile */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 lg:hidden z-10 sticky top-0">
+        {/* Navbar for Mobile (Increased z-index to 30 to sit above content but below sidebar/backdrop) */}
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 lg:hidden z-30 sticky top-0">
            <button onClick={() => setIsOpen(true)} className="p-2 -ml-2 text-gray-600">
              <Menu />
            </button>
