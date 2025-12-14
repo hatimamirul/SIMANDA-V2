@@ -363,6 +363,34 @@ export const api = {
 
     return () => { unsubK(); unsubS(); unsubB(); };
   },
+
+  // === STORAGE CALCULATOR ===
+  getStorageStats: () => {
+    // Estimasi penggunaan berdasarkan data yang ada di LocalStorage (yang merupakan mirror dari Cloud)
+    // Firestore Free Tier Limit = 1 GiB (1024 MB)
+    const TOTAL_QUOTA_BYTES = 1024 * 1024 * 1024; 
+    
+    let usedBytes = 0;
+    Object.values(KEYS).forEach(key => {
+        try {
+            const item = localStorage.getItem(key);
+            if (item) {
+                // UTF-16 strings use 2 bytes per character
+                usedBytes += item.length * 2;
+            }
+        } catch(e) {}
+    });
+
+    const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
+    const percentage = Math.min(100, (usedBytes / TOTAL_QUOTA_BYTES) * 100).toFixed(1);
+    
+    return {
+        usedBytes,
+        usedMB,
+        totalMB: 1024,
+        percentage
+    };
+  },
   
   // === GENERIC REALTIME CRUD ===
   getUsers: (q: string = '') => { return Promise.resolve(localDb.get(KEYS.USERS, INITIAL_USERS)); }, 
