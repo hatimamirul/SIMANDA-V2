@@ -1,4 +1,3 @@
-
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
@@ -124,15 +123,30 @@ const localDb = {
     try {
       const s = localStorage.getItem(key);
       if (!s) {
-        localStorage.setItem(key, JSON.stringify(initial));
+        // Try to initialize, safeguard against full storage
+        try {
+            localStorage.setItem(key, JSON.stringify(initial));
+        } catch (e) {
+            console.warn("Storage full during init of", key);
+        }
         return initial;
       }
       return JSON.parse(s);
     } catch (e) { return initial; }
   },
   set: <T>(key: string, data: T) => {
-    localStorage.setItem(key, JSON.stringify(data));
-    channel.postMessage({ key, type: 'update' }); // Notify other tabs
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      channel.postMessage({ key, type: 'update' }); // Notify other tabs
+    } catch (e: any) {
+      // Handle QuotaExceededError specifically
+      if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
+         console.error("Local Storage is FULL!", e);
+         alert("PERINGATAN: Penyimpanan Browser Penuh! Data tidak tersimpan secara lokal. Mohon hapus cache browser atau data lama, atau gunakan koneksi internet agar data tersimpan di Cloud.");
+      } else {
+         console.error("Local Storage Error:", e);
+      }
+    }
   }
 };
 
@@ -607,4 +621,3 @@ export const api = {
       return () => { unsubAbsensi(); unsubKaryawan(); };
   }
 };
-
