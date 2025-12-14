@@ -520,7 +520,36 @@ export const api = {
   subscribePeriode: (cb: (data: Periode[]) => void) => createSubscriber('periode', KEYS.PERIODE, [], cb),
   savePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
   updatePeriode: (item: Periode) => saveData('periode', KEYS.PERIODE, item),
-  deletePeriode: (id: string) => saveData('periode', KEYS.PERIODE, { id }, true),
+  
+  // UPDATED: Delete Periode now cascades to Absensi records to free up space
+  deletePeriode: async (id: string) => {
+    // 1. Clean up Firestore Data (Images & Records)
+    if (USE_FIREBASE && db) {
+      try {
+        const q = query(collection(db, 'absensi'), where('periodeId', '==', id));
+        const snapshot = await getDocs(q);
+        const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+            console.log(`[CLEANUP] Berhasil menghapus ${deletePromises.length} data absensi & foto dari database.`);
+        }
+      } catch (e) {
+        console.error("Gagal membersihkan data absensi lama:", e);
+      }
+    }
+
+    // 2. Clean up Local Storage
+    try {
+        const localAbsensi = localDb.get<AbsensiRecord[]>(KEYS.ABSENSI, []);
+        const filtered = localAbsensi.filter(a => a.periodeId !== id);
+        if (localAbsensi.length !== filtered.length) {
+            localDb.set(KEYS.ABSENSI, filtered);
+        }
+    } catch(e) { /* ignore */ }
+
+    // 3. Delete the Periode Document
+    return saveData('periode', KEYS.PERIODE, { id }, true);
+  },
 
   subscribeAbsensi: (periodeId: string, cb: (data: AbsensiRecord[]) => void) => {
     const createEmptyDays = () => {
