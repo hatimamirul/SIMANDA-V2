@@ -119,7 +119,7 @@ export const AbsensiPage: React.FC = () => {
     setLoading(true);
     try {
         await api.deletePeriode(deletePeriodeId);
-        showToast("Periode berhasil dihapus", "success");
+        showToast("Periode dan data foto berhasil dihapus permanen.", "success");
         setSelectedPeriode(''); // Reset selection
         setDeletePeriodeId(null);
     } catch (e) {
@@ -675,8 +675,8 @@ export const AbsensiPage: React.FC = () => {
         isOpen={!!deletePeriodeId}
         onClose={() => setDeletePeriodeId(null)}
         onConfirm={handleDeletePeriode}
-        title="Hapus Periode"
-        message="Apakah anda yakin ingin menghapus periode ini? Data absensi terkait mungkin masih tersimpan di database namun tidak akan muncul lagi."
+        title="Hapus Periode & Bersihkan Data"
+        message="Apakah anda yakin? Tindakan ini akan MENGHAPUS PERMANEN seluruh data absensi dan FOTO KARYAWAN di periode ini. Ini akan mengosongkan penyimpanan database secara signifikan."
         isLoading={loading}
       />
 
