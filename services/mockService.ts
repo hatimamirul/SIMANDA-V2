@@ -1,3 +1,4 @@
+
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
@@ -349,11 +350,22 @@ export const api = {
        const ibuHamil = b.filter(i => i.jenis === 'IBU HAMIL').length;
        const ibuMenyusui = b.filter(i => i.jenis === 'IBU MENYUSUI').length;
 
+       // Calculate Proposal Status Counts
+       const siswaSudah = s.filter(i => i.statusProposal === 'SUDAH').reduce((acc, curr) => acc + curr.jmlsiswa, 0);
+       const siswaBelum = s.filter(i => (i.statusProposal || 'BELUM') === 'BELUM').reduce((acc, curr) => acc + curr.jmlsiswa, 0);
+       const guruSudah = s.filter(i => i.statusProposal === 'SUDAH').reduce((acc, curr) => acc + curr.jmlguru, 0);
+       const guruBelum = s.filter(i => (i.statusProposal || 'BELUM') === 'BELUM').reduce((acc, curr) => acc + curr.jmlguru, 0);
+
        callback({
         karyawan: k.length,
         pmsekolah: s.length,
         pmb3: b.length,
-        pmKecil, pmBesar, guru, balita, ibuHamil, ibuMenyusui
+        pmKecil, pmBesar, guru, balita, ibuHamil, ibuMenyusui,
+        // New Fields
+        siswaSudahProposal: siswaSudah,
+        siswaBelumProposal: siswaBelum,
+        guruSudahProposal: guruSudah,
+        guruBelumProposal: guruBelum
       });
     };
 
