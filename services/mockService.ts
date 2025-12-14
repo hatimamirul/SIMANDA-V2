@@ -321,9 +321,22 @@ export const api = {
 
   subscribeUser: (userId: string, callback: (user: User | null) => void) => {
     if (USE_FIREBASE && db) {
-      return onSnapshot(doc(db, 'users', userId), (doc) => {
-        if (doc.exists()) callback({ ...doc.data(), id: doc.id } as User);
-        else callback(null);
+      return onSnapshot(doc(db, 'users', userId), (docSnapshot) => {
+        if (docSnapshot.exists()) {
+           callback({ ...docSnapshot.data(), id: docSnapshot.id } as User);
+        } else {
+           // FALLBACK: If not found in Firestore, check Local/Initial data.
+           // This prevents "Account Deleted" error for mock users (like Koor Divisi ID:5) 
+           // that haven't been synced/created in the Cloud yet.
+           const localUsers = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
+           const foundLocal = localUsers.find(u => u.id === userId);
+           callback(foundLocal || null);
+        }
+      }, (error) => {
+         // If error (e.g., offline or permission), fallback to local
+         const localUsers = localDb.get<User[]>(KEYS.USERS, INITIAL_USERS);
+         const foundLocal = localUsers.find(u => u.id === userId);
+         callback(foundLocal || null);
       });
     } else {
       const check = () => {
