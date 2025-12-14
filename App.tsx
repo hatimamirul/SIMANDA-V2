@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from './components/UIComponents';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { UsersPage } from './pages/Users';
@@ -171,156 +171,117 @@ const MainApp = () => {
   };
 
   return (
-    <Router>
+    <BrowserRouter>
         <Routes>
-          <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
+          <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />} />
           
-          <Route 
-            path="/" 
-            element={
+          <Route path="/" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout}>
                 <Dashboard />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/users" 
-            element={
+          } />
+          
+          <Route path="/users" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN']}>
                 <UsersPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/karyawan" 
-            element={
+          } />
+          
+          <Route path="/karyawan" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <KaryawanPage />
               </ProtectedRoute>
-            } 
-          />
+          } />
           
-          <Route 
-            path="/absensi" 
-            element={
+          <Route path="/absensi" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'KOORDINATORDIVISI']}>
                 <AbsensiPage />
               </ProtectedRoute>
-            } 
-          />
+          } />
 
-          <Route 
-            path="/sekolah" 
-            element={
+          <Route path="/sekolah" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'PETUGAS']}>
                 <SchoolPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/alergi" 
-            element={
+          } />
+          
+          <Route path="/alergi" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'PETUGAS']}>
                 <AlergiPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/pic-sekolah" 
-            element={
+          } />
+          
+          <Route path="/pic-sekolah" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <PICSekolahPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/b3" 
-            element={
+          } />
+          
+          <Route path="/b3" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG', 'PETUGAS']}>
                 <B3Page />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/kader-b3" 
-            element={
+          } />
+          
+          <Route path="/kader-b3" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <KaderB3Page />
               </ProtectedRoute>
-            } 
-          />
+          } />
 
           {/* === INVENTORY ROUTES === */}
-          <Route 
-            path="/inventory/supplier" 
-            element={
+          <Route path="/inventory/supplier" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <DataSupplierPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/inventory/bahan-masuk" 
-            element={
+          } />
+          
+          <Route path="/inventory/bahan-masuk" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <LaporanBahanMasukPage />
               </ProtectedRoute>
-            } 
-          />
-           <Route 
-            path="/inventory/bahan-keluar" 
-            element={
+          } />
+          
+           <Route path="/inventory/bahan-keluar" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <LaporanBahanKeluarPage />
               </ProtectedRoute>
-            } 
-          />
-           <Route 
-            path="/inventory/stok-saat-ini" 
-            element={
+          } />
+          
+           <Route path="/inventory/stok-saat-ini" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <StokSaatIniPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/inventory/stok-opname" 
-            element={
+          } />
+          
+          <Route path="/inventory/stok-opname" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
                 <LaporanStokOpnamePage />
               </ProtectedRoute>
-            } 
-          />
+          } />
           
           {/* Finance Routes - Restricted to SUPERADMIN and KSPPG */}
-          <Route 
-            path="/honor-karyawan" 
-            element={
+          <Route path="/honor-karyawan" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG']}>
                 <HonorKaryawanPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/honor-pic" 
-            element={
+          } />
+          
+          <Route path="/honor-pic" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG']}>
                 <HonorPICSekolahPage />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/honor-kader" 
-            element={
+          } />
+          
+          <Route path="/honor-kader" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG']}>
                 <HonorKaderB3Page />
               </ProtectedRoute>
-            } 
-          />
+          } />
           
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 
@@ -333,4 +294,3 @@ function App() {
 }
 
 export default App;
-
