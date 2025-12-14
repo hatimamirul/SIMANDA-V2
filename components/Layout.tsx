@@ -94,7 +94,7 @@ const SidebarDropdown: React.FC<{
     if (isChildActive) {
       setExpanded(true);
     }
-  }, [location, children]);
+  }, [location.pathname, children]); // Fix dependency to pathname primitive
 
   const toggleExpand = () => {
     if (!sidebarOpen) {
@@ -160,7 +160,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   // Close sidebar on route change for mobile
   useEffect(() => {
     if (isMobile) setIsOpen(false);
-  }, [location, isMobile]);
+  }, [location.pathname, isMobile]); // CRITICAL FIX: Depend on pathname string, not location object reference
 
   const role: Role = user?.jabatan || 'PETUGAS';
 
