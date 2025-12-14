@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, Button, Input, Modal, LoadingSpinner, useToast, Logo, PrintPreviewDialog, ConfirmationModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, AbsensiRecord, User, Role, AbsensiDetail } from '../types';
-import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut, Trash2 } from 'lucide-react';
+import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut, Trash2, Lock } from 'lucide-react';
 
 export const AbsensiPage: React.FC = () => {
   // Get current user to check role
@@ -241,8 +242,9 @@ export const AbsensiPage: React.FC = () => {
         newDetail.fotoPulang = photo;
     }
 
-    // Update Legacy Boolean (Checked if Masuk exists)
-    const isPresent = !!newDetail.jamMasuk; 
+    // FIX: Update Legacy Boolean (Checked if EITHER Masuk OR Pulang exists)
+    // Previously it only checked jamMasuk, causing "Pulang First" to mark as Absent (false)
+    const isPresent = !!newDetail.jamMasuk || !!newDetail.jamPulang; 
 
     // Construct Update
     const updatedRecord: AbsensiRecord = {
@@ -580,13 +582,20 @@ export const AbsensiPage: React.FC = () => {
                               )}
                            </div>
                         ) : (
-                           <button 
-                              onClick={() => startCamera('PULANG')}
-                              className="w-full py-6 flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                           >
-                              <Camera size={24} />
-                              <span className="text-xs font-semibold">Ambil Foto Pulang</span>
-                           </button>
+                           !modalData.detail?.jamMasuk ? (
+                               <button disabled className="w-full py-6 flex flex-col items-center justify-center gap-2 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed border border-gray-200">
+                                  <Lock size={24} />
+                                  <span className="text-xs font-semibold text-center">Isi Absen Masuk<br/>Terlebih Dahulu</span>
+                               </button>
+                           ) : (
+                               <button 
+                                  onClick={() => startCamera('PULANG')}
+                                  className="w-full py-6 flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                               >
+                                  <Camera size={24} />
+                                  <span className="text-xs font-semibold">Ambil Foto Pulang</span>
+                               </button>
+                           )
                         )}
                      </div>
                   </div>
