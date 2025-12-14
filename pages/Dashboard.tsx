@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../components/UIComponents';
 import { Card } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { DashboardStats, User, Role } from '../types';
@@ -7,7 +8,7 @@ import {
   Users, School, Baby, Activity, Calendar, 
   TrendingUp, ArrowRight, CheckSquare,
   Package, UserCog, Bell,
-  ArrowUpRight, ShieldCheck
+  ArrowUpRight, Database
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -158,12 +159,12 @@ export const Dashboard: React.FC = () => {
                 <span className="text-xs text-blue-200 uppercase tracking-wider font-semibold block mb-1">Waktu Server</span>
                 <span className="text-3xl font-mono font-bold tracking-widest">{timeStr}</span>
              </div>
-             <div className="flex items-center gap-2 text-xs text-blue-200">
+             <div className="flex items-center gap-2 text-xs text-blue-200 bg-black/20 px-2 py-1 rounded-lg">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                System Online
+                Online & Terhubung
              </div>
           </div>
         </div>
@@ -355,17 +356,18 @@ export const Dashboard: React.FC = () => {
              </button>
           </Card>
 
-          {/* System Status Mini Widget */}
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100 flex items-center justify-between">
+          {/* System Status Mini Widget - UPDATED for Storage Policy */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 flex items-center justify-between shadow-sm">
              <div className="flex items-center gap-3">
-                <div className="bg-white p-2 rounded-lg text-emerald-600 shadow-sm">
-                   <ShieldCheck size={20} />
+                <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm">
+                   <Database size={20} />
                 </div>
                 <div>
-                   <p className="text-xs font-bold text-emerald-800 uppercase">Status Keamanan</p>
-                   <p className="text-xs text-emerald-600">Semua data aman & terenkripsi</p>
+                   <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Status Penyimpanan</p>
+                   <p className="text-[10px] font-medium text-blue-600 mt-0.5">Siklus 2 Bulan (Mode Hemat)</p>
                 </div>
              </div>
+             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
           </div>
 
         </div>
