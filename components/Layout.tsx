@@ -26,7 +26,9 @@ import {
   ArrowDownToLine, // Icon for Incoming
   ArrowUpFromLine, // Icon for Outgoing
   ClipboardList, // Icon for Stock Opname
-  Layers // Icon for Stock Current
+  Layers, // Icon for Stock Current
+  Settings, // New Icon for System
+  BookOpen // New Icon for School Group
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -177,6 +179,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   const canSeeLogs = role === 'SUPERADMIN';
 
+  // Group Permissions
+  const showKepegawaian = canSeeKaryawan || canSeeAbsensi;
+  const showSekolahGroup = canSeeSekolah || canSeePICSekolah;
+  const showB3Group = canSeeB3 || canSeeKaderB3;
+  const showSystemGroup = canSeeUsers || canSeeLogs;
+
   return (
     <div className="flex h-screen bg-[#F4F8FF] overflow-hidden">
       {/* Mobile Backdrop */}
@@ -217,71 +225,96 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {/* 1. Dashboard */}
           <SidebarItem to="/" icon={<LayoutDashboard size={20} />} label={isOpen ? "Dashboard" : ""} />
           
-          {canSeeUsers && (
-            <SidebarItem to="/users" icon={<Users size={20} />} label={isOpen ? "Users" : ""} />
-          )}
-          
-          {canSeeKaryawan && (
-            <SidebarItem to="/karyawan" icon={<Contact size={20} />} label={isOpen ? "Data Karyawan" : ""} />
-          )}
-          
-          {canSeeAbsensi && (
-            <SidebarItem to="/absensi" icon={<CalendarCheck size={20} />} label={isOpen ? "Absensi Karyawan SPPG" : ""} />
-          )}
-          
-          {canSeeSekolah && (
-            <>
-              <SidebarItem to="/sekolah" icon={<School size={20} />} label={isOpen ? "Data PM Sekolah" : ""} />
-              <SidebarItem to="/alergi" icon={<ShieldAlert size={20} />} label={isOpen ? "Data Alergi" : ""} />
-            </>
-          )}
-          
-          {canSeePICSekolah && (
-             <SidebarItem to="/pic-sekolah" icon={<UserCog size={20} />} label={isOpen ? "Data PIC Sekolah" : ""} />
-          )}
-          
-          {canSeeB3 && (
-            <SidebarItem to="/b3" icon={<Baby size={20} />} label={isOpen ? "Data PM B3" : ""} />
+          {/* 2. Kepegawaian (HR) */}
+          {showKepegawaian && (
+             <SidebarDropdown 
+               icon={<Users size={20} />} 
+               label="Kepegawaian" 
+               isOpen={isOpen}
+               sidebarOpen={isOpen}
+               setSidebarOpen={setIsOpen}
+             >
+               {canSeeKaryawan && <SidebarItem to="/karyawan" icon={<Contact size={18} />} label="Data Karyawan" isSubItem />}
+               {canSeeAbsensi && <SidebarItem to="/absensi" icon={<CalendarCheck size={18} />} label="Absensi SPPG" isSubItem />}
+             </SidebarDropdown>
           )}
 
-          {canSeeKaderB3 && (
-            <SidebarItem to="/kader-b3" icon={<Stethoscope size={20} />} label={isOpen ? "Data Kader B3" : ""} />
+          {/* 3. Manajemen Sekolah */}
+          {showSekolahGroup && (
+             <SidebarDropdown 
+               icon={<School size={20} />} 
+               label="Manajemen Sekolah" 
+               isOpen={isOpen}
+               sidebarOpen={isOpen}
+               setSidebarOpen={setIsOpen}
+             >
+               {canSeeSekolah && <SidebarItem to="/sekolah" icon={<BookOpen size={18} />} label="Data PM Sekolah" isSubItem />}
+               {canSeeSekolah && <SidebarItem to="/alergi" icon={<ShieldAlert size={18} />} label="Data Alergi" isSubItem />}
+               {canSeePICSekolah && <SidebarItem to="/pic-sekolah" icon={<UserCog size={18} />} label="Data PIC Sekolah" isSubItem />}
+             </SidebarDropdown>
           )}
 
+          {/* 4. Manajemen B3 */}
+          {showB3Group && (
+             <SidebarDropdown 
+               icon={<Baby size={20} />} 
+               label="Manajemen B3" 
+               isOpen={isOpen}
+               sidebarOpen={isOpen}
+               setSidebarOpen={setIsOpen}
+             >
+               {canSeeB3 && <SidebarItem to="/b3" icon={<Heart size={18} />} label="Data PM B3" isSubItem />}
+               {canSeeKaderB3 && <SidebarItem to="/kader-b3" icon={<Stethoscope size={18} />} label="Data Kader B3" isSubItem />}
+             </SidebarDropdown>
+          )}
+
+          {/* 5. Gudang / Inventory */}
           {canSeeInventory && (
              <SidebarDropdown 
                icon={<Package size={20} />} 
-               label="Master Stok Bahan Baku" 
+               label="Logistik & Gudang" 
                isOpen={isOpen}
                sidebarOpen={isOpen}
                setSidebarOpen={setIsOpen}
              >
                <SidebarItem to="/inventory/stok-saat-ini" icon={<Layers size={18} />} label="Stok Saat Ini" isSubItem />
-               <SidebarItem to="/inventory/bahan-masuk" icon={<ArrowDownToLine size={18} />} label="Laporan Bahan Masuk" isSubItem />
-               <SidebarItem to="/inventory/bahan-keluar" icon={<ArrowUpFromLine size={18} />} label="Laporan Bahan Keluar" isSubItem />
-               <SidebarItem to="/inventory/stok-opname" icon={<ClipboardList size={18} />} label="Laporan Stok Opname" isSubItem />
+               <SidebarItem to="/inventory/bahan-masuk" icon={<ArrowDownToLine size={18} />} label="Bahan Masuk" isSubItem />
+               <SidebarItem to="/inventory/bahan-keluar" icon={<ArrowUpFromLine size={18} />} label="Bahan Keluar" isSubItem />
+               <SidebarItem to="/inventory/stok-opname" icon={<ClipboardList size={18} />} label="Stok Opname" isSubItem />
                <SidebarItem to="/inventory/supplier" icon={<Truck size={18} />} label="Data Suplayer" isSubItem />
              </SidebarDropdown>
           )}
           
+          {/* 6. Keuangan */}
           {canSeeFinance && (
             <SidebarDropdown 
               icon={<Wallet size={20} />} 
-              label="Pembayaran Gaji dan Upah" 
+              label="Keuangan & Gaji" 
               isOpen={isOpen}
               sidebarOpen={isOpen}
               setSidebarOpen={setIsOpen}
             >
-              <SidebarItem to="/honor-karyawan" icon={<Briefcase size={18} />} label="Honorarium Karyawan" isSubItem />
-              <SidebarItem to="/honor-pic" icon={<GraduationCap size={18} />} label="Honorarium PIC Sekolah" isSubItem />
-              <SidebarItem to="/honor-kader" icon={<Heart size={18} />} label="Honorarium Kader B3" isSubItem />
+              <SidebarItem to="/honor-karyawan" icon={<Briefcase size={18} />} label="Honor Karyawan" isSubItem />
+              <SidebarItem to="/honor-pic" icon={<GraduationCap size={18} />} label="Honor PIC Sekolah" isSubItem />
+              <SidebarItem to="/honor-kader" icon={<Heart size={18} />} label="Honor Kader B3" isSubItem />
             </SidebarDropdown>
           )}
 
-          {canSeeLogs && (
-            <SidebarItem to="/logs" icon={<Activity size={20} />} label={isOpen ? "Activity Log" : ""} />
+          {/* 7. System Admin */}
+          {showSystemGroup && (
+             <SidebarDropdown 
+               icon={<Settings size={20} />} 
+               label="Sistem & Admin" 
+               isOpen={isOpen}
+               sidebarOpen={isOpen}
+               setSidebarOpen={setIsOpen}
+             >
+               {canSeeUsers && <SidebarItem to="/users" icon={<UserCog size={18} />} label="Manajemen User" isSubItem />}
+               {canSeeLogs && <SidebarItem to="/logs" icon={<Activity size={18} />} label="Log Aktivitas" isSubItem />}
+             </SidebarDropdown>
           )}
         </nav>
 
