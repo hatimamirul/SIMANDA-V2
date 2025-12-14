@@ -9,7 +9,7 @@ import {
   TrendingUp, ArrowRight, CheckSquare,
   Package, UserCog, Bell,
   ArrowUpRight, Database, AlertCircle, CheckCircle2,
-  FileCheck, FileClock, GraduationCap
+  FileCheck, FileClock, GraduationCap, FileText
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -128,51 +128,84 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
-  const ProposalSummaryCard = ({ title, icon, total, sudah, belum, type }: { title: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
-     const percentSudah = total > 0 ? (sudah / total) * 100 : 0;
-     const percentBelum = total > 0 ? (belum / total) * 100 : 0;
+  // NEW DESIGN: Proposal Status Widget
+  const ProposalStatusWidget = ({ title, icon, total, sudah, belum, type }: { title: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+     const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
      
-     const colorBase = type === 'siswa' ? 'blue' : 'purple';
-     const bgIcon = type === 'siswa' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600';
+     // Colors
+     const themeColor = type === 'siswa' ? '#3B82F6' : '#8B5CF6'; // Blue vs Violet
+     const bgIcon = type === 'siswa' ? 'bg-blue-100 text-blue-600' : 'bg-violet-100 text-violet-600';
+     const lightBg = type === 'siswa' ? 'bg-blue-50' : 'bg-violet-50';
+
+     const chartData = [
+       { name: 'Sudah', value: sudah, color: '#10B981' }, // Emerald
+       { name: 'Belum', value: belum, color: '#F59E0B' }, // Amber
+     ];
 
      return (
-        <Card className="p-5 flex flex-col relative overflow-hidden group">
-            <div className="flex items-center gap-3 mb-4 z-10">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgIcon}`}>
-                    {icon}
-                </div>
-                <div>
-                    <h3 className="font-bold text-gray-800 text-base">{title}</h3>
-                    <p className="text-xs text-gray-500">Total: <strong>{total}</strong></p>
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row gap-6 relative overflow-hidden">
+            {/* Left: Chart Section */}
+            <div className={`flex flex-col items-center justify-center p-4 rounded-2xl ${lightBg} sm:w-1/3 min-w-[140px] relative`}>
+                <div className="relative w-28 h-28">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={chartData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={38}
+                                outerRadius={50}
+                                startAngle={90}
+                                endAngle={-270}
+                                dataKey="value"
+                                stroke="none"
+                                cornerRadius={4}
+                                paddingAngle={5}
+                            >
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                    {/* Centered Percentage */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-xl font-bold text-gray-800">{percentSudah}%</span>
+                        <span className="text-[10px] font-medium text-gray-500 uppercase">Selesai</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="space-y-4 z-10">
-                {/* Sudah Masuk */}
-                <div>
-                    <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-emerald-700 flex items-center gap-1"><FileCheck size={12}/> Sudah Masuk Proposal</span>
-                        <span className="font-bold text-emerald-700">{sudah}</span>
+            {/* Right: Info Section */}
+            <div className="flex-1 flex flex-col justify-center gap-4">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+                    <div className={`p-2 rounded-lg ${bgIcon} shadow-sm`}>
+                        {icon}
                     </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${percentSudah}%` }}></div>
+                    <div>
+                        <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
+                        <p className="text-xs text-gray-500 mt-0.5">Total Target: <span className="font-bold text-gray-700">{total.toLocaleString()}</span></p>
                     </div>
                 </div>
-                {/* Belum Masuk */}
-                <div>
-                    <div className="flex justify-between text-xs mb-1">
-                        <span className="font-medium text-amber-600 flex items-center gap-1"><FileClock size={12}/> Belum Masuk Proposal</span>
-                        <span className="font-bold text-amber-600">{belum}</span>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 rounded-lg p-2.5 border border-emerald-100">
+                        <div className="flex items-center gap-1.5 text-emerald-700 mb-1">
+                            <CheckCircle2 size={14} />
+                            <span className="text-[10px] font-bold uppercase tracking-wide">Sudah</span>
+                        </div>
+                        <span className="text-xl font-bold text-emerald-800">{sudah.toLocaleString()}</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full transition-all duration-1000" style={{ width: `${percentBelum}%` }}></div>
+                    <div className="bg-amber-50 rounded-lg p-2.5 border border-amber-100">
+                        <div className="flex items-center gap-1.5 text-amber-700 mb-1">
+                            <FileClock size={14} />
+                            <span className="text-[10px] font-bold uppercase tracking-wide">Belum</span>
+                        </div>
+                        <span className="text-xl font-bold text-amber-800">{belum.toLocaleString()}</span>
                     </div>
                 </div>
             </div>
-            
-             {/* Decorative Background */}
-             <div className="absolute right-0 top-0 w-32 h-32 bg-gray-50 rounded-full -mr-10 -mt-10 z-0 opacity-50 group-hover:scale-110 transition-transform"></div>
-        </Card>
+        </div>
      );
   };
 
@@ -267,25 +300,25 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* === PROPOSAL STATUS SUMMARY (NEW SECTION) === */}
+      {/* === PROPOSAL STATUS SUMMARY (IMPROVED DESIGN) === */}
       <div>
          <div className="flex items-center justify-between mb-4 px-1">
              <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                 <FileCheck className="text-primary" size={20}/> Status Proposal Sekolah
+                 <FileText className="text-primary" size={20}/> Ringkasan Status Proposal
              </h3>
          </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <ProposalSummaryCard 
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <ProposalStatusWidget 
                 title="Proposal Siswa" 
-                icon={<School size={20} />} 
+                icon={<School size={22} />} 
                 total={(stats.pmBesar || 0) + (stats.pmKecil || 0)}
                 sudah={stats.siswaSudahProposal}
                 belum={stats.siswaBelumProposal}
                 type="siswa"
              />
-             <ProposalSummaryCard 
+             <ProposalStatusWidget 
                 title="Proposal Guru" 
-                icon={<GraduationCap size={20} />} 
+                icon={<GraduationCap size={22} />} 
                 total={stats.guru}
                 sudah={stats.guruSudahProposal}
                 belum={stats.guruBelumProposal}
