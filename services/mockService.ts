@@ -1,20 +1,20 @@
 import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
+// Storage import is kept optional, we will fallback if it fails
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 // ==========================================
 // CONFIGURATION FOR HOSTING / REALTIME
 // ==========================================
 const firebaseConfig = {
-  // --- GANTI DENGAN CONFIG FIREBASE ASLI ANDA ---
+  // --- GANTI DENGAN CONFIG DARI FIREBASE CONSOLE ANDA ---
   apiKey: "AIzaSyDSEqsEyNK_PTecikuQ7VbD8MCvW_l1C_g",
   authDomain: "simanda-project.firebaseapp.com",
   projectId: "simanda-project",
-  storageBucket: "simanda-project.firebasestorage.app",
+  storageBucket: "simanda-project.firebasestorage.app", 
   messagingSenderId: "1061662287994",
   appId: "1:1061662287994:web:de4e734af8b144c23b73c3",
-  // -----------------------------------------
 };
 
 // Toggle this to TRUE to enable Cloud Sync
@@ -28,19 +28,69 @@ if (USE_FIREBASE) {
   try {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
-    storage = getStorage(app);
-    console.log("Firebase & Storage initialized successfully. Mode: CLOUD");
+    // Kita coba init storage, tapi jika gagal/belum aktif, tidak apa-apa.
+    try {
+        storage = getStorage(app);
+    } catch (e) {
+        console.warn("Firebase Storage tidak aktif (Mode Hemat Database aktif).");
+        storage = null;
+    }
+    console.log("Firebase initialized successfully.");
   } catch (e) {
     console.error("Firebase init error (check config):", e);
   }
 }
 
 // ==========================================
+// IMAGE COMPRESSION HELPER (SOLUSI GRATIS)
+// ==========================================
+// Fungsi ini mengecilkan gambar agar muat disimpan di Database (Firestore)
+// Tanpa perlu Firebase Storage yang berbayar.
+const compressImage = (base64Str: string, maxWidth = 500, quality = 0.6): Promise<string> => {
+  return new Promise((resolve) => {
+    // Jika bukan gambar base64 valid, kembalikan aslinya
+    if (!base64Str || !base64Str.startsWith('data:image')) {
+        resolve(base64Str);
+        return;
+    }
+
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Hitung rasio aspek baru
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          // Kompres ke JPEG kualitas rendah tapi cukup jelas untuk web
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          // Cek ukuran hasil
+          console.log(`Kompresi Gambar: Asli ${base64Str.length} chars -> Kompres ${compressedDataUrl.length} chars`);
+          resolve(compressedDataUrl);
+      } else {
+          resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+        resolve(base64Str); // Jika gagal load, kembalikan asli
+    };
+  });
+};
+
+// ==========================================
 // MOCK DATA & LOCAL STORAGE HELPERS
 // ==========================================
-// Gunakan placeholder kecil untuk inisialisasi agar hemat memori lokal
-const MOCK_SCAN_FILE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-
 const INITIAL_USERS: User[] = [
   { id: '1', nama: 'Super Admin', email: 'super@simanda.com', username: 'superadmin', password: '123', jabatan: 'SUPERADMIN', status: 'AKTIF' },
   { id: '2', nama: 'Kepala SPPG', email: 'ksppg@simanda.com', username: 'ksppg', password: '123', jabatan: 'KSPPG', status: 'AKTIF' },
@@ -79,15 +129,12 @@ const KEYS = {
   STOK_OPNAME: 'simanda_stok_opname_v1'
 };
 
-// Realtime Broadcast Channel for Local Sync (Fallback)
 const channel = new BroadcastChannel('simanda_sync_channel');
-
-// Flag to stop trying local storage if full
 let isLocalStorageFull = false;
 
 const localDb = {
   get: <T>(key: string, initial: T): T => {
-    if (isLocalStorageFull) return initial; // Skip if full
+    if (isLocalStorageFull) return initial; 
     try {
       const s = localStorage.getItem(key);
       if (!s) return initial;
@@ -95,16 +142,14 @@ const localDb = {
     } catch (e) { return initial; }
   },
   set: <T>(key: string, data: T) => {
-    if (isLocalStorageFull) return; // Skip if already known to be full
-    
+    if (isLocalStorageFull) return;
     try {
       localStorage.setItem(key, JSON.stringify(data));
       channel.postMessage({ key, type: 'update' }); 
     } catch (e: any) {
-      // HANDLE QUOTA EXCEEDED
       if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
-         console.warn(`[STORAGE FULL] LocalStorage penuh saat menyimpan ${key}. Beralih ke mode CLOUD-ONLY.`);
-         isLocalStorageFull = true; // Set flag globally
+         console.warn(`[STORAGE FULL] LocalStorage penuh. Beralih ke mode CLOUD-ONLY.`);
+         isLocalStorageFull = true;
       } else {
          console.error("Local Storage Error:", e);
       }
@@ -113,53 +158,54 @@ const localDb = {
 };
 
 // ==========================================
-// FIREBASE STORAGE HELPER
+// UPLOAD / PROCESS HELPER
 // ==========================================
-const uploadImageToCloud = async (base64String: string, folder: string): Promise<string> => {
-  if (!USE_FIREBASE || !storage) return base64String;
-  if (!base64String || !base64String.startsWith('data:image')) return base64String; // Return as is if url or empty
+const processImageUpload = async (base64String: string, folder: string): Promise<string> => {
+  // 1. Coba Kompres dulu agar ringan
+  const compressed = await compressImage(base64String);
 
-  try {
-    // Create a unique filename: timestamp_random.jpg
-    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-    const storageRef = ref(storage, `${folder}/${fileName}`);
-    
-    // Upload the Base64 string
-    await uploadString(storageRef, base64String, 'data_url');
-    
-    // Get the public URL
-    const downloadURL = await getDownloadURL(storageRef);
-    console.log(`Uploaded ${folder}:`, downloadURL);
-    return downloadURL;
-  } catch (error) {
-    console.error(`Failed to upload image to ${folder}:`, error);
-    return base64String; // Fallback to base64 if upload fails
+  // 2. Jika Firebase Storage Aktif (dan user sudah bayar), upload ke sana
+  if (USE_FIREBASE && storage) {
+    try {
+        const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+        const storageRef = ref(storage, `${folder}/${fileName}`);
+        await uploadString(storageRef, compressed, 'data_url');
+        const downloadURL = await getDownloadURL(storageRef);
+        console.log(`Uploaded to Storage (${folder}):`, downloadURL);
+        return downloadURL;
+    } catch (error: any) {
+        console.warn(`Gagal upload ke Storage (mungkin belum aktif/berbayar). Menyimpan ke Database sebagai text.`, error.code);
+        // Fallback: Kembalikan string yang sudah dikompres
+        return compressed;
+    }
   }
+
+  // 3. Jika Storage Tidak Aktif, Kembalikan Compressed String (Simpan di DB)
+  return compressed;
 };
 
 const processDataForUpload = async (item: any, collectionName: string) => {
   const newItem = { ...item };
   
-  // 1. Check Standard Fields
+  // 1. Process Standard Fields
   const imageFields = ['sertifikat', 'buktiScan', 'buktiFoto'];
   for (const field of imageFields) {
     if (newItem[field] && typeof newItem[field] === 'string' && newItem[field].startsWith('data:image')) {
-       newItem[field] = await uploadImageToCloud(newItem[field], collectionName);
+       newItem[field] = await processImageUpload(newItem[field], collectionName);
     }
   }
 
-  // 2. Check Nested Absensi Details (Foto Masuk/Pulang)
+  // 2. Process Nested Absensi Details
   if (newItem.detailHari) {
-    // Create a deep copy of detailHari to avoid mutation issues
     const newDetailHari = { ...newItem.detailHari };
     for (const key in newDetailHari) {
        const detail = { ...newDetailHari[key] };
        
        if (detail.fotoMasuk && detail.fotoMasuk.startsWith('data:image')) {
-          detail.fotoMasuk = await uploadImageToCloud(detail.fotoMasuk, 'absensi/masuk');
+          detail.fotoMasuk = await processImageUpload(detail.fotoMasuk, 'absensi/masuk');
        }
        if (detail.fotoPulang && detail.fotoPulang.startsWith('data:image')) {
-          detail.fotoPulang = await uploadImageToCloud(detail.fotoPulang, 'absensi/pulang');
+          detail.fotoPulang = await processImageUpload(detail.fotoPulang, 'absensi/pulang');
        }
        newDetailHari[key] = detail;
     }
@@ -173,7 +219,6 @@ const processDataForUpload = async (item: any, collectionName: string) => {
 // UNIFIED API SERVICE
 // ==========================================
 
-// Helper to handle subscriptions based on mode
 const createSubscriber = <T>(
   collectionName: string, 
   localKey: string, 
@@ -182,20 +227,14 @@ const createSubscriber = <T>(
   customQuery?: any
 ) => {
   if (USE_FIREBASE && db) {
-    // FIREBASE MODE - Primary Source
     try {
       const q = customQuery || collection(db, collectionName);
       const unsubscribe = onSnapshot(q, (snapshot: any) => {
         const items = snapshot.docs.map((doc: any) => ({ ...(doc.data() as any), id: doc.id }));
-        
-        // Update local cache (fire & forget)
         localDb.set(localKey, items); 
-        
-        // Pass data to UI
         callback(items);
       }, (error: any) => {
         console.error(`Firebase error on ${collectionName}:`, error);
-        // Fallback to local only if Firebase fails
         callback(localDb.get(localKey, initialData));
       });
       return unsubscribe;
@@ -204,7 +243,6 @@ const createSubscriber = <T>(
     }
   } 
   
-  // LOCAL STORAGE POLLING / EVENT LISTENER (Fallback Mode)
   const notify = () => {
     const data = localDb.get<T[]>(localKey, initialData);
     callback(data);
@@ -218,19 +256,18 @@ const createSubscriber = <T>(
 };
 
 const saveData = async (collectionName: string, localKey: string, item: any, isDelete = false) => {
-  // 1. PRE-PROCESS: Upload Images to Firebase Storage if any
-  // This converts Base64 -> URL before saving to DB
+  // 1. PRE-PROCESS: Compress Images or Upload
   let itemToSave = { ...item };
-  if (!isDelete && USE_FIREBASE && storage) {
+  if (!isDelete && USE_FIREBASE) {
      itemToSave = await processDataForUpload(item, collectionName);
   }
 
-  // 2. GENERATE ID LOCALLY IF MISSING (For URL consistency)
+  // 2. GENERATE ID LOCALLY IF MISSING
   if (!isDelete && (!itemToSave.id || itemToSave.id.startsWith('temp-'))) {
       itemToSave.id = `doc_${Date.now()}_${Math.random().toString(36).substr(2,5)}`;
   }
 
-  // 3. UPDATE LOCAL STATE (Optimistic UI - with URLs)
+  // 3. UPDATE LOCAL STATE
   try {
     let data = localDb.get<any[]>(localKey, []);
     if (isDelete) {
@@ -245,7 +282,7 @@ const saveData = async (collectionName: string, localKey: string, item: any, isD
     // Ignore local errors
   }
 
-  // 4. SYNC TO FIREBASE FIRESTORE (Primary Storage)
+  // 4. SYNC TO FIREBASE FIRESTORE
   if (USE_FIREBASE && db) {
     try {
       if (isDelete) {
@@ -256,7 +293,9 @@ const saveData = async (collectionName: string, localKey: string, item: any, isD
     } catch (e: any) {
       console.error("Firebase save error:", e);
       if (e.code === 'resource-exhausted') {
-         alert("Kuota Firebase terlampaui. Hubungi admin.");
+         alert("Database Firestore Penuh. Hubungi Admin.");
+      } else if (e.code === 'permission-denied') {
+         alert("Izin Ditolak. Pastikan Rules Firestore diatur 'allow read, write: if true;'");
       }
       throw e; 
     }
@@ -283,7 +322,6 @@ export const api = {
       if (user.status === 'AKTIF') {
         const newSessionId = `sess-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const userWithSession = { ...user, sessionId: newSessionId };
-        
         await saveData('users', KEYS.USERS, userWithSession);
         return { status: 'success', token: 'mock-jwt-' + Date.now(), user: userWithSession };
       }
@@ -394,7 +432,6 @@ export const api = {
     // Auto-update master barang
     let masters = localDb.get<MasterBarang[]>(KEYS.MASTER_BARANG, INITIAL_MASTER_BARANG);
     if (USE_FIREBASE && db) {
-        // Fetch masters from DB to be sure
         const snap = await getDocs(collection(db, 'master_barang'));
         masters = snap.docs.map(d => ({...d.data(), id: d.id} as MasterBarang));
     }
