@@ -470,3 +470,4 @@ export const KaryawanPage: React.FC = () => {
     </div>
   );
 };
+
