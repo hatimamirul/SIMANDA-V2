@@ -128,98 +128,115 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 
-  // NEW MODERN DESIGN: Proposal Status Widget
+  // NEW STATIC GAUGE DESIGN: Proposal Status Widget
   const ProposalStatusWidget = ({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
      const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
      
      // Color Themes & Gradients
      const isSiswa = type === 'siswa';
      const lightBg = isSiswa ? 'bg-blue-50' : 'bg-purple-50';
-     const mainColor = isSiswa ? 'text-blue-600' : 'text-purple-600';
+     const iconColor = isSiswa ? 'text-blue-600' : 'text-purple-600';
      const gradientId = isSiswa ? 'gradSiswa' : 'gradGuru';
+     const startColor = isSiswa ? '#3B82F6' : '#8B5CF6'; // Blue-500 / Violet-500
+     const endColor = isSiswa ? '#0EA5E9' : '#D946EF';   // Sky-500 / Fuchsia-500
 
-     // Chart Data: [0] = Progress (Colored), [1] = Remainder (Grey Track)
-     const chartData = [
-       { name: 'Sudah', value: sudah }, 
-       { name: 'Belum', value: belum }, 
-     ];
+     // Chart Setup
+     // Start Angle 220, Sweep 260 degrees (Gauge Shape)
+     const startAngle = 220;
+     const maxAngleSpan = 260;
+     const endAngleTrack = startAngle - maxAngleSpan;
+     const endAngleValue = startAngle - ((percentSudah / 100) * maxAngleSpan);
 
      return (
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden flex flex-col h-full group">
-            {/* Header Section */}
-            <div className="flex justify-between items-start mb-4 z-10">
-                <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${lightBg} ${mainColor} shadow-inner`}>
-                        {icon}
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{subtitle}</p>
-                        <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
-                    </div>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-shadow h-full flex flex-col relative overflow-hidden">
+            {/* Header: Icon & Title Top Left */}
+            <div className="flex items-center gap-4 mb-6">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${lightBg} ${iconColor} shadow-inner`}>
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{subtitle}</p>
+                    <h4 className="font-bold text-gray-800 text-lg leading-tight">{title}</h4>
                 </div>
             </div>
 
-            <div className="flex items-center gap-6 z-10 mt-2">
-                {/* Modern Gradient Radial Chart */}
-                <div className="relative w-36 h-36 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-center gap-8">
+                {/* Static Radial Chart (Left) */}
+                <div className="relative w-40 h-40 flex-shrink-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <defs>
-                                <linearGradient id="gradSiswa" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor="#3B82F6" />
-                                    <stop offset="100%" stopColor="#06B6D4" />
-                                </linearGradient>
-                                <linearGradient id="gradGuru" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor="#8B5CF6" />
-                                    <stop offset="100%" stopColor="#EC4899" />
+                                <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stopColor={startColor} />
+                                    <stop offset="100%" stopColor={endColor} />
                                 </linearGradient>
                             </defs>
+                            
+                            {/* Track Layer (Grey Background) */}
                             <Pie
-                                data={chartData}
+                                data={[{ value: 1 }]}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={55}
-                                outerRadius={70}
-                                startAngle={90}
-                                endAngle={-270}
+                                innerRadius={60}
+                                outerRadius={72}
+                                startAngle={startAngle}
+                                endAngle={endAngleTrack}
                                 dataKey="value"
                                 stroke="none"
-                                cornerRadius={10} // Rounded Caps for modern look
-                                paddingAngle={0}
-                            >
-                                {/* Cell 0: Gradient Progress */}
-                                <Cell key="cell-sudah" fill={`url(#${gradientId})`} />
-                                {/* Cell 1: Track Background */}
-                                <Cell key="cell-belum" fill="#F3F4F6" />
-                            </Pie>
+                                fill="#F3F4F6"
+                                cornerRadius={10}
+                                isAnimationActive={false} // Disable movement
+                            />
+                            
+                            {/* Value Layer (Gradient Progress) */}
+                            {percentSudah > 0 && (
+                                <Pie
+                                    data={[{ value: 1 }]}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={72}
+                                    startAngle={startAngle}
+                                    endAngle={endAngleValue}
+                                    dataKey="value"
+                                    stroke="none"
+                                    cornerRadius={10}
+                                    fill={`url(#${gradientId})`}
+                                    isAnimationActive={false} // Disable movement
+                                />
+                            )}
                         </PieChart>
                     </ResponsiveContainer>
                     
-                    {/* Centered Percentage with Shadow */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className={`text-3xl font-extrabold ${mainColor} drop-shadow-sm`}>{percentSudah}%</span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Selesai</span>
+                    {/* Centered Percentage */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-2">
+                        <span className={`text-4xl font-extrabold ${iconColor} drop-shadow-sm`}>{percentSudah}%</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selesai</span>
                     </div>
                 </div>
 
-                {/* Right Side: Detailed Stats */}
-                <div className="flex-1 space-y-4">
-                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                        <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Target Total</p>
-                        <p className="text-xl font-bold text-gray-800">{total.toLocaleString()}</p>
+                {/* Right Side Stats */}
+                <div className="flex-1 w-full space-y-5">
+                    {/* Target Total Box */}
+                    <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target Total</p>
+                        <p className="text-2xl font-bold text-gray-800">{total.toLocaleString()}</p>
                     </div>
-                    
-                    <div className="space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="flex items-center gap-1.5 font-medium text-gray-600">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Sudah
-                            </span>
+
+                    {/* Stats List */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                                <span className="text-gray-600 font-medium">Sudah</span>
+                            </div>
                             <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="flex items-center gap-1.5 font-medium text-gray-600">
-                                <span className="w-2 h-2 rounded-full bg-gray-300"></span> Belum
-                            </span>
+                        <div className="flex justify-between items-center text-sm">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                                <span className="text-gray-600 font-medium">Belum</span>
+                            </div>
                             <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
                         </div>
                     </div>
@@ -320,7 +337,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* === PROPOSAL STATUS SUMMARY (UPDATED GRAPHICS) === */}
+      {/* === PROPOSAL STATUS SUMMARY (STATIC GAUGE DESIGN) === */}
       <div>
          <div className="flex items-center justify-between mb-4 px-1">
              <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -375,6 +392,7 @@ export const Dashboard: React.FC = () => {
                       paddingAngle={5}
                       dataKey="value"
                       stroke="none"
+                      isAnimationActive={false}
                     >
                       {pieDataB3.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.1))' }} />
@@ -419,7 +437,7 @@ export const Dashboard: React.FC = () => {
                       cursor={{fill: '#F9FAFB'}}
                       contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} animationDuration={1500}>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} isAnimationActive={false}>
                       {barDataSekolah.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -552,4 +570,3 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
-
