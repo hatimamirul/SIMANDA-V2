@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from '../components/UIComponents';
 import { Card } from '../components/UIComponents';
@@ -8,7 +7,7 @@ import {
   Users, School, Baby, Activity, Calendar, 
   TrendingUp, ArrowRight, CheckSquare,
   Package, UserCog, Bell,
-  ArrowUpRight, Database
+  ArrowUpRight, Database, AlertCircle, CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -29,6 +28,7 @@ export const Dashboard: React.FC = () => {
     ibuMenyusui: 0
   });
 
+  const [storageStats, setStorageStats] = useState({ usedMB: "0", totalMB: 1024, percentage: "0" });
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Get current user for Role-based Quick Access
@@ -45,9 +45,17 @@ export const Dashboard: React.FC = () => {
     
     // Stats Subscription
     const unsubscribe = api.subscribeStats(setStats);
+
+    // Update Storage Stats every 5 seconds (not strictly realtime to save perf)
+    const updateStorage = () => {
+       setStorageStats(api.getStorageStats());
+    };
+    updateStorage();
+    const storageTimer = setInterval(updateStorage, 5000);
     
     return () => {
       clearInterval(timer);
+      clearInterval(storageTimer);
       unsubscribe();
     };
   }, []);
@@ -356,18 +364,51 @@ export const Dashboard: React.FC = () => {
              </button>
           </Card>
 
-          {/* System Status Mini Widget - UPDATED for Storage Policy */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 flex items-center justify-between shadow-sm">
-             <div className="flex items-center gap-3">
-                <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm">
-                   <Database size={20} />
+          {/* DATABASE CAPACITY MONITOR WIDGET (UPDATED) */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100 shadow-sm flex flex-col gap-3">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                   <div className="bg-white p-2 rounded-lg text-blue-600 shadow-sm border border-blue-50">
+                      <Database size={18} />
+                   </div>
+                   <div>
+                      <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Kapasitas Database</p>
+                      <p className="text-[10px] text-blue-600 font-medium">Free Tier (1 GB)</p>
+                   </div>
                 </div>
-                <div>
-                   <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">Status Penyimpanan</p>
-                   <p className="text-[10px] font-medium text-blue-600 mt-0.5">Siklus 2 Bulan (Mode Hemat)</p>
+                <div className="flex flex-col items-end">
+                   <span className={`text-lg font-bold ${parseFloat(storageStats.percentage) > 80 ? 'text-red-600' : 'text-blue-700'}`}>
+                      {storageStats.percentage}%
+                   </span>
                 </div>
              </div>
-             <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+
+             {/* Progress Bar */}
+             <div className="w-full h-3 bg-white rounded-full overflow-hidden border border-blue-100 shadow-inner relative">
+                <div 
+                   className={`h-full rounded-full transition-all duration-1000 ease-out 
+                      ${parseFloat(storageStats.percentage) > 90 ? 'bg-red-500' : 
+                        parseFloat(storageStats.percentage) > 70 ? 'bg-yellow-500' : 'bg-green-500'}
+                   `}
+                   style={{ width: `${storageStats.percentage}%` }}
+                ></div>
+                {/* Stripe Pattern Overlay */}
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:10px_10px] opacity-30"></div>
+             </div>
+
+             <div className="flex justify-between items-center text-[10px] font-medium text-gray-500">
+                <span className="flex items-center gap-1">
+                   {parseFloat(storageStats.percentage) < 80 ? <CheckCircle2 size={12} className="text-green-500"/> : <AlertCircle size={12} className="text-red-500"/>}
+                   Terpakai: <span className="text-gray-800 font-bold">{storageStats.usedMB} MB</span>
+                </span>
+                <span>Sisa: {Math.max(0, 1024 - parseFloat(storageStats.usedMB)).toFixed(2)} MB</span>
+             </div>
+             
+             {parseFloat(storageStats.percentage) > 80 && (
+                <div className="mt-1 bg-red-100 text-red-700 p-2 rounded-lg text-[10px] font-medium flex items-center gap-2 border border-red-200 animate-pulse">
+                   <AlertCircle size={14} /> Peringatan: Penyimpanan hampir penuh. Segera hapus periode lama.
+                </div>
+             )}
           </div>
 
         </div>
