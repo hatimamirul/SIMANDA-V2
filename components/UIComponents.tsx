@@ -451,6 +451,16 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 tfoot { display: table-footer-group; }
                 tr { page-break-inside: avoid; page-break-after: auto; }
                 
+                /* KOP SURAT SIMETRIS GRID */
+                .header-grid {
+                    display: grid;
+                    grid-template-columns: 80px 1fr 80px;
+                    align-items: center;
+                    border-bottom: 2px solid black;
+                    padding-bottom: 15px;
+                    margin-bottom: 20px;
+                }
+                
                 @media print {
                    body { -webkit-print-color-adjust: exact; }
                    .pdf-table { width: 100%; }
@@ -458,14 +468,22 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 }
               `}</style>
 
-              {/* Report Header (Kop Surat) */}
-              <div className="flex items-center gap-5 border-b-2 border-black pb-4 mb-6 report-header">
-                  <Logo className="w-20 h-20 object-contain" />
-                  <div className="flex-1">
+              {/* Report Header (Kop Surat Simetris) */}
+              <div className="header-grid report-header">
+                  {/* Left: Logo Box (Fixed Width) */}
+                  <div className="flex items-center justify-center h-20 w-20">
+                      <Logo className="w-full h-full object-contain" />
+                  </div>
+
+                  {/* Center: Text (Centered in available space) */}
+                  <div className="text-center px-2">
                     <h1 className="text-2xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
                     <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
                     <p className="text-xs text-gray-600 mt-1 italic">Tanggal Laporan: {currentDate}</p>
                   </div>
+
+                  {/* Right: Spacer (Same Width as Logo for Symmetry) */}
+                  <div className="w-20 h-20"></div>
               </div>
 
               {/* Report Title */}
@@ -854,19 +872,42 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
                     print-color-adjust: exact;
                   }
                   .no-print { display: none !important; }
+                  
+                  /* Kop Surat Simetris Grid for Slip */
+                  .slip-header-grid {
+                      display: grid;
+                      grid-template-columns: 80px 1fr 80px;
+                      align-items: center;
+                      border-bottom: 4px double black;
+                      padding-bottom: 10px;
+                      margin-bottom: 20px;
+                  }
+                }
+                
+                /* Default (Screen) Style for Slip Header */
+                .slip-header-grid {
+                    display: grid;
+                    grid-template-columns: 80px 1fr 80px;
+                    align-items: center;
+                    border-bottom: 4px double black;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
                 }
               `}
             </style>
             
             <div className="border-2 border-black p-8 h-full relative flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-4 border-b-4 border-double border-black pb-4 mb-6">
-                  <img src={LOGO_URI} alt="Logo" className="w-20 h-20 object-contain" />
-                  <div className="flex-1 text-center">
+                {/* Header Kop Surat (Grid Simetris) */}
+                <div className="slip-header-grid">
+                  <div className="flex items-center justify-center w-20 h-20">
+                     <img src={LOGO_URI} alt="Logo" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="text-center px-2">
                     <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
                     <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
                   </div>
-                  <div className="w-20"></div>
+                  <div className="w-20 h-20"></div>
                 </div>
 
                 <div className="text-center mb-8">
@@ -1145,3 +1186,4 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
+
