@@ -232,7 +232,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {/* 1. Dashboard */}
-          <SidebarItem to="/" icon={<LayoutDashboard size={20} />} label={isOpen ? "Dashboard" : ""} />
+          <SidebarItem to="/dashboard" icon={<LayoutDashboard size={20} />} label={isOpen ? "Dashboard" : ""} />
           
           {/* 2. Kepegawaian (HR) */}
           {showKepegawaian && (
