@@ -321,7 +321,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   );
 };
 
-// === Export Preview Modal (Enhanced) ===
+// === Export Preview Modal (Enhanced for Neatness & No Gaps) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -329,7 +329,7 @@ interface ExportModalProps<T> {
   subtitle?: string;
   data: T[];
   columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined) }[];
-  onExportExcel?: () => void; // Optional now, as we implement internal logic
+  onExportExcel?: () => void; // Optional
 }
 
 export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel }: ExportModalProps<T>) => {
@@ -364,8 +364,8 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
             const cellValue = String(row[col.header] || '');
             if (cellValue.length > maxLength) maxLength = cellValue.length;
         });
-        // Add padding
-        return { wch: Math.min(maxLength + 2, 50) }; // Cap width at 50 chars
+        // Add padding (approx 2 chars) and cap width
+        return { wch: Math.min(maxLength + 4, 60) }; 
     });
     worksheet['!cols'] = wscols;
 
@@ -382,12 +382,12 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
     setIsPdfLoading(true);
     const opt = {
-      margin: [10, 10, 10, 10], // top, left, bottom, right in mm
+      margin: [10, 10, 10, 10], // Reduced margin for better space usage
       filename: `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true }, // High scale for clarity
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      // IMPORTANT: Pagebreak configuration to avoid cutting rows
+      // Critical for handling page breaks cleanly without cutting text/rows
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
@@ -419,43 +419,48 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
         {/* Scrollable Preview Area */}
         <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
-           <div id="export-preview-content" className="bg-white p-8 shadow-sm border border-gray-200 mx-auto max-w-[297mm] min-h-[210mm] text-black">
+           <div id="export-preview-content" className="bg-white p-10 shadow-sm border border-gray-200 mx-auto max-w-[297mm] text-black">
               
-              {/* PDF Styles Injection */}
+              {/* PDF Styles Injection - Optimized for "Rapi" output */}
               <style>{`
-                .pdf-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #000; }
-                .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: top; }
-                .pdf-table th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; text-align: center; }
+                .pdf-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #000; font-family: sans-serif; }
+                .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
+                .pdf-table th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; text-align: center; color: #000; }
+                .no-break { page-break-inside: avoid; }
+                
+                /* Ensure rows don't break across pages */
+                tr { page-break-inside: avoid !important; }
                 
                 /* Layout Optimization for Print/PDF */
                 @media print {
                    tr { page-break-inside: avoid; }
                    thead { display: table-header-group; } 
+                   tfoot { display: table-footer-group; }
                    .pdf-table { width: 100%; }
                 }
               `}</style>
 
               {/* Report Header */}
-              <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-6">
-                  <Logo className="w-16 h-16 object-contain" />
+              <div className="flex items-center gap-5 border-b-2 border-black pb-4 mb-6 no-break">
+                  <Logo className="w-20 h-20 object-contain" />
                   <div className="flex-1">
-                    <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
+                    <h1 className="text-2xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
                     <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
-                    <p className="text-xs text-gray-600 mt-1 italic">Laporan digenerate pada: {currentDate}</p>
+                    <p className="text-xs text-gray-600 mt-1 italic">Tanggal Laporan: {currentDate}</p>
                   </div>
               </div>
 
               {/* Report Title */}
-              <div className="text-center mb-6">
+              <div className="text-center mb-6 no-break">
                  <h2 className="text-xl font-bold underline decoration-2 underline-offset-4 uppercase text-black">{title}</h2>
-                 {subtitle && <p className="text-sm font-medium mt-1 text-gray-700">{subtitle}</p>}
+                 {subtitle && <p className="text-sm font-medium mt-1 text-gray-700 uppercase">{subtitle}</p>}
               </div>
 
               {/* Report Table */}
               <table className="pdf-table">
                  <thead>
                     <tr>
-                       <th style={{width: '40px'}}>No</th>
+                       <th style={{width: '30px'}}>No</th>
                        {columns.map((col, idx) => (
                           <th key={idx}>
                              {col.header}
@@ -482,7 +487,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               </table>
 
               {/* Footer Signature Area */}
-              <div className="mt-10 flex justify-end page-break-inside-avoid">
+              <div className="mt-10 flex justify-end page-break-inside-avoid no-break">
                  <div className="text-center w-48 text-black">
                     <p className="mb-16">Mengetahui,</p>
                     <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
@@ -1118,4 +1123,3 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
-
