@@ -28,7 +28,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setStatus('success');
         setTimeout(() => {
           onLogin(res.token, res.user);
-          navigate('/');
+          navigate('/dashboard'); // Changed from '/' to '/dashboard'
         }, 1000); // Slight delay to show success state
       } else {
         setErrorMsg(res.message || 'Login failed');
