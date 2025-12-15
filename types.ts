@@ -195,8 +195,11 @@ export interface StokOpname {
   tanggal: string;
   namaBahan: string;
   stokFisik: number;
+  stokSistem: number; // NEW: Snapshot of system stock at time of opname
+  selisih: number;    // NEW: stokFisik - stokSistem
   satuan: string;
   kondisi: 'BAIK' | 'RUSAK' | 'KADALUARSA';
   keterangan?: string;
   petugas?: string;
 }
+
