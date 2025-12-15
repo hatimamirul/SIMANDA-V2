@@ -454,25 +454,38 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 /* KOP SURAT SIMETRIS GRID */
                 .header-grid {
                     display: grid;
-                    grid-template-columns: 80px 1fr 80px;
+                    grid-template-columns: 100px 1fr 100px; /* Logo | Text | Spacer */
                     align-items: center;
                     border-bottom: 2px solid black;
                     padding-bottom: 15px;
                     margin-bottom: 20px;
+                }
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 80px;
+                    width: 100%;
+                }
+                .logo-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain; /* Prevents squashing/gepeng */
                 }
                 
                 @media print {
                    body { -webkit-print-color-adjust: exact; }
                    .pdf-table { width: 100%; }
                    thead { display: table-header-group; }
+                   tr { page-break-inside: avoid; }
                 }
               `}</style>
 
-              {/* Report Header (Kop Surat Simetris) */}
+              {/* Report Header (Kop Surat Simetris with Grid) */}
               <div className="header-grid report-header">
-                  {/* Left: Logo Box (Fixed Width) */}
-                  <div className="flex items-center justify-center h-20 w-20">
-                      <Logo className="w-full h-full object-contain" />
+                  {/* Left: Logo Box */}
+                  <div className="logo-container">
+                      <img src={LOGO_URI} alt="Logo" className="logo-img" />
                   </div>
 
                   {/* Center: Text (Centered in available space) */}
@@ -483,7 +496,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                   </div>
 
                   {/* Right: Spacer (Same Width as Logo for Symmetry) */}
-                  <div className="w-20 h-20"></div>
+                  <div className="w-[100px]"></div>
               </div>
 
               {/* Report Title */}
@@ -876,22 +889,46 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
                   /* Kop Surat Simetris Grid for Slip */
                   .slip-header-grid {
                       display: grid;
-                      grid-template-columns: 80px 1fr 80px;
+                      grid-template-columns: 100px 1fr 100px;
                       align-items: center;
                       border-bottom: 4px double black;
                       padding-bottom: 10px;
                       margin-bottom: 20px;
+                  }
+                  .logo-container {
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 80px;
+                      width: 100%;
+                  }
+                  .logo-img {
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
                   }
                 }
                 
                 /* Default (Screen) Style for Slip Header */
                 .slip-header-grid {
                     display: grid;
-                    grid-template-columns: 80px 1fr 80px;
+                    grid-template-columns: 100px 1fr 100px;
                     align-items: center;
                     border-bottom: 4px double black;
                     padding-bottom: 10px;
                     margin-bottom: 20px;
+                }
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 80px;
+                    width: 100%;
+                }
+                .logo-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
                 }
               `}
             </style>
@@ -900,14 +937,14 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
               <div>
                 {/* Header Kop Surat (Grid Simetris) */}
                 <div className="slip-header-grid">
-                  <div className="flex items-center justify-center w-20 h-20">
-                     <img src={LOGO_URI} alt="Logo" className="w-full h-full object-contain" />
+                  <div className="logo-container">
+                     <img src={LOGO_URI} alt="Logo" className="logo-img" />
                   </div>
                   <div className="text-center px-2">
                     <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
                     <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
                   </div>
-                  <div className="w-20 h-20"></div>
+                  <div className="w-[100px]"></div>
                 </div>
 
                 <div className="text-center mb-8">
@@ -1186,4 +1223,3 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
-
