@@ -145,10 +145,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
     
-    // Auto remove after 3 seconds
+    // Auto remove after 4 seconds (slightly longer for readability)
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, 4000);
   };
 
   const removeToast = (id: string) => {
@@ -158,24 +158,44 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none no-print">
+      <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none no-print">
         {toasts.map((toast) => (
           <div 
             key={toast.id} 
-            className={`pointer-events-auto min-w-[300px] max-w-md p-4 rounded-lg shadow-lg flex items-start gap-3 transform transition-all duration-300 animate-slide-in-right
-              ${toast.type === 'success' ? 'bg-white border-l-4 border-green-500 text-gray-800' : ''}
-              ${toast.type === 'error' ? 'bg-white border-l-4 border-red-500 text-gray-800' : ''}
-              ${toast.type === 'info' ? 'bg-white border-l-4 border-blue-500 text-gray-800' : ''}
+            className={`pointer-events-auto min-w-[320px] max-w-sm w-full p-4 rounded-xl shadow-2xl flex items-start gap-3 transform transition-all duration-500 animate-slide-in-right border-l-[6px] backdrop-blur-sm
+              ${toast.type === 'success' ? 'bg-white/95 border-emerald-500 shadow-emerald-500/20' : ''}
+              ${toast.type === 'error' ? 'bg-white/95 border-rose-500 shadow-rose-500/20' : ''}
+              ${toast.type === 'info' ? 'bg-white/95 border-blue-500 shadow-blue-500/20' : ''}
             `}
           >
-            <div className="shrink-0 mt-0.5">
-              {toast.type === 'success' && <CheckCircle size={20} className="text-green-500" />}
-              {toast.type === 'error' && <XCircle size={20} className="text-red-500" />}
-              {toast.type === 'info' && <Info size={20} className="text-blue-500" />}
+            {/* Icon Bubble */}
+            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5
+               ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : ''}
+               ${toast.type === 'error' ? 'bg-rose-100 text-rose-600' : ''}
+               ${toast.type === 'info' ? 'bg-blue-100 text-blue-600' : ''}
+            `}>
+              {toast.type === 'success' && <CheckCircle size={18} strokeWidth={3} />}
+              {toast.type === 'error' && <AlertTriangle size={18} strokeWidth={3} />}
+              {toast.type === 'info' && <Info size={18} strokeWidth={3} />}
             </div>
-            <p className="text-sm font-medium flex-1">{toast.message}</p>
-            <button onClick={() => removeToast(toast.id)} className="text-gray-400 hover:text-gray-600">
-              <X size={16} />
+
+            <div className="flex-1 min-w-0">
+               {/* Status Title */}
+               <h4 className={`text-sm font-bold mb-0.5 tracking-tight
+                  ${toast.type === 'success' ? 'text-emerald-800' : ''}
+                  ${toast.type === 'error' ? 'text-rose-800' : ''}
+                  ${toast.type === 'info' ? 'text-blue-800' : ''}
+               `}>
+                  {toast.type === 'success' ? 'BERHASIL' : toast.type === 'error' ? 'GAGAL' : 'INFORMASI'}
+               </h4>
+               {/* Message Body */}
+               <p className="text-sm font-medium text-gray-600 leading-snug break-words">
+                 {toast.message}
+               </p>
+            </div>
+
+            <button onClick={() => removeToast(toast.id)} className="text-gray-300 hover:text-gray-500 transition-colors shrink-0">
+              <X size={18} />
             </button>
           </div>
         ))}
