@@ -7,7 +7,7 @@ import {
   LogIn, MapPin, Calendar, Clock, 
   Users, School, Baby, Heart, 
   ArrowRight, Activity, GraduationCap, 
-  ChefHat, ChevronRight 
+  ChefHat, ChevronRight, Instagram, Globe 
 } from 'lucide-react';
 import { Logo } from '../components/UIComponents';
 
@@ -59,11 +59,33 @@ export const PublicLanding: React.FC = () => {
   });
   const [time, setTime] = useState(new Date());
   const [scrolled, setScrolled] = useState(false);
+  
+  // Slideshow State
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Daftar Foto untuk Slideshow Hero Section
+  // Menggunakan URL placeholder berkualitas tinggi yang relevan (Dapur, Makan Siswa, Distribusi)
+  // Anda dapat mengganti URL ini dengan URL foto asli yang sudah di-hosting.
+  const heroImages = [
+    "https://images.unsplash.com/photo-1577308856961-8e9ec50d0c67?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80", // Kitchen/Cooking
+    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80", // Children Eating/Happy
+    "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80", // Distribution/Food
+    "https://images.unsplash.com/photo-1509062522246-3755977927d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"  // Education/School
+  ];
 
   useEffect(() => {
+    // Realtime Stats Subscription
     const unsub = api.subscribeStats(setStats);
+    
+    // Realtime Clock
     const timer = setInterval(() => setTime(new Date()), 1000);
     
+    // Slideshow Timer (5 seconds)
+    const slideTimer = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+
+    // Navbar Scroll Effect
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
@@ -72,6 +94,7 @@ export const PublicLanding: React.FC = () => {
     return () => {
       unsub();
       clearInterval(timer);
+      clearInterval(slideTimer);
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
@@ -124,15 +147,22 @@ export const PublicLanding: React.FC = () => {
         </div>
       </nav>
 
-      {/* === HERO SECTION === */}
-      <header className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1e40af] via-[#2A6F97] to-[#0ea5e9] z-0">
-           <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-white opacity-5 rounded-full blur-[100px] animate-pulse"></div>
-           <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-yellow-400 opacity-10 rounded-full blur-[120px]"></div>
-        </div>
+      {/* === HERO SECTION WITH SLIDESHOW === */}
+      <header className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 overflow-hidden min-h-[600px] flex items-center">
+        
+        {/* Slideshow Background */}
+        {heroImages.map((img, index) => (
+            <div 
+                key={index}
+                className={`absolute inset-0 z-0 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
+            >
+                <img src={img} alt="Slideshow" className="w-full h-full object-cover" />
+                {/* Dark Overlay for Text Readability */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-900/70 to-blue-900/40"></div>
+            </div>
+        ))}
 
-        <div className="max-w-7xl mx-auto relative z-10 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12">
+        <div className="max-w-7xl mx-auto relative z-10 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12 w-full">
           <div className="md:w-1/2 space-y-6 animate-slide-in-right">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-blue-50 text-xs font-bold uppercase tracking-wider">
               <Activity size={14} className="text-yellow-400" /> Portal Data Terpadu
@@ -148,9 +178,14 @@ export const PublicLanding: React.FC = () => {
                <button onClick={() => window.scrollTo({top: 800, behavior: 'smooth'})} className="px-8 py-3.5 bg-yellow-400 text-yellow-900 rounded-xl font-bold shadow-lg shadow-yellow-400/20 hover:bg-yellow-300 transition-all flex items-center gap-2">
                  Lihat Statistik <ChevronRight size={18} />
                </button>
-               <div className="px-6 py-3.5 rounded-xl border border-white/30 text-white font-medium backdrop-blur-sm flex items-center gap-3">
-                  <MapPin size={18} /> Ngadiluwih, Kediri
-               </div>
+               <a 
+                  href="https://www.instagram.com/sppg.tales?igsh=djZneGxvYnZnd3c4" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-6 py-3.5 rounded-xl border border-white/30 text-white font-medium backdrop-blur-sm flex items-center gap-3 hover:bg-white/10 transition-colors"
+               >
+                  <Instagram size={18} /> @sppg.tales
+               </a>
             </div>
           </div>
 
@@ -271,14 +306,14 @@ export const PublicLanding: React.FC = () => {
       <section className="py-12 bg-white">
          <div className="max-w-7xl mx-auto px-4 md:px-8">
             <div className="text-center mb-10">
-               <h2 className="text-3xl font-bold text-gray-800 mb-3">Wilayah Jangkauan</h2>
-               <p className="text-gray-500 max-w-2xl mx-auto">Melayani pemenuhan gizi untuk masyarakat di wilayah Desa Tales Setono dan sekitarnya.</p>
+               <h2 className="text-3xl font-bold text-gray-800 mb-3">Lokasi Kantor SPPG</h2>
+               <p className="text-gray-500 max-w-2xl mx-auto">Setono, Tales, Kec. Ngadiluwih, Kabupaten Kediri, Jawa Timur 64171</p>
             </div>
             
-            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white h-[400px] relative bg-gray-200 group">
-               {/* Embed Google Map Iframe (Ngadiluwih Area) */}
+            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white h-[450px] relative bg-gray-200 group">
+               {/* Updated Iframe for SPPG Office Location */}
                <iframe 
-                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63236.43634706596!2d111.96860167520478!3d-7.868779976776999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7850ce2260f065%3A0x4027a76e3532820!2sNgadiluwih%2C%20Kediri%20Regency%2C%20East%20Java!5e0!3m2!1sen!2sid!4v1709228392811!5m2!1sen!2sid" 
+                 src="https://maps.google.com/maps?q=3X8P%2BXQX%2C+Setono%2C+Tales%2C+Kec.+Ngadiluwih%2C+Kabupaten+Kediri%2C+Jawa+Timur+64171&t=&z=15&ie=UTF8&iwloc=&output=embed"
                  width="100%" 
                  height="100%" 
                  style={{border:0}} 
@@ -304,7 +339,7 @@ export const PublicLanding: React.FC = () => {
                   <h2 className="text-3xl font-bold text-gray-800 mb-2">Berita & Kegiatan</h2>
                   <p className="text-gray-500">Update terbaru seputar kegiatan pemenuhan gizi.</p>
                </div>
-               <button className="text-primary font-semibold hover:text-blue-700 transition-colors">Lihat Semua Berita</button>
+               <a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:text-blue-700 transition-colors">Lihat Berita Nasional</a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -346,13 +381,12 @@ export const PublicLanding: React.FC = () => {
                      Sistem Informasi Manajemen Data untuk mendukung program pemenuhan gizi nasional yang tepat sasaran, transparan, dan akuntabel.
                   </p>
                   <div className="flex gap-4">
-                     {/* Social Placeholders */}
-                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
-                     </div>
-                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.072 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                     </div>
+                     <a href="https://www.instagram.com/sppg.tales?igsh=djZneGxvYnZnd3c4" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors" title="Instagram">
+                        <Instagram size={20} />
+                     </a>
+                     <a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors" title="Website BGN">
+                        <Globe size={20} />
+                     </a>
                   </div>
                </div>
 
@@ -361,7 +395,7 @@ export const PublicLanding: React.FC = () => {
                   <ul className="space-y-4 text-sm text-blue-100">
                      <li className="flex items-start gap-3">
                         <MapPin size={18} className="mt-0.5 shrink-0" />
-                        <span>Desa Tales Setono, Kec. Ngadiluwih,<br/>Kabupaten Kediri, Jawa Timur</span>
+                        <span>Setono, Tales, Kec. Ngadiluwih,<br/>Kabupaten Kediri, Jawa Timur 64171</span>
                      </li>
                      <li className="flex items-center gap-3">
                         <Clock size={18} className="shrink-0" />
@@ -371,12 +405,11 @@ export const PublicLanding: React.FC = () => {
                </div>
 
                <div>
-                  <h4 className="text-lg font-bold mb-6 text-yellow-400">Tautan Cepat</h4>
+                  <h4 className="text-lg font-bold mb-6 text-yellow-400">Akses Cepat</h4>
                   <ul className="space-y-3 text-sm text-blue-100">
-                     <li><a href="#" className="hover:text-white transition-colors">Badan Gizi Nasional</a></li>
-                     <li><a href="#" className="hover:text-white transition-colors">Kementerian Kesehatan</a></li>
-                     <li><a href="#" className="hover:text-white transition-colors">Kabupaten Kediri</a></li>
-                     <li><a href="/login" className="hover:text-white transition-colors">Login Internal</a></li>
+                     <li><a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Badan Gizi Nasional</a></li>
+                     <li><a href="https://kemkes.go.id/id/home" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Kementerian Kesehatan</a></li>
+                     <li><a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Berita Badan Gizi Nasional</a></li>
                   </ul>
                </div>
             </div>
@@ -389,3 +422,4 @@ export const PublicLanding: React.FC = () => {
     </div>
   );
 };
+
