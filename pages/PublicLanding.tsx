@@ -79,11 +79,11 @@ export const PublicLanding: React.FC = () => {
 
   // Daftar Foto HD (Updated with highly reliable Unsplash IDs)
   const heroImages = [
-    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=2053&auto=format&fit=crop", // Healthy Plate (Top Down)
-    "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9f4?q=80&w=2070&auto=format&fit=crop", // Chef Serving
-    "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop", // Kids in Class/Eating
-    "https://images.unsplash.com/photo-1615485500704-8e99099928b3?q=80&w=2070&auto=format&fit=crop", // Fresh Vegetables
-    "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?q=80&w=2070&auto=format&fit=crop"  // Food Preparation
+    "https://drive.google.com/file/d/1EzIG1vfpAnHFiNAkiZRIP0MmMNm8IKkE/view?usp=drive_link", // Healthy Plate (Top Down)
+    "https://drive.google.com/file/d/1oGUr8LWox9IYW9s_WeBAQLgtx4AkKmrl/view?usp=drive_link", // Chef Serving
+    "https://drive.google.com/file/d/13aoYC7Z6GZGHm7wpj3CeXjaXSrR2Ni7V/view?usp=sharing", // Kids in Class/Eating
+    "https://drive.google.com/file/d/1mc9JGxrXb_ferO2Hs3zmHlS2dYIxRqq7/view?usp=sharing", // Fresh Vegetables
+    "https://drive.google.com/file/d/1sIRR2InrXABLGgiWBz8UF1TGmL6_WHKA/view?usp=sharing"  // Food Preparation
   ];
 
   useEffect(() => {
@@ -543,3 +543,4 @@ export const PublicLanding: React.FC = () => {
     </div>
   );
 };
+
