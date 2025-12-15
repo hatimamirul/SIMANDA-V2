@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from './components/UIComponents';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { PublicLanding } from './pages/PublicLanding'; // NEW IMPORT
 import { UsersPage } from './pages/Users';
 import { KaryawanPage } from './pages/Karyawan';
 import { SchoolPage } from './pages/SchoolData';
@@ -38,7 +39,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, user, token, 
   }
   
   if (allowedRoles && !allowedRoles.includes(user.jabatan)) {
-     return <Navigate to="/" replace />;
+     return <Navigate to="/dashboard" replace />;
   }
 
   return (
@@ -173,9 +174,14 @@ const MainApp = () => {
   return (
     <BrowserRouter>
         <Routes>
-          <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />} />
+          {/* PUBLIC ROUTE: Landing Page */}
+          <Route path="/" element={<PublicLanding />} />
+
+          {/* LOGIN ROUTE */}
+          <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />} />
           
-          <Route path="/" element={
+          {/* PROTECTED ROUTES */}
+          <Route path="/dashboard" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout}>
                 <Dashboard />
               </ProtectedRoute>
@@ -279,6 +285,7 @@ const MainApp = () => {
               </ProtectedRoute>
           } />
           
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     </BrowserRouter>
