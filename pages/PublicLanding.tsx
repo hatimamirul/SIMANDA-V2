@@ -34,7 +34,15 @@ const ArticleCard = ({ title, date, excerpt, image, category, link }: { title: s
   <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 group flex flex-col h-full cursor-pointer relative top-0 hover:-top-2">
     <div className="h-60 overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
-      <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+      {/* Added onError handler to fallback if image fails */}
+      <img 
+        src={image} 
+        alt={title} 
+        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+        onError={(e) => {
+            e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=2053&auto=format&fit=crop"; // Fallback image
+        }}
+      />
       <div className="absolute top-4 left-4 z-20 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md uppercase tracking-wide">
         {category}
       </div>
@@ -69,13 +77,13 @@ export const PublicLanding: React.FC = () => {
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Daftar Foto HD (Direct Link Unsplash agar pasti muncul)
+  // Daftar Foto HD (Updated with highly reliable Unsplash IDs)
   const heroImages = [
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop", // Healthy Food Spread
+    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=2053&auto=format&fit=crop", // Healthy Plate (Top Down)
     "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9f4?q=80&w=2070&auto=format&fit=crop", // Chef Serving
-    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=2070&auto=format&fit=crop", // Child Eating
-    "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=2070&auto=format&fit=crop", // Fresh Ingredients
-    "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?q=80&w=2069&auto=format&fit=crop"  // Cooking Process
+    "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop", // Kids in Class/Eating
+    "https://images.unsplash.com/photo-1615485500704-8e99099928b3?q=80&w=2070&auto=format&fit=crop", // Fresh Vegetables
+    "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?q=80&w=2070&auto=format&fit=crop"  // Food Preparation
   ];
 
   useEffect(() => {
@@ -134,16 +142,17 @@ export const PublicLanding: React.FC = () => {
               <div className="text-xl font-bold font-mono leading-none tracking-wider">{timeStr}</div>
             </div>
 
+            {/* MODERN LOGIN BUTTON */}
             <button 
               onClick={() => navigate('/login')}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95 border
+              className={`flex items-center gap-2 px-8 py-2.5 rounded-full font-bold text-sm tracking-wide transition-all duration-300 shadow-lg transform hover:-translate-y-0.5 active:scale-95 border
                 ${scrolled 
-                  ? 'bg-blue-600 text-white border-transparent hover:bg-blue-700 shadow-blue-200' 
-                  : 'bg-white/10 backdrop-blur-md text-white border-white/30 hover:bg-white hover:text-blue-900'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-transparent hover:shadow-blue-500/30' 
+                  : 'bg-white text-blue-900 border-transparent hover:bg-gray-50 shadow-black/10'
                 }`}
             >
-              <LogIn size={18} />
-              <span>Login Pengelola</span>
+              <LogIn size={18} strokeWidth={2.5} />
+              <span>Login</span>
             </button>
           </div>
         </div>
@@ -161,10 +170,19 @@ export const PublicLanding: React.FC = () => {
                 `}
             >
                 <div className="absolute inset-0 bg-slate-900"></div>
-                <img src={img} alt="Hero Background" className="w-full h-full object-cover" />
+                <img 
+                    src={img} 
+                    alt="Hero Background" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                        // Fallback to solid color if image fails to load
+                        e.currentTarget.style.display = 'none';
+                    }}
+                />
                 
                 {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-transparent z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/70 to-transparent z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent z-10"></div>
             </div>
         ))}
 
@@ -191,7 +209,7 @@ export const PublicLanding: React.FC = () => {
                  Lihat Data Statistik <ChevronRight size={20} strokeWidth={3} />
                </button>
                {/* Updated Button Text & Icon */}
-               <div className="px-8 py-4 rounded-2xl border border-white/30 text-white font-semibold backdrop-blur-md bg-white/5 flex items-center gap-3 cursor-default">
+               <div className="px-8 py-4 rounded-2xl border border-white/30 text-white font-semibold backdrop-blur-md bg-white/5 flex items-center gap-3 cursor-default hover:bg-white/10 transition-colors">
                   <MapPin size={20} className="text-red-400" /> 
                   <span>Wilayah Kerja Kec. Ngadiluwih</span>
                </div>
@@ -427,7 +445,7 @@ export const PublicLanding: React.FC = () => {
                   title="Kepala Badan Gizi Nasional Tinjau Kesiapan Dapur Satuan Pelayanan"
                   date="18 Desember 2025"
                   category="Kunjungan Kerja"
-                  image="https://images.unsplash.com/photo-1576867757603-05b134ebc379?q=80&w=2070&auto=format&fit=crop"
+                  image="https://images.unsplash.com/photo-1577106263724-2c8e03bfe9f4?q=80&w=2070&auto=format&fit=crop"
                   excerpt="Kepala Badan Gizi Nasional melakukan peninjauan langsung ke beberapa titik Satuan Pelayanan Pemenuhan Gizi untuk memastikan kesiapan infrastruktur dan SDM."
                   link="https://www.bgn.go.id/news/berita"
                />
@@ -435,7 +453,7 @@ export const PublicLanding: React.FC = () => {
                   title="Program Makan Bergizi Gratis Capai Target 1 Juta Anak Sekolah"
                   date="15 Desember 2025"
                   category="Nasional"
-                  image="https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=2070&auto=format&fit=crop"
+                  image="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=2132&auto=format&fit=crop"
                   excerpt="Capaian luar biasa program nasional dalam mendistribusikan makanan bergizi kepada lebih dari satu juta siswa sekolah dasar di seluruh Indonesia."
                   link="https://www.bgn.go.id/news/berita"
                />
@@ -443,7 +461,7 @@ export const PublicLanding: React.FC = () => {
                   title="Standar Gizi Baru untuk Ibu Hamil dan Balita Resmi Diterapkan"
                   date="10 Desember 2025"
                   category="Kebijakan"
-                  image="https://images.unsplash.com/photo-1607623814075-e51df1bd6562?q=80&w=2070&auto=format&fit=crop"
+                  image="https://images.unsplash.com/photo-1615485500704-8e99099928b3?q=80&w=2070&auto=format&fit=crop"
                   excerpt="Badan Gizi Nasional merilis pedoman teknis terbaru mengenai komposisi gizi makro dan mikro yang wajib ada dalam paket makanan tambahan."
                   link="https://www.bgn.go.id/news/berita"
                />
