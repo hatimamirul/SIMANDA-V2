@@ -321,7 +321,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   );
 };
 
-// === Export Preview Modal (Optimized for Neat Layouts & Repeating Headers) ===
+// === Export Preview Modal (Enhanced for Professional Layout & Repeating Headers) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -337,12 +337,11 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   if (!isOpen) return null;
 
-  // INTERNAL SMART EXCEL EXPORT (Smart Auto-Width & Formatting)
+  // INTERNAL SMART EXCEL EXPORT
   const handleSmartExcelExport = () => {
     const XLSX = (window as any).XLSX;
     if (!XLSX) return;
 
-    // 1. Prepare Data
     const exportData = data.map(item => {
         const row: any = {};
         columns.forEach(col => {
@@ -352,22 +351,17 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
         return row;
     });
 
-    // 2. Create Worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-    // 3. Auto-Calculate Column Widths (Iterate data to find max width)
     const wscols = columns.map(col => {
-        let maxLength = col.header.length; // Start with header width
+        let maxLength = col.header.length;
         exportData.forEach((row: any) => {
             const cellValue = String(row[col.header] || '');
             if (cellValue.length > maxLength) maxLength = cellValue.length;
         });
-        // Add padding +2 char, limit to reasonable max
         return { wch: Math.min(maxLength + 3, 60) }; 
     });
     worksheet['!cols'] = wscols;
 
-    // 4. Create Workbook & Download
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data Export");
     const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
@@ -380,12 +374,11 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
     setIsPdfLoading(true);
     const opt = {
-      margin: [10, 10, 10, 10], // mm
+      margin: [10, 10, 10, 10], // mm margins
       filename: `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      // MODE CSS IS CRITICAL: it forces the engine to respect CSS 'page-break-inside: avoid' on rows
       pagebreak: { mode: ['css', 'legacy'] } 
     };
 
@@ -419,53 +412,49 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
         <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
            <div id="export-preview-content" className="bg-white p-10 shadow-sm border border-gray-200 mx-auto max-w-[297mm] text-black">
               
-              {/* PDF Styles Injection - STRICT PRINT RULES */}
+              {/* PDF Styles Injection */}
               <style>{`
                 /* Document Base Style */
                 .pdf-table { 
-                    width: 98%; 
+                    width: 100%; 
                     margin: 0 auto;
                     border-collapse: collapse; 
-                    font-size: 11px; 
+                    font-size: 10px; /* Standar ukuran font laporan */
                     color: #000; 
-                    font-family: sans-serif;
-                    table-layout: fixed; 
-                    word-wrap: break-word;
-                }
-                .pdf-table th, .pdf-table td { 
-                    border: 1px solid #000; 
-                    padding: 8px 6px; 
-                    vertical-align: middle; /* Center vertically */
+                    font-family: Arial, sans-serif;
                 }
                 .pdf-table th { 
-                    background-color: #f0f0f0; 
-                    font-weight: bold; 
-                    text-transform: uppercase; 
-                    text-align: center !important; /* Force Horizontal Center for Headers */
-                    color: #000; 
+                    background-color: #E5E7EB; /* Light Gray Header */
+                    color: black;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    text-align: center !important; /* Force Centered Header */
+                    vertical-align: middle;
+                    border: 1px solid #000; /* Solid Black Border */
+                    padding: 8px 4px;
                 }
-                .pdf-table td {
-                    text-align: left; /* Data text left aligned by default */
+                .pdf-table td { 
+                    border: 1px solid #000; 
+                    padding: 6px 4px; 
+                    vertical-align: middle;
+                    color: black;
                 }
                 .pdf-table tr:nth-child(even) {
                     background-color: #fdfdfd;
                 }
                 
                 /* --- PAGINATION & PRINT RULES --- */
-                /* Prevent page break inside report header */
                 .report-header { page-break-inside: avoid; }
                 
-                /* Ensure Table Header Repeats on New Pages (CRITICAL) */
+                /* HEADER BERULANG (CRITICAL) */
                 thead { display: table-header-group; } 
                 tfoot { display: table-footer-group; }
-                
-                /* Ensure Data Rows Don't Split in Half */
                 tr { page-break-inside: avoid; page-break-after: auto; }
                 
                 @media print {
                    body { -webkit-print-color-adjust: exact; }
-                   .pdf-table { width: 100%; margin: 0 auto; }
-                   thead { display: table-header-group; } /* Force repeating header */
+                   .pdf-table { width: 100%; }
+                   thead { display: table-header-group; }
                 }
               `}</style>
 
@@ -489,7 +478,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               <table className="pdf-table">
                  <thead>
                     <tr>
-                       <th style={{width: '35px', textAlign: 'center'}}>No</th>
+                       <th style={{width: '35px'}}>NO</th>
                        {columns.map((col, idx) => (
                           <th key={idx}>
                              {col.header}
@@ -624,7 +613,6 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    // Standard Print behavior - Best for repeating headers
     if (onPrint) {
       onPrint();
       return;
@@ -645,7 +633,6 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
   };
 
   const handleDownload = () => {
-    // Fallback to html2pdf if strictly needed as file
     const element = document.getElementById('printable-preview-content');
     if (!element || !(window as any).html2pdf) return;
 
@@ -722,11 +709,17 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
                 z-index: 99999;
               }
               /* Ensure tables break nicely in Native Print */
-              table { page-break-inside: auto; width: 98%; margin: 0 auto; }
+              table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
               tr { page-break-inside: avoid; page-break-after: auto; }
               thead { display: table-header-group; }
               tfoot { display: table-footer-group; }
-              th { text-align: center !important; } /* Force Center for Native Print */
+              th { 
+                  text-align: center !important; 
+                  background-color: #E5E7EB !important; 
+                  -webkit-print-color-adjust: exact;
+                  border: 1px solid black;
+              } 
+              td { border: 1px solid black; }
             }
           `}
         </style>
@@ -1152,4 +1145,3 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
-
