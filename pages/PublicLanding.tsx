@@ -7,22 +7,22 @@ import {
   LogIn, MapPin, Calendar, Clock, 
   Users, School, Baby, Heart, 
   ArrowRight, Activity, GraduationCap, 
-  ChefHat, ChevronRight, Instagram, Globe 
+  ChefHat, ChevronRight, Instagram, Globe, CheckCircle2 
 } from 'lucide-react';
 import { Logo } from '../components/UIComponents';
 
 // --- COMPONENTS ---
 
 const StatCard = ({ icon, label, value, subtext, color, delay }: { icon: any, label: string, value: number, subtext?: string, color: string, delay: string }) => (
-  <div className={`bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-in ${delay} relative overflow-hidden group`}>
-    <div className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110`}></div>
+  <div className={`bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 animate-fade-in ${delay} relative overflow-hidden group`}>
+    <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-[0.08] rounded-bl-full -mr-8 -mt-8 transition-transform duration-700 group-hover:scale-125`}></div>
     <div className="flex items-start justify-between relative z-10">
       <div>
-        <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1">{label}</p>
-        <h3 className="text-4xl font-extrabold text-gray-800 tracking-tight">{value.toLocaleString('id-ID')}</h3>
-        {subtext && <p className="text-xs text-gray-400 mt-2 font-medium">{subtext}</p>}
+        <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2 font-sans">{label}</p>
+        <h3 className="text-4xl font-black text-gray-800 tracking-tight font-sans">{value.toLocaleString('id-ID')}</h3>
+        {subtext && <p className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1"><div className={`w-1.5 h-1.5 rounded-full ${color}`}></div> {subtext}</p>}
       </div>
-      <div className={`p-3 rounded-xl ${color} text-white shadow-md group-hover:rotate-12 transition-transform`}>
+      <div className={`p-3.5 rounded-xl ${color} text-white shadow-lg shadow-blue-900/5 group-hover:rotate-6 transition-transform duration-500`}>
         {icon}
       </div>
     </div>
@@ -30,22 +30,26 @@ const StatCard = ({ icon, label, value, subtext, color, delay }: { icon: any, la
 );
 
 const ArticleCard = ({ title, date, excerpt, image, category }: { title: string, date: string, excerpt: string, image: string, category: string }) => (
-  <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group flex flex-col h-full">
-    <div className="h-48 overflow-hidden relative">
-      <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm uppercase tracking-wide">
+  <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-100 group flex flex-col h-full cursor-pointer">
+    <div className="h-56 overflow-hidden relative">
+      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors z-10"></div>
+      <img src={image} alt={title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+      <div className="absolute top-4 left-4 z-20 bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-bold text-gray-800 shadow-sm uppercase tracking-wide border border-gray-100">
         {category}
       </div>
     </div>
-    <div className="p-6 flex flex-col flex-1">
-      <div className="flex items-center gap-2 text-gray-400 text-xs mb-3">
-        <Calendar size={12} /> {date}
+    <div className="p-7 flex flex-col flex-1">
+      <div className="flex items-center gap-2 text-gray-400 text-xs mb-4 font-medium">
+        <Calendar size={14} className="text-primary" /> {date}
       </div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2 leading-snug group-hover:text-primary transition-colors">{title}</h3>
-      <p className="text-gray-500 text-sm leading-relaxed mb-4 flex-1">{excerpt}</p>
-      <button className="text-primary font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all mt-auto">
-        Baca Selengkapnya <ArrowRight size={14} />
-      </button>
+      <h3 className="text-xl font-bold text-gray-800 mb-3 leading-snug group-hover:text-primary transition-colors font-sans">{title}</h3>
+      <p className="text-gray-500 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">{excerpt}</p>
+      <div className="mt-auto pt-4 border-t border-gray-50 flex justify-between items-center">
+         <span className="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors">Baca Selengkapnya</span>
+         <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary group-hover:text-white transition-all">
+            <ArrowRight size={14} />
+         </div>
+      </div>
     </div>
   </div>
 );
@@ -63,30 +67,26 @@ export const PublicLanding: React.FC = () => {
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Daftar Foto HD untuk Program MBG
+  // Daftar Foto HD untuk Program MBG (Unsplash High Quality)
   const heroImages = [
-    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1920&auto=format&fit=crop", // Makanan Sehat (Bowl)
-    "https://images.unsplash.com/photo-1576867757603-05b134ebc379?q=80&w=1920&auto=format&fit=crop", // Koki Memasak (Kitchen)
-    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=1920&auto=format&fit=crop", // Bahan Makanan (Nutrition)
-    "https://images.unsplash.com/photo-1588072432836-e10032774350?q=80&w=1920&auto=format&fit=crop", // Anak Sekolah (School Lunch)
-    "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=1920&auto=format&fit=crop"  // Bahan Baku Segar
+    "https://images.unsplash.com/photo-1594498653385-d5175c532c38?q=80&w=2070&auto=format&fit=crop", // Healthy Plate (Colorful)
+    "https://images.unsplash.com/photo-1556910103-1c02745a30bf?q=80&w=2070&auto=format&fit=crop", // Chef Cooking (Kitchen)
+    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=2053&auto=format&fit=crop", // Nutrition (Avocado/Veg)
+    "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2070&auto=format&fit=crop", // Kids Eating (School)
+    "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=2070&auto=format&fit=crop"  // Fresh Ingredients
   ];
 
   useEffect(() => {
-    // Realtime Stats Subscription
     const unsub = api.subscribeStats(setStats);
-    
-    // Realtime Clock
     const timer = setInterval(() => setTime(new Date()), 1000);
     
-    // Slideshow Timer (6 seconds for smoother viewing)
+    // Smooth Slideshow Interval (6 seconds)
     const slideTimer = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
     }, 6000);
 
-    // Navbar Scroll Effect
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
 
@@ -101,42 +101,43 @@ export const PublicLanding: React.FC = () => {
   const totalSiswa = (stats.pmKecil || 0) + (stats.pmBesar || 0);
   const totalPenerimaManfaat = totalSiswa + stats.pmb3;
 
-  // Date Formatting
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  
   const dayName = days[time.getDay()];
   const dateStr = `${time.getDate()} ${months[time.getMonth()]} ${time.getFullYear()}`;
   const timeStr = time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans text-gray-800 overflow-x-hidden selection:bg-yellow-200 selection:text-yellow-900">
       
       {/* === NAVBAR === */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out ${scrolled ? 'bg-white/90 backdrop-blur-lg shadow-sm py-3' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Logo className="w-10 h-10 md:w-12 md:h-12 drop-shadow-md" />
+          <div className="flex items-center gap-3.5">
+            <div className={`p-1.5 rounded-xl transition-all ${scrolled ? 'bg-blue-50' : 'bg-white/20 backdrop-blur-sm'}`}>
+                <Logo className="w-10 h-10 drop-shadow-md" />
+            </div>
             <div className="hidden md:block">
-              <h1 className={`font-bold text-lg leading-none tracking-tight ${scrolled ? 'text-gray-800' : 'text-white'}`}>SIMANDA SPPG</h1>
-              <p className={`text-[10px] font-medium tracking-widest uppercase mt-1 ${scrolled ? 'text-gray-500' : 'text-blue-100'}`}>Badan Gizi Nasional</p>
+              <h1 className={`font-extrabold text-xl leading-none tracking-tight ${scrolled ? 'text-slate-800' : 'text-white'} font-sans`}>SIMANDA SPPG</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                 <span className={`h-0.5 w-4 rounded-full ${scrolled ? 'bg-yellow-500' : 'bg-yellow-400'}`}></span>
+                 <p className={`text-[10px] font-bold tracking-widest uppercase ${scrolled ? 'text-slate-500' : 'text-blue-100'}`}>Badan Gizi Nasional</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
-            {/* Realtime Clock (Desktop) */}
-            <div className={`hidden md:flex flex-col items-end text-right ${scrolled ? 'text-gray-600' : 'text-white'}`}>
-              <div className="text-xs font-medium opacity-90">{dayName}, {dateStr}</div>
+          <div className="flex items-center gap-6">
+            <div className={`hidden md:flex flex-col items-end text-right ${scrolled ? 'text-slate-600' : 'text-white'}`}>
+              <div className="text-xs font-medium opacity-80">{dayName}, {dateStr}</div>
               <div className="text-xl font-bold font-mono leading-none tracking-wider">{timeStr}</div>
             </div>
 
-            {/* Login Button */}
             <button 
               onClick={() => navigate('/login')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95 border
                 ${scrolled 
-                  ? 'bg-primary text-white hover:bg-blue-700' 
-                  : 'bg-white text-primary hover:bg-gray-100'
+                  ? 'bg-blue-600 text-white border-transparent hover:bg-blue-700 shadow-blue-200' 
+                  : 'bg-white/10 backdrop-blur-md text-white border-white/30 hover:bg-white hover:text-blue-900'
                 }`}
             >
               <LogIn size={18} />
@@ -146,74 +147,91 @@ export const PublicLanding: React.FC = () => {
         </div>
       </nav>
 
-      {/* === HERO SECTION WITH SOFT TRANSITION SLIDESHOW === */}
-      <header className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 overflow-hidden min-h-[600px] flex items-center">
+      {/* === HERO SECTION WITH SOFT SLIDESHOW === */}
+      <header className="relative h-[100vh] min-h-[600px] flex items-center overflow-hidden">
         
         {/* Slideshow Background */}
         {heroImages.map((img, index) => (
             <div 
                 key={index}
-                className={`absolute inset-0 z-0 transition-all duration-[2000ms] ease-in-out ${index === currentImageIndex ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}`}
+                className={`absolute inset-0 z-0 transition-all duration-[2500ms] ease-in-out transform
+                    ${index === currentImageIndex ? 'opacity-100 scale-110' : 'opacity-0 scale-100'}
+                `}
             >
-                {/* Fallback color while loading */}
-                <div className="w-full h-full bg-blue-900 absolute inset-0"></div>
-                <img src={img} alt="Slideshow" className="w-full h-full object-cover relative z-10" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                <div className="absolute inset-0 bg-slate-900"></div> {/* Fallback color */}
+                <img src={img} alt="Hero Background" className="w-full h-full object-cover" />
                 
-                {/* Dark Overlay for Text Readability - Smooth Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-950/90 via-blue-900/60 to-blue-900/30 z-20"></div>
+                {/* Advanced Gradient Overlay for better text contrast */}
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/60 to-transparent z-10"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-slate-900/40 z-10"></div>
             </div>
         ))}
 
-        <div className="max-w-7xl mx-auto relative z-30 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-12 w-full">
-          <div className="md:w-1/2 space-y-6 animate-slide-in-right">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-blue-50 text-xs font-bold uppercase tracking-wider">
-              <Activity size={14} className="text-yellow-400" /> Portal Data Terpadu
+        <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-30 w-full flex flex-col md:flex-row items-center gap-16 pt-16">
+          
+          {/* Left Content */}
+          <div className="md:w-3/5 space-y-8 animate-slide-in-right">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-50 text-xs font-bold uppercase tracking-wider shadow-lg">
+              <Activity size={14} className="text-yellow-400" /> 
+              <span>Portal Data Terpadu SPPG</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
+            
+            <h1 className="text-5xl md:text-7xl font-black text-white leading-tight tracking-tight drop-shadow-sm font-sans">
               Mewujudkan Gizi <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-400">Generasi Emas</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-500">Generasi Emas</span>
             </h1>
-            <p className="text-lg md:text-xl text-blue-100 leading-relaxed max-w-lg mx-auto md:mx-0 font-light">
-              Sistem Informasi Manajemen Data (SIMANDA) Satuan Pelayanan Pemenuhan Gizi Desa Tales Setono, Kecamatan Ngadiluwih. Transparan, Akurat, Terintegrasi.
+            
+            <p className="text-lg md:text-xl text-slate-200 leading-relaxed max-w-xl font-light">
+              Sistem Informasi Manajemen Data (SIMANDA) Satuan Pelayanan Pemenuhan Gizi Desa Tales Setono. <strong className="text-white font-semibold">Transparan, Akurat, Terintegrasi.</strong>
             </p>
-            <div className="flex flex-wrap gap-4 justify-center md:justify-start pt-2">
-               <button onClick={() => window.scrollTo({top: 800, behavior: 'smooth'})} className="px-8 py-3.5 bg-yellow-400 text-yellow-900 rounded-xl font-bold shadow-lg shadow-yellow-400/20 hover:bg-yellow-300 transition-all flex items-center gap-2">
-                 Lihat Statistik <ChevronRight size={18} />
+            
+            <div className="flex flex-wrap gap-4 pt-4">
+               <button onClick={() => window.scrollTo({top: 900, behavior: 'smooth'})} className="px-8 py-4 bg-yellow-400 text-yellow-950 rounded-2xl font-bold shadow-xl shadow-yellow-400/20 hover:bg-yellow-300 hover:scale-105 transition-all flex items-center gap-2">
+                 Lihat Data Statistik <ChevronRight size={20} strokeWidth={3} />
                </button>
                <a 
                   href="https://www.instagram.com/sppg.tales?igsh=djZneGxvYnZnd3c4" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-xl border border-white/30 text-white font-medium backdrop-blur-sm flex items-center gap-3 hover:bg-white/10 transition-colors"
+                  className="px-8 py-4 rounded-2xl border border-white/30 text-white font-semibold backdrop-blur-md hover:bg-white/10 transition-all flex items-center gap-3"
                >
-                  <Instagram size={18} /> @sppg.tales
+                  <Instagram size={20} /> @sppg.tales
                </a>
             </div>
           </div>
 
-          {/* Hero Highlight Card */}
-          <div className="md:w-[450px] w-full animate-scale-in delay-200">
-             <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 rounded-3xl shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+          {/* Right Floating Card */}
+          <div className="md:w-2/5 w-full hidden md:block animate-scale-in delay-200">
+             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group hover:bg-white/10 transition-colors duration-500">
+                {/* Decorative blobs */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] -mr-16 -mt-16 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px] -ml-16 -mb-16 pointer-events-none"></div>
                 
-                <div className="flex items-center gap-4 mb-6">
-                   <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                      <Heart size={28} strokeWidth={2.5} />
+                <div className="flex items-center gap-5 mb-8 relative z-10">
+                   <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg transform group-hover:scale-110 transition-transform duration-500">
+                      <Heart size={32} strokeWidth={2.5} fill="currentColor" className="text-white/20" />
+                      <Heart size={32} strokeWidth={2.5} className="absolute" />
                    </div>
                    <div>
-                      <p className="text-blue-100 text-sm font-semibold uppercase tracking-wider">Total Penerima Manfaat</p>
-                      <h3 className="text-4xl font-black text-white">{totalPenerimaManfaat.toLocaleString('id-ID')}</h3>
+                      <p className="text-blue-200 text-sm font-bold uppercase tracking-wider mb-1">Total Penerima Manfaat</p>
+                      <h3 className="text-5xl font-black text-white tracking-tight">{totalPenerimaManfaat.toLocaleString('id-ID')}</h3>
                    </div>
                 </div>
 
-                <div className="space-y-3">
-                   <div className="bg-white/10 rounded-xl p-3 flex justify-between items-center">
-                      <span className="text-white text-sm flex items-center gap-2"><School size={16}/> Siswa Sekolah</span>
-                      <span className="text-white font-bold">{totalSiswa.toLocaleString()}</span>
+                <div className="space-y-4 relative z-10">
+                   <div className="bg-slate-900/40 rounded-2xl p-4 flex justify-between items-center border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-200"><School size={18}/></div>
+                        <span className="text-slate-200 font-medium">Siswa Sekolah</span>
+                      </div>
+                      <span className="text-white font-bold text-lg">{totalSiswa.toLocaleString()}</span>
                    </div>
-                   <div className="bg-white/10 rounded-xl p-3 flex justify-between items-center">
-                      <span className="text-white text-sm flex items-center gap-2"><Baby size={16}/> Penerima B3</span>
-                      <span className="text-white font-bold">{stats.pmb3.toLocaleString()}</span>
+                   <div className="bg-slate-900/40 rounded-2xl p-4 flex justify-between items-center border border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-pink-500/20 rounded-lg text-pink-200"><Baby size={18}/></div>
+                        <span className="text-slate-200 font-medium">Ibu & Balita (B3)</span>
+                      </div>
+                      <span className="text-white font-bold text-lg">{stats.pmb3.toLocaleString()}</span>
                    </div>
                 </div>
              </div>
@@ -222,205 +240,278 @@ export const PublicLanding: React.FC = () => {
       </header>
 
       {/* === STATS GRID SECTION === */}
-      <section className="py-20 max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-20">
+      <section className="py-24 max-w-7xl mx-auto px-4 md:px-8 relative z-20 -mt-24">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
            <StatCard 
-              icon={<School size={28} />} 
+              icon={<School size={30} />} 
               label="Total Sekolah" 
               value={stats.pmsekolah} 
-              subtext="Tersebar di berbagai desa"
+              subtext="Mitra Sekolah Aktif"
               color="bg-blue-500"
               delay="delay-100"
            />
            <StatCard 
-              icon={<Users size={28} />} 
+              icon={<Users size={30} />} 
               label="Total Siswa" 
               value={totalSiswa} 
-              subtext="Penerima manfaat aktif"
+              subtext="Siswa Penerima Gizi"
               color="bg-indigo-500"
               delay="delay-200"
            />
            <StatCard 
-              icon={<GraduationCap size={28} />} 
+              icon={<GraduationCap size={30} />} 
               label="Tenaga Pendidik" 
               value={stats.guru} 
-              subtext="Guru & Staff sekolah"
+              subtext="Guru & Staff Sekolah"
               color="bg-purple-500"
               delay="delay-300"
            />
            <StatCard 
-              icon={<ChefHat size={28} />} 
-              label="Total Karyawan" 
+              icon={<ChefHat size={30} />} 
+              label="Tim SPPG" 
               value={stats.karyawan} 
-              subtext="Tim SPPG (Masak, Distribusi, dll)"
+              subtext="Personil Dapur & Logistik"
               color="bg-orange-500"
               delay="delay-400"
            />
         </div>
 
-        {/* B3 Breakdown Section */}
-        <div className="mt-8 bg-white rounded-3xl p-8 shadow-xl border border-gray-100 animate-fade-in delay-500">
-           <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+        {/* Detail B3 Section */}
+        <div className="mt-10 bg-white rounded-[2rem] p-10 shadow-xl border border-gray-100 animate-fade-in delay-500 relative overflow-hidden">
+           {/* Background Pattern */}
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-pink-50/50 to-transparent rounded-full -mr-32 -mt-32 pointer-events-none"></div>
+
+           <div className="flex flex-col md:flex-row items-end justify-between mb-10 gap-6 relative z-10">
               <div>
-                 <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <Baby className="text-pink-500" /> Detail Penerima B3
+                 <div className="flex items-center gap-2 text-pink-600 font-bold text-sm uppercase tracking-wider mb-2">
+                    <Activity size={16} /> Data Prioritas Nasional
+                 </div>
+                 <h3 className="text-3xl font-black text-gray-800">
+                    Detail Penerima Manfaat B3
                  </h3>
-                 <p className="text-gray-500 mt-1">Rincian data Balita, Ibu Hamil, dan Ibu Menyusui</p>
+                 <p className="text-gray-500 mt-2 max-w-lg">Fokus pemenuhan gizi untuk pencegahan stunting pada Balita, Ibu Hamil, dan Ibu Menyusui.</p>
               </div>
-              <div className="bg-pink-50 px-4 py-2 rounded-lg border border-pink-100 text-pink-700 font-bold">
-                 Total: {stats.pmb3.toLocaleString()} Jiwa
+              <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg flex items-center gap-3">
+                 <span>Total Terdaftar</span>
+                 <span className="w-px h-6 bg-white/20"></span>
+                 <span className="text-2xl text-yellow-400">{stats.pmb3.toLocaleString()}</span>
               </div>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-orange-100 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-lg">
-                    {stats.balita > 0 ? Math.round((stats.balita / stats.pmb3) * 100) : 0}%
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+              {/* Balita Card */}
+              <div className="bg-orange-50/50 rounded-2xl p-6 border border-orange-100 flex items-center gap-5 hover:bg-orange-50 transition-colors">
+                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-md">
+                    <Baby size={32} />
                  </div>
                  <div>
-                    <p className="text-gray-500 text-xs font-bold uppercase">Balita</p>
-                    <p className="text-2xl font-extrabold text-gray-800">{stats.balita}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Balita</p>
+                    <p className="text-3xl font-black text-gray-800">{stats.balita}</p>
+                    <div className="h-1.5 w-24 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                       <div className="h-full bg-orange-400 rounded-full" style={{ width: `${stats.pmb3 ? (stats.balita/stats.pmb3)*100 : 0}%` }}></div>
+                    </div>
                  </div>
               </div>
-              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-5 rounded-2xl border border-pink-100 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 font-bold text-lg">
-                    {stats.ibuHamil > 0 ? Math.round((stats.ibuHamil / stats.pmb3) * 100) : 0}%
+
+              {/* Ibu Hamil Card */}
+              <div className="bg-pink-50/50 rounded-2xl p-6 border border-pink-100 flex items-center gap-5 hover:bg-pink-50 transition-colors">
+                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-md">
+                    <Heart size={32} />
                  </div>
                  <div>
-                    <p className="text-gray-500 text-xs font-bold uppercase">Ibu Hamil</p>
-                    <p className="text-2xl font-extrabold text-gray-800">{stats.ibuHamil}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ibu Hamil</p>
+                    <p className="text-3xl font-black text-gray-800">{stats.ibuHamil}</p>
+                    <div className="h-1.5 w-24 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                       <div className="h-full bg-pink-400 rounded-full" style={{ width: `${stats.pmb3 ? (stats.ibuHamil/stats.pmb3)*100 : 0}%` }}></div>
+                    </div>
                  </div>
               </div>
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-5 rounded-2xl border border-emerald-100 flex items-center gap-4">
-                 <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-lg">
-                    {stats.ibuMenyusui > 0 ? Math.round((stats.ibuMenyusui / stats.pmb3) * 100) : 0}%
+
+              {/* Ibu Menyusui Card */}
+              <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100 flex items-center gap-5 hover:bg-emerald-50 transition-colors">
+                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-md">
+                    <Activity size={32} />
                  </div>
                  <div>
-                    <p className="text-gray-500 text-xs font-bold uppercase">Ibu Menyusui</p>
-                    <p className="text-2xl font-extrabold text-gray-800">{stats.ibuMenyusui}</p>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ibu Menyusui</p>
+                    <p className="text-3xl font-black text-gray-800">{stats.ibuMenyusui}</p>
+                    <div className="h-1.5 w-24 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                       <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${stats.pmb3 ? (stats.ibuMenyusui/stats.pmb3)*100 : 0}%` }}></div>
+                    </div>
                  </div>
               </div>
            </div>
         </div>
       </section>
 
-      {/* === MAP SECTION === */}
-      <section className="py-12 bg-white">
+      {/* === MAP SECTION (IMPROVED LAYOUT) === */}
+      <section className="py-20 bg-slate-100 relative">
+         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+         
          <div className="max-w-7xl mx-auto px-4 md:px-8">
-            <div className="text-center mb-10">
-               <h2 className="text-3xl font-bold text-gray-800 mb-3">Lokasi Kantor SPPG</h2>
-               <p className="text-gray-500 max-w-2xl mx-auto">Setono, Tales, Kec. Ngadiluwih, Kabupaten Kediri, Jawa Timur 64171</p>
+            <div className="text-center mb-12">
+               <span className="text-blue-600 font-bold text-xs uppercase tracking-widest bg-blue-100 px-3 py-1 rounded-full">Wilayah Kerja</span>
+               <h2 className="text-4xl font-black text-gray-800 mt-4 mb-4">Lokasi Kantor SPPG</h2>
+               <p className="text-gray-500 max-w-2xl mx-auto text-lg leading-relaxed">
+                  Pusat operasional dan dapur umum kami berlokasi strategis untuk menjangkau seluruh penerima manfaat di Kecamatan Ngadiluwih.
+               </p>
             </div>
             
-            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white h-[450px] relative bg-gray-200 group">
-               {/* Updated Iframe for SPPG Office Location */}
-               <iframe 
-                 src="https://maps.google.com/maps?q=3X8P%2BXQX%2C+Setono%2C+Tales%2C+Kec.+Ngadiluwih%2C+Kabupaten+Kediri%2C+Jawa+Timur+64171&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                 width="100%" 
-                 height="100%" 
-                 style={{border:0}} 
-                 allowFullScreen={false} 
-                 loading="lazy" 
-                 referrerPolicy="no-referrer-when-downgrade"
-                 className="grayscale group-hover:grayscale-0 transition-all duration-700"
-               ></iframe>
+            {/* FLOATING MAP CARD */}
+            <div className="bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-gray-200 relative overflow-hidden group">
                
-               <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur px-5 py-3 rounded-xl shadow-lg border border-gray-200">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Lokasi Pusat</p>
-                  <p className="font-bold text-gray-800 flex items-center gap-2"><MapPin size={16} className="text-red-500"/> SPPG Tales Setono</p>
+               <div className="relative w-full h-[500px] rounded-[2rem] overflow-hidden">
+                   {/* Maps Iframe */}
+                   <iframe 
+                     src="https://maps.google.com/maps?q=3X8P%2BXQX%2C+Setono%2C+Tales%2C+Kec.+Ngadiluwih%2C+Kabupaten+Kediri%2C+Jawa+Timur+64171&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                     width="100%" 
+                     height="100%" 
+                     style={{border:0}} 
+                     allowFullScreen={false} 
+                     loading="lazy" 
+                     referrerPolicy="no-referrer-when-downgrade"
+                     className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-1000 ease-in-out"
+                   ></iframe>
+
+                   {/* Floating Info Box on Map */}
+                   <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 bg-white/95 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-white/50 max-w-xs animate-fade-in delay-300">
+                      <div className="flex items-start gap-4">
+                         <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shrink-0">
+                            <MapPin size={24} fill="currentColor" className="opacity-20" />
+                            <MapPin size={24} className="absolute" />
+                         </div>
+                         <div>
+                            <h4 className="font-bold text-gray-900 text-lg leading-tight mb-1">SPPG Tales Setono</h4>
+                            <p className="text-gray-500 text-xs leading-relaxed">
+                               Setono, Tales, Kec. Ngadiluwih, Kab. Kediri, Jawa Timur 64171
+                            </p>
+                            <a 
+                               href="https://maps.google.com/maps?q=3X8P%2BXQX%2C+Setono%2C+Tales%2C+Kec.+Ngadiluwih%2C+Kabupaten+Kediri%2C+Jawa+Timur+64171" 
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 text-blue-600 text-xs font-bold mt-3 hover:underline"
+                            >
+                               Buka di Google Maps <ArrowRight size={12}/>
+                            </a>
+                         </div>
+                      </div>
+                   </div>
                </div>
             </div>
          </div>
       </section>
 
       {/* === ARTICLES SECTION === */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-24 bg-white">
          <div className="max-w-7xl mx-auto px-4 md:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4 border-b border-gray-100 pb-8">
                <div>
-                  <h2 className="text-3xl font-bold text-gray-800 mb-2">Berita & Kegiatan</h2>
-                  <p className="text-gray-500">Update terbaru seputar kegiatan pemenuhan gizi.</p>
+                  <h2 className="text-4xl font-black text-gray-800 mb-3">Berita & Kegiatan</h2>
+                  <p className="text-gray-500 text-lg">Update terbaru seputar kegiatan pemenuhan gizi.</p>
                </div>
-               <a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:text-blue-700 transition-colors">Lihat Berita Nasional</a>
+               <a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2">
+                  Lihat Berita Nasional <ArrowRight size={18}/>
+               </a>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                <ArticleCard 
                   title="Penyaluran Makanan Bergizi Tahap 1 Sukses Dilaksanakan"
                   date="15 Desember 2025"
                   category="Kegiatan"
                   image="https://images.unsplash.com/photo-1498837167922-ddd27525d352?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                  excerpt="Tim SPPG berhasil mendistribusikan lebih dari 500 paket makanan bergizi kepada siswa SD di wilayah Desa Tales."
+                  excerpt="Tim SPPG berhasil mendistribusikan lebih dari 500 paket makanan bergizi kepada siswa SD di wilayah Desa Tales dengan menu 4 sehat 5 sempurna."
                />
                <ArticleCard 
                   title="Pentingnya Protein Hewani untuk Mencegah Stunting"
                   date="12 Desember 2025"
                   category="Edukasi"
                   image="https://images.unsplash.com/photo-1607623814075-e51df1bd6562?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                  excerpt="Edukasi mengenai pentingnya konsumsi telur dan ikan bagi balita untuk mendukung pertumbuhan optimal."
+                  excerpt="Edukasi mengenai pentingnya konsumsi telur, ikan, dan daging bagi balita untuk mendukung pertumbuhan otak dan fisik yang optimal."
                />
                <ArticleCard 
                   title="Kunjungan Tim Monitoring Badan Gizi Nasional"
                   date="10 Desember 2025"
                   category="Berita"
                   image="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                  excerpt="Tim pusat melakukan monitoring dan evaluasi terhadap standar operasional prosedur dapur SPPG Tales Setono."
+                  excerpt="Tim pusat melakukan monitoring dan evaluasi terhadap standar operasional prosedur dapur, kebersihan, dan alur distribusi SPPG Tales Setono."
                />
             </div>
          </div>
       </section>
 
       {/* === FOOTER === */}
-      <footer className="bg-[#0a2340] text-white pt-16 pb-8 border-t border-blue-900">
+      <footer className="bg-slate-900 text-white pt-24 pb-12 border-t border-slate-800">
          <div className="max-w-7xl mx-auto px-4 md:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-               <div>
-                  <div className="flex items-center gap-3 mb-6">
-                     <div className="bg-white p-1 rounded-full"><Logo className="w-8 h-8" /></div>
-                     <span className="font-bold text-xl tracking-tight">SIMANDA SPPG</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-16">
+               <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                     <div className="bg-white p-1.5 rounded-lg"><Logo className="w-8 h-8" /></div>
+                     <div>
+                        <span className="font-bold text-xl tracking-tight block leading-none">SIMANDA SPPG</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-widest">Badan Gizi Nasional</span>
+                     </div>
                   </div>
-                  <p className="text-blue-200 text-sm leading-relaxed mb-6">
-                     Sistem Informasi Manajemen Data untuk mendukung program pemenuhan gizi nasional yang tepat sasaran, transparan, dan akuntabel.
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                     Sistem Informasi Manajemen Data untuk mendukung program pemenuhan gizi nasional yang tepat sasaran, transparan, dan akuntabel demi masa depan Indonesia.
                   </p>
-                  <div className="flex gap-4">
-                     <a href="https://www.instagram.com/sppg.tales?igsh=djZneGxvYnZnd3c4" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors" title="Instagram">
-                        <Instagram size={20} />
+                  <div className="flex gap-3 pt-2">
+                     <a href="https://www.instagram.com/sppg.tales?igsh=djZneGxvYnZnd3c4" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-pink-600 hover:text-white transition-all duration-300" title="Instagram">
+                        <Instagram size={18} />
                      </a>
-                     <a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 cursor-pointer transition-colors" title="Website BGN">
-                        <Globe size={20} />
+                     <a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-all duration-300" title="Website BGN">
+                        <Globe size={18} />
                      </a>
                   </div>
                </div>
 
                <div>
-                  <h4 className="text-lg font-bold mb-6 text-yellow-400">Kontak Kami</h4>
-                  <ul className="space-y-4 text-sm text-blue-100">
-                     <li className="flex items-start gap-3">
-                        <MapPin size={18} className="mt-0.5 shrink-0" />
-                        <span>Setono, Tales, Kec. Ngadiluwih,<br/>Kabupaten Kediri, Jawa Timur 64171</span>
+                  <h4 className="text-lg font-bold mb-6 text-white border-b border-slate-800 pb-4 inline-block">Kontak Kami</h4>
+                  <ul className="space-y-5 text-sm text-slate-300">
+                     <li className="flex items-start gap-4">
+                        <div className="mt-1 w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0 text-slate-400">
+                           <MapPin size={14} />
+                        </div>
+                        <span className="leading-relaxed">Setono, Tales, Kec. Ngadiluwih,<br/>Kabupaten Kediri, Jawa Timur 64171</span>
                      </li>
-                     <li className="flex items-center gap-3">
-                        <Clock size={18} className="shrink-0" />
+                     <li className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center shrink-0 text-slate-400">
+                           <Clock size={14} />
+                        </div>
                         <span>Senin - Jumat: 08.00 - 16.00 WIB</span>
                      </li>
                   </ul>
                </div>
 
                <div>
-                  <h4 className="text-lg font-bold mb-6 text-yellow-400">Akses Cepat</h4>
-                  <ul className="space-y-3 text-sm text-blue-100">
-                     <li><a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Badan Gizi Nasional</a></li>
-                     <li><a href="https://kemkes.go.id/id/home" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Kementerian Kesehatan</a></li>
-                     <li><a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Berita Badan Gizi Nasional</a></li>
+                  <h4 className="text-lg font-bold mb-6 text-white border-b border-slate-800 pb-4 inline-block">Tautan Penting</h4>
+                  <ul className="space-y-3 text-sm text-slate-400">
+                     <li>
+                        <a href="https://www.bgn.go.id" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-yellow-400 transition-colors group">
+                           <CheckCircle2 size={14} className="text-slate-600 group-hover:text-yellow-400 transition-colors"/> Badan Gizi Nasional
+                        </a>
+                     </li>
+                     <li>
+                        <a href="https://kemkes.go.id/id/home" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-yellow-400 transition-colors group">
+                           <CheckCircle2 size={14} className="text-slate-600 group-hover:text-yellow-400 transition-colors"/> Kementerian Kesehatan
+                        </a>
+                     </li>
+                     <li>
+                        <a href="https://www.bgn.go.id/news/berita" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-yellow-400 transition-colors group">
+                           <CheckCircle2 size={14} className="text-slate-600 group-hover:text-yellow-400 transition-colors"/> Berita Terkini
+                        </a>
+                     </li>
                   </ul>
                </div>
             </div>
 
-            <div className="pt-8 border-t border-blue-900/50 text-center text-xs text-blue-400">
-               <p>&copy; 2025 SIMANDA SPPG - Sistem Manajemen Data Satuan Pelayanan Pemenuhan Gizi.</p>
+            <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+               <p>&copy; 2025 SIMANDA SPPG. Hak Cipta Dilindungi.</p>
+               <p>Dibuat untuk Satuan Pelayanan Pemenuhan Gizi.</p>
             </div>
          </div>
       </footer>
     </div>
   );
 };
+
