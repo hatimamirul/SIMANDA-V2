@@ -321,7 +321,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   );
 };
 
-// === Export Preview Modal ===
+// === Export Preview Modal (Enhanced) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -329,7 +329,7 @@ interface ExportModalProps<T> {
   subtitle?: string;
   data: T[];
   columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined) }[];
-  onExportExcel: () => void;
+  onExportExcel?: () => void; // Optional now, as we implement internal logic
 }
 
 export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel }: ExportModalProps<T>) => {
@@ -337,17 +337,58 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   if (!isOpen) return null;
 
+  // INTERNAL SMART EXCEL EXPORT (Auto-Width & Clean Formatting)
+  const handleSmartExcelExport = () => {
+    const XLSX = (window as any).XLSX;
+    if (!XLSX) return;
+
+    // 1. Prepare Data
+    const exportData = data.map(item => {
+        const row: any = {};
+        columns.forEach(col => {
+            const val = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
+            row[col.header] = val;
+        });
+        return row;
+    });
+
+    // 2. Create Worksheet
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // 3. Auto-Calculate Column Widths
+    const wscols = columns.map(col => {
+        // Start with header length
+        let maxLength = col.header.length;
+        // Check content length (limit check to first 100 rows for speed if data is huge)
+        exportData.slice(0, 500).forEach((row: any) => {
+            const cellValue = String(row[col.header] || '');
+            if (cellValue.length > maxLength) maxLength = cellValue.length;
+        });
+        // Add padding
+        return { wch: Math.min(maxLength + 2, 50) }; // Cap width at 50 chars
+    });
+    worksheet['!cols'] = wscols;
+
+    // 4. Create Workbook & Download
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Export");
+    const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(workbook, `${safeTitle}_Export.xlsx`);
+  };
+
   const handleExportPdf = () => {
     const element = document.getElementById('export-preview-content');
     if (!element || !(window as any).html2pdf) return;
 
     setIsPdfLoading(true);
     const opt = {
-      margin: [10, 10, 10, 10], // top, left, bottom, right
+      margin: [10, 10, 10, 10], // top, left, bottom, right in mm
       filename: `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      // IMPORTANT: Pagebreak configuration to avoid cutting rows
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     (window as any).html2pdf().set(opt).from(element).save().then(() => {
@@ -359,7 +400,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col animate-scale-in">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl shrink-0">
           <div className="flex items-center gap-3">
@@ -368,7 +409,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
              </div>
              <div>
                 <h3 className="text-lg font-bold text-gray-800">Preview Export Laporan</h3>
-                <p className="text-xs text-gray-500">Silahkan pilih format unduhan (Excel / PDF)</p>
+                <p className="text-xs text-gray-500">Format PDF dan Excel telah dioptimalkan.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
@@ -380,29 +421,43 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
         <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
            <div id="export-preview-content" className="bg-white p-8 shadow-sm border border-gray-200 mx-auto max-w-[297mm] min-h-[210mm] text-black">
               
+              {/* PDF Styles Injection */}
+              <style>{`
+                .pdf-table { width: 100%; border-collapse: collapse; font-size: 10px; color: #000; }
+                .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: top; }
+                .pdf-table th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; text-align: center; }
+                
+                /* Layout Optimization for Print/PDF */
+                @media print {
+                   tr { page-break-inside: avoid; }
+                   thead { display: table-header-group; } 
+                   .pdf-table { width: 100%; }
+                }
+              `}</style>
+
               {/* Report Header */}
-              <div className="flex items-center gap-4 border-b-2 border-gray-800 pb-4 mb-6">
+              <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-6">
                   <Logo className="w-16 h-16 object-contain" />
                   <div className="flex-1">
-                    <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-gray-900">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
-                    <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-gray-700">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
-                    <p className="text-xs text-gray-500 mt-1">Laporan digenerate pada: {currentDate}</p>
+                    <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
+                    <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
+                    <p className="text-xs text-gray-600 mt-1 italic">Laporan digenerate pada: {currentDate}</p>
                   </div>
               </div>
 
               {/* Report Title */}
               <div className="text-center mb-6">
-                 <h2 className="text-xl font-bold underline decoration-2 underline-offset-4 uppercase">{title}</h2>
-                 {subtitle && <p className="text-sm font-medium mt-1 text-gray-600">{subtitle}</p>}
+                 <h2 className="text-xl font-bold underline decoration-2 underline-offset-4 uppercase text-black">{title}</h2>
+                 {subtitle && <p className="text-sm font-medium mt-1 text-gray-700">{subtitle}</p>}
               </div>
 
               {/* Report Table */}
-              <table className="w-full border-collapse border border-gray-300 text-xs">
+              <table className="pdf-table">
                  <thead>
-                    <tr className="bg-gray-100 text-gray-800">
-                       <th className="border border-gray-300 px-2 py-2 w-10 text-center">No</th>
+                    <tr>
+                       <th style={{width: '40px'}}>No</th>
                        {columns.map((col, idx) => (
-                          <th key={idx} className="border border-gray-300 px-2 py-2 text-left font-bold uppercase">
+                          <th key={idx}>
                              {col.header}
                           </th>
                        ))}
@@ -410,13 +465,13 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  </thead>
                  <tbody>
                     {data.length === 0 ? (
-                       <tr><td colSpan={columns.length + 1} className="p-4 text-center text-gray-500 italic">Tidak ada data</td></tr>
+                       <tr><td colSpan={columns.length + 1} className="p-4 text-center italic">Tidak ada data</td></tr>
                     ) : (
                        data.map((item, idx) => (
-                          <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                             <td className="border border-gray-300 px-2 py-1.5 text-center">{idx + 1}</td>
+                          <tr key={idx}>
+                             <td className="text-center">{idx + 1}</td>
                              {columns.map((col, cIdx) => (
-                                <td key={cIdx} className="border border-gray-300 px-2 py-1.5">
+                                <td key={cIdx}>
                                    {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as any)}
                                 </td>
                              ))}
@@ -426,9 +481,9 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  </tbody>
               </table>
 
-              {/* Footer Signature Area (Optional Placeholder) */}
+              {/* Footer Signature Area */}
               <div className="mt-10 flex justify-end page-break-inside-avoid">
-                 <div className="text-center w-48">
+                 <div className="text-center w-48 text-black">
                     <p className="mb-16">Mengetahui,</p>
                     <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
                     <p className="text-xs">Kepala SPPG</p>
@@ -442,10 +497,14 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
            <Button variant="secondary" onClick={onClose}>Batal</Button>
            <Button 
               variant="success" 
-              onClick={() => { onExportExcel(); onClose(); }} 
+              onClick={() => { 
+                  // Prefer Smart Export
+                  handleSmartExcelExport();
+                  onClose(); 
+              }} 
               icon={<FileSpreadsheet size={18} />}
            >
-              Download Excel
+              Download Excel (Rapi)
            </Button>
            <Button 
               variant="danger" 
@@ -453,7 +512,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               isLoading={isPdfLoading} 
               icon={<FileText size={18} />}
            >
-              Download PDF
+              Download PDF (Rapi)
            </Button>
         </div>
       </div>
@@ -564,7 +623,8 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
       filename: filename?.endsWith('.pdf') ? filename : `${filename || 'document'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     (window as any).html2pdf().set(opt).from(element).save().then(() => {
@@ -629,6 +689,10 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
                 box-shadow: none;
                 z-index: 99999;
               }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              thead { display: table-header-group; }
+              tfoot { display: table-footer-group; }
             }
           `}
         </style>
@@ -1054,3 +1118,4 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
+
