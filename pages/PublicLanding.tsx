@@ -77,13 +77,14 @@ export const PublicLanding: React.FC = () => {
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Daftar Foto HD (Updated with highly reliable Unsplash IDs)
+  // Daftar Foto HD (Updated to Google Drive DIRECT LINK format)
+  // Format: https://lh3.googleusercontent.com/d/[FILE_ID]
   const heroImages = [
-    "https://drive.google.com/file/d/1EzIG1vfpAnHFiNAkiZRIP0MmMNm8IKkE/view?usp=drive_link", // Healthy Plate (Top Down)
-    "https://drive.google.com/file/d/1oGUr8LWox9IYW9s_WeBAQLgtx4AkKmrl/view?usp=drive_link", // Chef Serving
-    "https://drive.google.com/file/d/13aoYC7Z6GZGHm7wpj3CeXjaXSrR2Ni7V/view?usp=sharing", // Kids in Class/Eating
-    "https://drive.google.com/file/d/1mc9JGxrXb_ferO2Hs3zmHlS2dYIxRqq7/view?usp=sharing", // Fresh Vegetables
-    "https://drive.google.com/file/d/1sIRR2InrXABLGgiWBz8UF1TGmL6_WHKA/view?usp=sharing"  // Food Preparation
+    "https://lh3.googleusercontent.com/d/1EzIG1vfpAnHFiNAkiZRIP0MmMNm8IKkE", // Healthy Plate
+    "https://lh3.googleusercontent.com/d/1oGUr8LWox9IYW9s_WeBAQLgtx4AkKmrl", // Chef Serving
+    "https://lh3.googleusercontent.com/d/13aoYC7Z6GZGHm7wpj3CeXjaXSrR2Ni7V", // Kids in Class
+    "https://lh3.googleusercontent.com/d/1mc9JGxrXb_ferO2Hs3zmHlS2dYIxRqq7", // Fresh Vegetables
+    "https://lh3.googleusercontent.com/d/1sIRR2InrXABLGgiWBz8UF1TGmL6_WHKA"  // Food Preparation
   ];
 
   useEffect(() => {
