@@ -321,7 +321,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   );
 };
 
-// === Export Preview Modal (Enhanced for Neatness & No Gaps) ===
+// === Export Preview Modal (Optimized for Neat Layouts) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -329,7 +329,7 @@ interface ExportModalProps<T> {
   subtitle?: string;
   data: T[];
   columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined) }[];
-  onExportExcel?: () => void; // Optional
+  onExportExcel?: () => void; 
 }
 
 export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel }: ExportModalProps<T>) => {
@@ -337,7 +337,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   if (!isOpen) return null;
 
-  // INTERNAL SMART EXCEL EXPORT (Auto-Width & Clean Formatting)
+  // INTERNAL SMART EXCEL EXPORT (Smart Auto-Width & Formatting)
   const handleSmartExcelExport = () => {
     const XLSX = (window as any).XLSX;
     if (!XLSX) return;
@@ -355,17 +355,15 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
     // 2. Create Worksheet
     const worksheet = XLSX.utils.json_to_sheet(exportData);
 
-    // 3. Auto-Calculate Column Widths
+    // 3. Auto-Calculate Column Widths (Iterate data to find max width)
     const wscols = columns.map(col => {
-        // Start with header length
-        let maxLength = col.header.length;
-        // Check content length (limit check to first 100 rows for speed if data is huge)
-        exportData.slice(0, 500).forEach((row: any) => {
+        let maxLength = col.header.length; // Start with header width
+        exportData.forEach((row: any) => {
             const cellValue = String(row[col.header] || '');
             if (cellValue.length > maxLength) maxLength = cellValue.length;
         });
-        // Add padding (approx 2 chars) and cap width
-        return { wch: Math.min(maxLength + 4, 60) }; 
+        // Add padding +2 char, limit to reasonable max
+        return { wch: Math.min(maxLength + 3, 60) }; 
     });
     worksheet['!cols'] = wscols;
 
@@ -382,13 +380,13 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
     setIsPdfLoading(true);
     const opt = {
-      margin: [10, 10, 10, 10], // Reduced margin for better space usage
+      margin: [10, 10, 10, 10], // mm
       filename: `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true }, // High scale for clarity
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      // Critical for handling page breaks cleanly without cutting text/rows
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      // MODE CSS IS CRITICAL: it forces the engine to respect CSS 'page-break-inside: avoid' on rows
+      pagebreak: { mode: ['css', 'legacy'] } 
     };
 
     (window as any).html2pdf().set(opt).from(element).save().then(() => {
@@ -409,7 +407,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
              </div>
              <div>
                 <h3 className="text-lg font-bold text-gray-800">Preview Export Laporan</h3>
-                <p className="text-xs text-gray-500">Format PDF dan Excel telah dioptimalkan.</p>
+                <p className="text-xs text-gray-500">Format telah dioptimalkan untuk cetak & arsip.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
@@ -421,27 +419,51 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
         <div className="flex-1 overflow-y-auto bg-gray-100 p-6">
            <div id="export-preview-content" className="bg-white p-10 shadow-sm border border-gray-200 mx-auto max-w-[297mm] text-black">
               
-              {/* PDF Styles Injection - Optimized for "Rapi" output */}
+              {/* PDF Styles Injection - STRICT PRINT RULES */}
               <style>{`
-                .pdf-table { width: 100%; border-collapse: collapse; font-size: 11px; color: #000; font-family: sans-serif; }
-                .pdf-table th, .pdf-table td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: top; }
-                .pdf-table th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; text-align: center; color: #000; }
-                .no-break { page-break-inside: avoid; }
+                /* Document Base Style */
+                .pdf-table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 11px; 
+                    color: #000; 
+                    font-family: sans-serif;
+                    table-layout: fixed; /* Ensures content wraps instead of expanding off page */
+                    word-wrap: break-word;
+                }
+                .pdf-table th, .pdf-table td { 
+                    border: 1px solid #000; 
+                    padding: 6px; 
+                    text-align: left; 
+                    vertical-align: top;
+                }
+                .pdf-table th { 
+                    background-color: #f0f0f0; 
+                    font-weight: bold; 
+                    text-transform: uppercase; 
+                    text-align: center; 
+                    color: #000; 
+                }
                 
-                /* Ensure rows don't break across pages */
-                tr { page-break-inside: avoid !important; }
+                /* --- PAGINATION & PRINT RULES --- */
+                /* Prevent page break inside report header */
+                .report-header { page-break-inside: avoid; }
                 
-                /* Layout Optimization for Print/PDF */
+                /* Ensure Table Header Repeats on New Pages (Native Print Support) */
+                thead { display: table-header-group; } 
+                tfoot { display: table-footer-group; }
+                
+                /* Ensure Data Rows Don't Split in Half */
+                tr { page-break-inside: avoid; page-break-after: auto; }
+                
                 @media print {
-                   tr { page-break-inside: avoid; }
-                   thead { display: table-header-group; } 
-                   tfoot { display: table-footer-group; }
+                   body { -webkit-print-color-adjust: exact; }
                    .pdf-table { width: 100%; }
                 }
               `}</style>
 
-              {/* Report Header */}
-              <div className="flex items-center gap-5 border-b-2 border-black pb-4 mb-6 no-break">
+              {/* Report Header (Kop Surat) */}
+              <div className="flex items-center gap-5 border-b-2 border-black pb-4 mb-6 report-header">
                   <Logo className="w-20 h-20 object-contain" />
                   <div className="flex-1">
                     <h1 className="text-2xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
@@ -451,7 +473,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               </div>
 
               {/* Report Title */}
-              <div className="text-center mb-6 no-break">
+              <div className="text-center mb-6 report-header">
                  <h2 className="text-xl font-bold underline decoration-2 underline-offset-4 uppercase text-black">{title}</h2>
                  {subtitle && <p className="text-sm font-medium mt-1 text-gray-700 uppercase">{subtitle}</p>}
               </div>
@@ -460,7 +482,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               <table className="pdf-table">
                  <thead>
                     <tr>
-                       <th style={{width: '30px'}}>No</th>
+                       <th style={{width: '35px'}}>No</th>
                        {columns.map((col, idx) => (
                           <th key={idx}>
                              {col.header}
@@ -487,7 +509,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               </table>
 
               {/* Footer Signature Area */}
-              <div className="mt-10 flex justify-end page-break-inside-avoid no-break">
+              <div className="mt-10 flex justify-end page-break-inside-avoid">
                  <div className="text-center w-48 text-black">
                     <p className="mb-16">Mengetahui,</p>
                     <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
@@ -503,13 +525,12 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
            <Button 
               variant="success" 
               onClick={() => { 
-                  // Prefer Smart Export
                   handleSmartExcelExport();
                   onClose(); 
               }} 
               icon={<FileSpreadsheet size={18} />}
            >
-              Download Excel (Rapi)
+              Download Excel
            </Button>
            <Button 
               variant="danger" 
@@ -517,7 +538,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               isLoading={isPdfLoading} 
               icon={<FileText size={18} />}
            >
-              Download PDF (Rapi)
+              Download PDF
            </Button>
         </div>
       </div>
@@ -580,7 +601,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, src
   );
 };
 
-// === Print Preview Dialog ===
+// === Print Preview Dialog (Enhanced for Native Print) ===
 interface PrintPreviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -596,13 +617,12 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    // If a specific onPrint handler is provided, use it
+    // Standard Print behavior - Best for repeating headers
     if (onPrint) {
       onPrint();
       return;
     }
 
-    // Default print behavior with filename support
     const originalTitle = document.title;
     if (filename) {
       document.title = filename;
@@ -610,7 +630,6 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
     
     window.print();
     
-    // Restore title
     if (filename) {
       setTimeout(() => {
         document.title = originalTitle;
@@ -619,6 +638,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
   };
 
   const handleDownload = () => {
+    // Fallback to html2pdf if strictly needed as file
     const element = document.getElementById('printable-preview-content');
     if (!element || !(window as any).html2pdf) return;
 
@@ -629,7 +649,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      pagebreak: { mode: ['css', 'legacy'] }
     };
 
     (window as any).html2pdf().set(opt).from(element).save().then(() => {
@@ -694,7 +714,8 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
                 box-shadow: none;
                 z-index: 99999;
               }
-              table { page-break-inside: auto; }
+              /* Ensure tables break nicely in Native Print */
+              table { page-break-inside: auto; width: 100%; }
               tr { page-break-inside: avoid; page-break-after: auto; }
               thead { display: table-header-group; }
               tfoot { display: table-footer-group; }
@@ -1123,3 +1144,4 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
+
