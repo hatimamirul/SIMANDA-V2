@@ -321,7 +321,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   );
 };
 
-// === Export Preview Modal (Optimized for Neat Layouts) ===
+// === Export Preview Modal (Optimized for Neat Layouts & Repeating Headers) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
@@ -423,33 +423,39 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               <style>{`
                 /* Document Base Style */
                 .pdf-table { 
-                    width: 100%; 
+                    width: 98%; 
+                    margin: 0 auto;
                     border-collapse: collapse; 
                     font-size: 11px; 
                     color: #000; 
                     font-family: sans-serif;
-                    table-layout: fixed; /* Ensures content wraps instead of expanding off page */
+                    table-layout: fixed; 
                     word-wrap: break-word;
                 }
                 .pdf-table th, .pdf-table td { 
                     border: 1px solid #000; 
-                    padding: 6px; 
-                    text-align: left; 
-                    vertical-align: top;
+                    padding: 8px 6px; 
+                    vertical-align: middle; /* Center vertically */
                 }
                 .pdf-table th { 
                     background-color: #f0f0f0; 
                     font-weight: bold; 
                     text-transform: uppercase; 
-                    text-align: center; 
+                    text-align: center !important; /* Force Horizontal Center for Headers */
                     color: #000; 
+                }
+                .pdf-table td {
+                    text-align: left; /* Data text left aligned by default */
+                }
+                .pdf-table tr:nth-child(even) {
+                    background-color: #fdfdfd;
                 }
                 
                 /* --- PAGINATION & PRINT RULES --- */
                 /* Prevent page break inside report header */
                 .report-header { page-break-inside: avoid; }
                 
-                /* Ensure Table Header Repeats on New Pages (Native Print Support) */
+                /* Ensure Table Header Repeats on New Pages (CRITICAL) */
                 thead { display: table-header-group; } 
                 tfoot { display: table-footer-group; }
                 
@@ -458,7 +464,8 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 
                 @media print {
                    body { -webkit-print-color-adjust: exact; }
-                   .pdf-table { width: 100%; }
+                   .pdf-table { width: 100%; margin: 0 auto; }
+                   thead { display: table-header-group; } /* Force repeating header */
                 }
               `}</style>
 
@@ -482,7 +489,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               <table className="pdf-table">
                  <thead>
                     <tr>
-                       <th style={{width: '35px'}}>No</th>
+                       <th style={{width: '35px', textAlign: 'center'}}>No</th>
                        {columns.map((col, idx) => (
                           <th key={idx}>
                              {col.header}
@@ -496,7 +503,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                     ) : (
                        data.map((item, idx) => (
                           <tr key={idx}>
-                             <td className="text-center">{idx + 1}</td>
+                             <td className="text-center font-medium">{idx + 1}</td>
                              {columns.map((col, cIdx) => (
                                 <td key={cIdx}>
                                    {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as any)}
@@ -715,10 +722,11 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
                 z-index: 99999;
               }
               /* Ensure tables break nicely in Native Print */
-              table { page-break-inside: auto; width: 100%; }
+              table { page-break-inside: auto; width: 98%; margin: 0 auto; }
               tr { page-break-inside: avoid; page-break-after: auto; }
               thead { display: table-header-group; }
               tfoot { display: table-footer-group; }
+              th { text-align: center !important; } /* Force Center for Native Print */
             }
           `}
         </style>
