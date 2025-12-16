@@ -18,7 +18,7 @@ import {
 
 // --- SUB-COMPONENTS (Defined OUTSIDE to prevent re-mounting/flickering) ---
 
-const StatCard = React.memo(({ title, count, icon, colorClass, bgClass, trend }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string }) => (
+const StatCard = React.memo(({ title, count, icon, colorClass, bgClass, trend, isLoading }: { title: string, count: number, icon: React.ReactNode, colorClass: string, bgClass: string, trend?: string, isLoading: boolean }) => (
   <div className="bg-white rounded-2xl p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
     <div className="flex justify-between items-start mb-4 relative z-10">
       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${bgClass} ${colorClass} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
@@ -31,7 +31,12 @@ const StatCard = React.memo(({ title, count, icon, colorClass, bgClass, trend }:
       )}
     </div>
     <div className="relative z-10">
-      <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
+      {/* SKELETON LOADER */}
+      {isLoading ? (
+          <div className="h-8 w-24 bg-gray-200 rounded animate-pulse mb-1"></div>
+      ) : (
+          <h3 className="text-3xl font-bold text-gray-800 tracking-tight">{new Intl.NumberFormat('id-ID').format(count)}</h3>
+      )}
       <p className="text-gray-500 text-sm font-medium mt-1">{title}</p>
     </div>
     
@@ -42,7 +47,7 @@ const StatCard = React.memo(({ title, count, icon, colorClass, bgClass, trend }:
   </div>
 ));
 
-const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, belum, type }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru' }) => {
+const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, belum, type, isLoading }: { title: string, subtitle: string, icon: any, total: number, sudah: number, belum: number, type: 'siswa' | 'guru', isLoading: boolean }) => {
    const percentSudah = total > 0 ? Math.round((sudah / total) * 100) : 0;
    
    // Color Themes & Gradients
@@ -104,7 +109,7 @@ const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, 
                           />
                           
                           {/* Value Layer (Gradient) */}
-                          {percentSudah > 0 && (
+                          {!isLoading && percentSudah > 0 && (
                               <Pie
                                   data={trackData}
                                   cx="50%"
@@ -125,7 +130,11 @@ const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, 
                   
                   {/* Centered Percentage */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pt-2">
-                      <span className={`text-4xl font-extrabold ${iconColor} drop-shadow-sm`}>{percentSudah}%</span>
+                      {isLoading ? (
+                          <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                          <span className={`text-4xl font-extrabold ${iconColor} drop-shadow-sm`}>{percentSudah}%</span>
+                      )}
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Selesai</span>
                   </div>
               </div>
@@ -134,7 +143,11 @@ const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, 
               <div className="flex-1 w-full space-y-5">
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Target Total</p>
-                      <p className="text-2xl font-bold text-gray-800">{total.toLocaleString()}</p>
+                      {isLoading ? (
+                          <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                          <p className="text-2xl font-bold text-gray-800">{total.toLocaleString()}</p>
+                      )}
                   </div>
 
                   <div className="space-y-2">
@@ -143,14 +156,22 @@ const ProposalStatusWidget = React.memo(({ title, subtitle, icon, total, sudah, 
                               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
                               <span className="text-gray-600 font-medium">Sudah</span>
                           </div>
-                          <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
+                          {isLoading ? (
+                              <div className="h-4 w-10 bg-gray-200 rounded animate-pulse"></div>
+                          ) : (
+                              <span className="font-bold text-gray-800">{sudah.toLocaleString()}</span>
+                          )}
                       </div>
                       <div className="flex justify-between items-center text-sm">
                           <div className="flex items-center gap-2">
                               <div className="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                               <span className="text-gray-600 font-medium">Belum</span>
                           </div>
-                          <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
+                          {isLoading ? (
+                              <div className="h-4 w-10 bg-gray-200 rounded animate-pulse"></div>
+                          ) : (
+                              <span className="font-bold text-gray-400">{belum.toLocaleString()}</span>
+                          )}
                       </div>
                   </div>
               </div>
@@ -189,6 +210,9 @@ export const Dashboard: React.FC = () => {
 
   const [storageStats, setStorageStats] = useState({ usedMB: "0", totalMB: 1024, percentage: "0" });
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Loading State
+  const [dataLoading, setDataLoading] = useState(true);
 
   const currentUser: User | null = (() => {
     try { return JSON.parse(localStorage.getItem('simanda_user') || '{}'); } catch { return null; }
@@ -197,7 +221,14 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    const unsubscribe = api.subscribeStats(setStats);
+    
+    // Subscribe with loading handling
+    setDataLoading(true);
+    const unsubscribe = api.subscribeStats((data) => {
+        setStats(data);
+        setDataLoading(false); // Data arrived
+    });
+
     const updateStorage = () => setStorageStats(api.getStorageStats());
     updateStorage();
     const storageTimer = setInterval(updateStorage, 5000);
@@ -285,6 +316,7 @@ export const Dashboard: React.FC = () => {
           bgClass="bg-blue-50"
           colorClass="text-blue-600"
           trend="+2 Baru"
+          isLoading={dataLoading}
         />
         <StatCard 
           title="Total Sekolah" 
@@ -292,6 +324,7 @@ export const Dashboard: React.FC = () => {
           icon={<School size={22} />} 
           bgClass="bg-indigo-50"
           colorClass="text-indigo-600"
+          isLoading={dataLoading}
         />
         <StatCard 
           title="PM B3 (Balita/Ibu)" 
@@ -300,6 +333,7 @@ export const Dashboard: React.FC = () => {
           bgClass="bg-pink-50"
           colorClass="text-pink-600"
           trend="Stabil"
+          isLoading={dataLoading}
         />
         <StatCard 
           title="Total Penerima Manfaat" 
@@ -308,6 +342,7 @@ export const Dashboard: React.FC = () => {
           bgClass="bg-emerald-50"
           colorClass="text-emerald-600"
           trend="Aktif"
+          isLoading={dataLoading}
         />
       </div>
 
@@ -327,6 +362,7 @@ export const Dashboard: React.FC = () => {
                 sudah={stats.siswaSudahProposal}
                 belum={stats.siswaBelumProposal}
                 type="siswa"
+                isLoading={dataLoading}
              />
              <ProposalStatusWidget 
                 title="Guru / Tenaga Pendidik"
@@ -336,6 +372,7 @@ export const Dashboard: React.FC = () => {
                 sudah={stats.guruSudahProposal}
                 belum={stats.guruBelumProposal}
                 type="guru"
+                isLoading={dataLoading}
              />
          </div>
       </div>
@@ -414,7 +451,11 @@ export const Dashboard: React.FC = () => {
                 
                 {/* Center Label */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none pb-2">
-                   <span className="text-3xl font-extrabold text-gray-800">{stats.pmb3}</span>
+                   {dataLoading ? (
+                       <div className="h-8 w-16 bg-gray-200 rounded animate-pulse mb-1"></div>
+                   ) : (
+                       <span className="text-3xl font-extrabold text-gray-800">{stats.pmb3}</span>
+                   )}
                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Total</span>
                 </div>
               </div>
