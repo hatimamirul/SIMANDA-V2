@@ -8,7 +8,7 @@ import {
   Users, School, Baby, Heart, 
   ArrowRight, Activity, GraduationCap, 
   ChefHat, ChevronRight, Instagram, Globe, CheckCircle2,
-  Newspaper
+  Newspaper, Loader2
 } from 'lucide-react';
 import { Logo } from '../components/UIComponents';
 
@@ -32,12 +32,13 @@ const StatCard = ({ icon, label, value, subtext, color, delay }: { icon: any, la
 
 const ArticleCard = ({ title, date, excerpt, image, category, link }: { title: string, date: string, excerpt: string, image: string, category: string, link: string }) => (
   <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 group flex flex-col h-full cursor-pointer relative top-0 hover:-top-2">
-    <div className="h-60 overflow-hidden relative">
+    <div className="h-60 overflow-hidden relative bg-gray-100">
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
       {/* Added onError handler to fallback if image fails */}
       <img 
         src={image} 
         alt={title} 
+        loading="lazy"
         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
         onError={(e) => {
             e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=2053&auto=format&fit=crop"; // Fallback image
@@ -76,6 +77,7 @@ export const PublicLanding: React.FC = () => {
   
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<boolean[]>([]);
 
   // Daftar Foto HD (Updated to Google Drive DIRECT LINK format)
   // Format: https://lh3.googleusercontent.com/d/[FILE_ID]
@@ -91,6 +93,9 @@ export const PublicLanding: React.FC = () => {
     const unsub = api.subscribeStats(setStats);
     const timer = setInterval(() => setTime(new Date()), 1000);
     
+    // Initialize loaded state array
+    setLoadedImages(new Array(heroImages.length).fill(false));
+
     // Smooth Slideshow Interval (5 seconds)
     const slideTimer = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
@@ -101,6 +106,15 @@ export const PublicLanding: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll);
 
+    // Preload next image logic to prevent stutter
+    const preloadImage = (index: number) => {
+        const img = new Image();
+        img.src = heroImages[index];
+    };
+    
+    // Preload first image immediately
+    preloadImage(0);
+
     return () => {
       unsub();
       clearInterval(timer);
@@ -108,6 +122,21 @@ export const PublicLanding: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  // Effect to preload the next image when index changes
+  useEffect(() => {
+      const nextIndex = (currentImageIndex + 1) % heroImages.length;
+      const img = new Image();
+      img.src = heroImages[nextIndex];
+  }, [currentImageIndex]);
+
+  const handleImageLoad = (index: number) => {
+      setLoadedImages(prev => {
+          const newState = [...prev];
+          newState[index] = true;
+          return newState;
+      });
+  };
 
   const totalSiswa = (stats.pmKecil || 0) + (stats.pmBesar || 0);
   const totalPenerimaManfaat = totalSiswa + stats.pmb3;
@@ -160,7 +189,7 @@ export const PublicLanding: React.FC = () => {
       </nav>
 
       {/* === HERO SECTION === */}
-      <header className="relative h-[100vh] min-h-[650px] flex items-center overflow-hidden">
+      <header className="relative h-[100vh] min-h-[650px] flex items-center overflow-hidden bg-slate-900">
         
         {/* Slideshow Background */}
         {heroImages.map((img, index) => (
@@ -170,16 +199,26 @@ export const PublicLanding: React.FC = () => {
                     ${index === currentImageIndex ? 'opacity-100 scale-105' : 'opacity-0 scale-100'}
                 `}
             >
+                {/* Fallback solid color while loading */}
                 <div className="absolute inset-0 bg-slate-900"></div>
+                
+                {/* Image */}
                 <img 
                     src={img} 
                     alt="Hero Background" 
-                    className="w-full h-full object-cover" 
+                    className={`w-full h-full object-cover transition-opacity duration-1000 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => handleImageLoad(index)}
                     onError={(e) => {
-                        // Fallback to solid color if image fails to load
                         e.currentTarget.style.display = 'none';
                     }}
                 />
+                
+                {/* Loading Indicator for first image only if not loaded */}
+                {!loadedImages[index] && index === currentImageIndex && (
+                    <div className="absolute inset-0 flex items-center justify-center z-0">
+                        <Loader2 className="text-white/20 animate-spin" size={48} />
+                    </div>
+                )}
                 
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/70 to-transparent z-10"></div>
@@ -544,4 +583,3 @@ export const PublicLanding: React.FC = () => {
     </div>
   );
 };
-
