@@ -14,13 +14,21 @@ import { Logo } from '../components/UIComponents';
 
 // --- COMPONENTS ---
 
-const StatCard = ({ icon, label, value, subtext, color, delay }: { icon: any, label: string, value: number, subtext?: string, color: string, delay: string }) => (
+// Updated StatCard with Skeleton Loading
+const StatCard = ({ icon, label, value, subtext, color, delay, isLoading }: { icon: any, label: string, value: number, subtext?: string, color: string, delay: string, isLoading: boolean }) => (
   <div className={`bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-gray-50 hover:shadow-xl hover:-translate-y-1 transition-all duration-500 animate-fade-in ${delay} relative overflow-hidden group`}>
     <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-[0.08] rounded-bl-full -mr-8 -mt-8 transition-transform duration-700 group-hover:scale-125`}></div>
     <div className="flex items-start justify-between relative z-10">
-      <div>
+      <div className="w-full">
         <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2 font-sans">{label}</p>
-        <h3 className="text-4xl font-black text-gray-800 tracking-tight font-sans">{value.toLocaleString('id-ID')}</h3>
+        
+        {/* SKELETON LOADER LOGIC */}
+        {isLoading ? (
+            <div className="h-10 w-24 bg-gray-200 rounded-lg animate-pulse mb-1"></div>
+        ) : (
+            <h3 className="text-4xl font-black text-gray-800 tracking-tight font-sans">{value.toLocaleString('id-ID')}</h3>
+        )}
+
         {subtext && <p className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1"><div className={`w-1.5 h-1.5 rounded-full ${color}`}></div> {subtext}</p>}
       </div>
       <div className={`p-3.5 rounded-xl ${color} text-white shadow-lg shadow-blue-900/5 group-hover:rotate-6 transition-transform duration-500`}>
@@ -74,6 +82,7 @@ export const PublicLanding: React.FC = () => {
   });
   const [time, setTime] = useState(new Date());
   const [scrolled, setScrolled] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true); // Loading State
   
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -90,7 +99,12 @@ export const PublicLanding: React.FC = () => {
   ];
 
   useEffect(() => {
-    const unsub = api.subscribeStats(setStats);
+    // Start loading
+    setDataLoading(true);
+    const unsub = api.subscribeStats((data) => {
+        setStats(data);
+        setDataLoading(false); // Stop loading when data arrives
+    });
     const timer = setInterval(() => setTime(new Date()), 1000);
     
     // Initialize loaded state array
@@ -270,7 +284,11 @@ export const PublicLanding: React.FC = () => {
                    </div>
                    <div>
                       <p className="text-blue-200 text-sm font-bold uppercase tracking-wider mb-1">Total Penerima Manfaat</p>
-                      <h3 className="text-5xl font-black text-white tracking-tight">{totalPenerimaManfaat.toLocaleString('id-ID')}</h3>
+                      {dataLoading ? (
+                          <div className="h-10 w-40 bg-white/20 rounded animate-pulse"></div>
+                      ) : (
+                          <h3 className="text-5xl font-black text-white tracking-tight">{totalPenerimaManfaat.toLocaleString('id-ID')}</h3>
+                      )}
                    </div>
                 </div>
 
@@ -280,14 +298,22 @@ export const PublicLanding: React.FC = () => {
                         <div className="p-2 bg-blue-500/20 rounded-lg text-blue-200"><School size={18}/></div>
                         <span className="text-slate-200 font-medium">Siswa Sekolah</span>
                       </div>
-                      <span className="text-white font-bold text-lg">{totalSiswa.toLocaleString()}</span>
+                      {dataLoading ? (
+                          <div className="h-6 w-16 bg-white/20 rounded animate-pulse"></div>
+                      ) : (
+                          <span className="text-white font-bold text-lg">{totalSiswa.toLocaleString()}</span>
+                      )}
                    </div>
                    <div className="bg-slate-900/40 rounded-2xl p-4 flex justify-between items-center border border-white/10 hover:border-white/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-pink-500/20 rounded-lg text-pink-200"><Baby size={18}/></div>
                         <span className="text-slate-200 font-medium">Ibu & Balita (B3)</span>
                       </div>
-                      <span className="text-white font-bold text-lg">{stats.pmb3.toLocaleString()}</span>
+                      {dataLoading ? (
+                          <div className="h-6 w-16 bg-white/20 rounded animate-pulse"></div>
+                      ) : (
+                          <span className="text-white font-bold text-lg">{stats.pmb3.toLocaleString()}</span>
+                      )}
                    </div>
                 </div>
              </div>
@@ -305,6 +331,7 @@ export const PublicLanding: React.FC = () => {
               subtext="Mitra Sekolah Aktif"
               color="bg-blue-500"
               delay="delay-100"
+              isLoading={dataLoading}
            />
            <StatCard 
               icon={<Users size={30} />} 
@@ -313,6 +340,7 @@ export const PublicLanding: React.FC = () => {
               subtext="Siswa Penerima Gizi"
               color="bg-indigo-500"
               delay="delay-200"
+              isLoading={dataLoading}
            />
            <StatCard 
               icon={<GraduationCap size={30} />} 
@@ -321,6 +349,7 @@ export const PublicLanding: React.FC = () => {
               subtext="Guru & Staff Sekolah"
               color="bg-purple-500"
               delay="delay-300"
+              isLoading={dataLoading}
            />
            <StatCard 
               icon={<ChefHat size={30} />} 
@@ -329,6 +358,7 @@ export const PublicLanding: React.FC = () => {
               subtext="Personil Dapur & Logistik"
               color="bg-orange-500"
               delay="delay-400"
+              isLoading={dataLoading}
            />
         </div>
 
@@ -350,7 +380,11 @@ export const PublicLanding: React.FC = () => {
               <div className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl flex items-center gap-4 border border-slate-700">
                  <span className="text-sm uppercase tracking-widest text-slate-400">Total Terdaftar</span>
                  <span className="w-px h-8 bg-slate-700"></span>
-                 <span className="text-3xl text-yellow-400 font-mono">{stats.pmb3.toLocaleString()}</span>
+                 {dataLoading ? (
+                     <div className="h-8 w-16 bg-slate-700 rounded animate-pulse"></div>
+                 ) : (
+                     <span className="text-3xl text-yellow-400 font-mono">{stats.pmb3.toLocaleString()}</span>
+                 )}
               </div>
            </div>
 
@@ -363,7 +397,11 @@ export const PublicLanding: React.FC = () => {
                  <div>
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Kategori</p>
                     <h4 className="text-xl font-bold text-gray-800 mb-2">Balita</h4>
-                    <p className="text-4xl font-black text-orange-600">{stats.balita}</p>
+                    {dataLoading ? (
+                        <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    ) : (
+                        <p className="text-4xl font-black text-orange-600">{stats.balita}</p>
+                    )}
                     <div className="h-2 w-full bg-gray-100 rounded-full mt-4 overflow-hidden">
                        <div className="h-full bg-orange-500 rounded-full" style={{ width: `${stats.pmb3 ? (stats.balita/stats.pmb3)*100 : 0}%` }}></div>
                     </div>
@@ -378,7 +416,11 @@ export const PublicLanding: React.FC = () => {
                  <div>
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Kategori</p>
                     <h4 className="text-xl font-bold text-gray-800 mb-2">Ibu Hamil</h4>
-                    <p className="text-4xl font-black text-pink-600">{stats.ibuHamil}</p>
+                    {dataLoading ? (
+                        <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    ) : (
+                        <p className="text-4xl font-black text-pink-600">{stats.ibuHamil}</p>
+                    )}
                     <div className="h-2 w-full bg-gray-100 rounded-full mt-4 overflow-hidden">
                        <div className="h-full bg-pink-500 rounded-full" style={{ width: `${stats.pmb3 ? (stats.ibuHamil/stats.pmb3)*100 : 0}%` }}></div>
                     </div>
@@ -393,7 +435,11 @@ export const PublicLanding: React.FC = () => {
                  <div>
                     <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Kategori</p>
                     <h4 className="text-xl font-bold text-gray-800 mb-2">Ibu Menyusui</h4>
-                    <p className="text-4xl font-black text-emerald-600">{stats.ibuMenyusui}</p>
+                    {dataLoading ? (
+                        <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    ) : (
+                        <p className="text-4xl font-black text-emerald-600">{stats.ibuMenyusui}</p>
+                    )}
                     <div className="h-2 w-full bg-gray-100 rounded-full mt-4 overflow-hidden">
                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${stats.pmb3 ? (stats.ibuMenyusui/stats.pmb3)*100 : 0}%` }}></div>
                     </div>
