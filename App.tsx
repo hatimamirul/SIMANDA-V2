@@ -1,29 +1,32 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from './components/UIComponents';
-import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { PublicLanding } from './pages/PublicLanding'; // NEW IMPORT
-import { UsersPage } from './pages/Users';
-import { KaryawanPage } from './pages/Karyawan';
-import { SchoolPage } from './pages/SchoolData';
-import { PICSekolahPage } from './pages/PICSekolah';
-import { AlergiPage } from './pages/AlergiPage';
-import { B3Page } from './pages/B3Data';
-import { KaderB3Page } from './pages/KaderB3';
-import { HonorKaryawanPage } from './pages/HonorKaryawan';
-import { HonorPICSekolahPage } from './pages/HonorPICSekolah';
-import { HonorKaderB3Page } from './pages/HonorKaderB3';
-import { AbsensiPage } from './pages/Absensi'; 
-import { DataSupplierPage } from './pages/inventory/DataSupplier';
-import { LaporanBahanMasukPage } from './pages/inventory/LaporanBahanMasuk';
-import { LaporanBahanKeluarPage } from './pages/inventory/LaporanBahanKeluar';
-import { LaporanStokOpnamePage } from './pages/inventory/LaporanStokOpname';
-import { StokSaatIniPage } from './pages/inventory/StokSaatIni';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, LoadingSpinner } from './components/UIComponents';
 import { Layout } from './components/Layout';
-import { ToastProvider, useToast } from './components/UIComponents';
+import { ToastProvider } from './components/UIComponents';
 import { User, Role } from './types';
 import { api } from './services/mockService';
+
+// === LAZY LOAD PAGES (PERFORMANCE OPTIMIZATION) ===
+// Halaman hanya akan didownload browser saat user membukanya
+const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ default: module.Dashboard })));
+const PublicLanding = lazy(() => import('./pages/PublicLanding').then(module => ({ default: module.PublicLanding })));
+const UsersPage = lazy(() => import('./pages/Users').then(module => ({ default: module.UsersPage })));
+const KaryawanPage = lazy(() => import('./pages/Karyawan').then(module => ({ default: module.KaryawanPage })));
+const SchoolPage = lazy(() => import('./pages/SchoolData').then(module => ({ default: module.SchoolPage })));
+const PICSekolahPage = lazy(() => import('./pages/PICSekolah').then(module => ({ default: module.PICSekolahPage })));
+const AlergiPage = lazy(() => import('./pages/AlergiPage').then(module => ({ default: module.AlergiPage })));
+const B3Page = lazy(() => import('./pages/B3Data').then(module => ({ default: module.B3Page })));
+const KaderB3Page = lazy(() => import('./pages/KaderB3').then(module => ({ default: module.KaderB3Page })));
+const HonorKaryawanPage = lazy(() => import('./pages/HonorKaryawan').then(module => ({ default: module.HonorKaryawanPage })));
+const HonorPICSekolahPage = lazy(() => import('./pages/HonorPICSekolah').then(module => ({ default: module.HonorPICSekolahPage })));
+const HonorKaderB3Page = lazy(() => import('./pages/HonorKaderB3').then(module => ({ default: module.HonorKaderB3Page })));
+const AbsensiPage = lazy(() => import('./pages/Absensi').then(module => ({ default: module.AbsensiPage })));
+const DataSupplierPage = lazy(() => import('./pages/inventory/DataSupplier').then(module => ({ default: module.DataSupplierPage })));
+const LaporanBahanMasukPage = lazy(() => import('./pages/inventory/LaporanBahanMasuk').then(module => ({ default: module.LaporanBahanMasukPage })));
+const LaporanBahanKeluarPage = lazy(() => import('./pages/inventory/LaporanBahanKeluar').then(module => ({ default: module.LaporanBahanKeluarPage })));
+const LaporanStokOpnamePage = lazy(() => import('./pages/inventory/LaporanStokOpname').then(module => ({ default: module.LaporanStokOpnamePage })));
+const StokSaatIniPage = lazy(() => import('./pages/inventory/StokSaatIni').then(module => ({ default: module.StokSaatIniPage })));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -173,6 +176,7 @@ const MainApp = () => {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-50"><LoadingSpinner /></div>}>
         <Routes>
           {/* PUBLIC ROUTE: Landing Page */}
           <Route path="/" element={<PublicLanding />} />
@@ -288,6 +292,7 @@ const MainApp = () => {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
@@ -301,4 +306,3 @@ function App() {
 }
 
 export default App;
-
