@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Navigate } from '../components/UIComponents';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
-import { Eye, FileText, Download, Phone, CreditCard, Activity, Pencil, Trash2 } from 'lucide-react';
+import { Eye, FileText, Download, Phone, CreditCard, Activity, Pencil, Trash2, Edit, SortAsc, CheckCircle2 } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -23,7 +23,7 @@ export const KaryawanPage: React.FC = () => {
   // Permission Logic
   const canAdd = role === 'SUPERADMIN' || role === 'KSPPG';
   const canDelete = role === 'SUPERADMIN' || role === 'KSPPG';
-  // Define roles allowed to import
+  const canBulkEdit = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
   const canImport = role === 'SUPERADMIN' || role === 'KSPPG';
   
   if (role === 'PETUGAS' || role === 'KOORDINATORDIVISI') {
@@ -32,10 +32,13 @@ export const KaryawanPage: React.FC = () => {
 
   const [data, setData] = useState<Karyawan[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false); // Bulk Edit Modal
   const [deleteItem, setDeleteItem] = useState<Karyawan | null>(null);
   const [formData, setFormData] = useState<Partial<Karyawan>>({});
+  const [bulkData, setBulkData] = useState<Karyawan[]>([]); // Data for bulk editing
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSortingDivisi, setIsSortingDivisi] = useState(false);
   
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
@@ -50,16 +53,27 @@ export const KaryawanPage: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const unsubscribe = api.subscribeKaryawan((items) => {
+      let processed = [...items];
+      
+      // Apply Search
       if (search) {
         const lower = search.toLowerCase();
-        setData(items.filter(i => i.nama.toLowerCase().includes(lower) || i.nik.includes(lower)));
-      } else {
-        setData(items);
+        processed = processed.filter(i => i.nama.toLowerCase().includes(lower) || i.nik.includes(lower));
       }
+
+      // Apply Sorting by Divisi if active
+      if (isSortingDivisi) {
+        processed.sort((a, b) => a.divisi.localeCompare(b.divisi));
+      } else {
+        // Default sort by name
+        processed.sort((a, b) => a.nama.localeCompare(b.nama));
+      }
+
+      setData(processed);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [search]);
+  }, [search, isSortingDivisi]);
 
   const handleSubmit = async () => {
     if (
@@ -72,7 +86,7 @@ export const KaryawanPage: React.FC = () => {
       !formData.bank || 
       !formData.rekening
     ) {
-      showToast("Gagal menyimpan! Mohon lengkapi semua data karyawan dan revisi kembali.", "error");
+      showToast("Gagal menyimpan! Mohon lengkapi semua data karyawan.", "error");
       return;
     }
 
@@ -81,7 +95,34 @@ export const KaryawanPage: React.FC = () => {
     setLoading(false);
     setIsModalOpen(false);
     showToast(`Data Karyawan ${formData.nama} berhasil disimpan!`, "success");
-    // No need to loadData, subscription handles it
+  };
+
+  // --- BULK EDIT LOGIC ---
+  const openBulkEdit = () => {
+    setBulkData(JSON.parse(JSON.stringify(data))); // Deep copy current filtered data
+    setIsBulkModalOpen(true);
+  };
+
+  const handleBulkChange = (index: number, field: keyof Karyawan, value: any) => {
+    const updated = [...bulkData];
+    updated[index] = { ...updated[index], [field]: value };
+    setBulkData(updated);
+  };
+
+  const handleSaveBulk = async () => {
+    setLoading(true);
+    try {
+      // Loop through all items in bulkData and save them
+      for (const item of bulkData) {
+        await api.saveKaryawan(item);
+      }
+      showToast(`Berhasil memperbarui ${bulkData.length} data karyawan secara masal!`, "success");
+      setIsBulkModalOpen(false);
+    } catch (e) {
+      showToast("Terjadi kesalahan saat menyimpan data masal.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -177,15 +218,12 @@ export const KaryawanPage: React.FC = () => {
           let successCount = 0;
           
           for (const row of jsonData as any[]) {
-            // Mapping Logic matching Export headers
             const nik = String(row['NIK'] || '');
-            const nama = row['Nama Karyawan'] || row['Nama'] || ''; // Fallback alias
-            
-            // Basic validation
+            const nama = row['Nama Karyawan'] || row['Nama'] || ''; 
             if (!nik || !nama) continue;
 
             const newItem: Karyawan = {
-              id: '', // Will be generated by api.saveKaryawan
+              id: '', 
               nik: nik,
               nama: nama,
               divisi: row['Divisi'] || 'Asisten Lapangan',
@@ -194,7 +232,7 @@ export const KaryawanPage: React.FC = () => {
               noBpjs: String(row['No BPJS'] || row['BPJS'] || '-'),
               bank: (row['Bank'] as any) || 'BANK BRI',
               rekening: String(row['No Rekening'] || row['Rekening'] || ''),
-              sertifikat: '' // Cannot import files via Excel
+              sertifikat: '' 
             };
 
             await api.saveKaryawan(newItem);
@@ -206,7 +244,7 @@ export const KaryawanPage: React.FC = () => {
         }
       } catch (err) {
         console.error(err);
-        showToast("Gagal membaca file Excel. Pastikan format benar.", "error");
+        showToast("Gagal membaca file Excel.", "error");
         setLoading(false);
       }
     };
@@ -230,7 +268,6 @@ export const KaryawanPage: React.FC = () => {
     { value: 'BANK BNI', label: 'BANK BNI' },
   ];
 
-  // Helper function for Divisi Color Mapping
   const getDivisiColor = (divisi: string) => {
     switch (divisi) {
       case 'Asisten Lapangan': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -245,7 +282,6 @@ export const KaryawanPage: React.FC = () => {
     }
   };
 
-  // Grid Renderer
   const renderGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
        {data.map(item => (
@@ -287,7 +323,7 @@ export const KaryawanPage: React.FC = () => {
                        <Eye size={16} />
                     </button>
                  )}
-                 <button onClick={() => { setFormData(item); setIsModalOpen(true); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
+                 <button onClick={() => openEdit(item)} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
                     <Pencil size={16} />
                  </button>
                  {canDelete && (
@@ -314,6 +350,36 @@ export const KaryawanPage: React.FC = () => {
         layoutMode={layout}
         onLayoutChange={setLayout}
       />
+      
+      {/* --- SUB TOOLBAR FOR SORTING AND BULK EDIT --- */}
+      <div className="flex flex-wrap items-center gap-3 mb-6 no-print">
+          <button 
+             onClick={() => setIsSortingDivisi(!isSortingDivisi)}
+             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border shadow-sm
+                ${isSortingDivisi 
+                   ? 'bg-primary text-white border-primary' 
+                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+          >
+             <SortAsc size={16} />
+             {isSortingDivisi ? 'Urutan: Divisi' : 'Urutkan Divisi'}
+          </button>
+
+          {canBulkEdit && (
+            <button 
+                onClick={openBulkEdit}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
+            >
+                <Edit size={16} />
+                Edit Masal (Semua)
+            </button>
+          )}
+
+          {isSortingDivisi && (
+              <span className="text-[10px] uppercase font-black text-primary bg-blue-50 px-2 py-1 rounded border border-blue-100 animate-pulse">
+                  Mode Urut Divisi Aktif
+              </span>
+          )}
+      </div>
       
       {loading ? (
         <LoadingSpinner />
@@ -385,6 +451,69 @@ export const KaryawanPage: React.FC = () => {
       />
 
       <PreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} src={previewSrc} title="Preview Sertifikat" />
+
+      {/* --- BULK EDIT MODAL --- */}
+      <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Edit Masal Data Karyawan">
+         <div className="space-y-4">
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex gap-3 items-start">
+               <Activity className="text-amber-600 shrink-0 mt-1" size={18} />
+               <div className="text-xs text-amber-800">
+                  <p className="font-bold">Mode Edit Masal</p>
+                  <p className="mt-1">Anda sedang mengedit {bulkData.length} data karyawan yang tampil. Pastikan memeriksa kembali sebelum menekan simpan.</p>
+               </div>
+            </div>
+
+            <div className="max-h-[60vh] overflow-auto border rounded-xl">
+               <table className="w-full text-sm text-left border-collapse">
+                  <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                     <tr>
+                        <th className="p-3 font-bold text-gray-600 border-b">Nama Karyawan</th>
+                        <th className="p-3 font-bold text-gray-600 border-b">Divisi</th>
+                        <th className="p-3 font-bold text-gray-600 border-b">Honor Harian</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                     {bulkData.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                           <td className="p-3">
+                              <input 
+                                 type="text" 
+                                 className="w-full bg-transparent border-b border-transparent focus:border-primary outline-none py-1 font-medium" 
+                                 value={item.nama}
+                                 onChange={(e) => handleBulkChange(idx, 'nama', e.target.value)}
+                              />
+                           </td>
+                           <td className="p-3">
+                              <select 
+                                 className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary text-xs"
+                                 value={item.divisi}
+                                 onChange={(e) => handleBulkChange(idx, 'divisi', e.target.value)}
+                              >
+                                 {divisionOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                           </td>
+                           <td className="p-3">
+                              <input 
+                                 type="number" 
+                                 className="w-full bg-transparent border-b border-transparent focus:border-primary outline-none py-1 font-mono font-bold text-blue-700" 
+                                 value={item.honorHarian ?? ''}
+                                 onChange={(e) => handleBulkChange(idx, 'honorHarian', parseInt(e.target.value) || 0)}
+                              />
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+               <Button variant="secondary" onClick={() => setIsBulkModalOpen(false)}>Batal</Button>
+               <Button onClick={handleSaveBulk} isLoading={loading} icon={<CheckCircle2 size={18} />}>
+                  Simpan Semua Perubahan
+               </Button>
+            </div>
+         </div>
+      </Modal>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={formData.id ? "Edit Karyawan" : "Tambah Karyawan"}>
         <div className="space-y-4">
@@ -470,4 +599,3 @@ export const KaryawanPage: React.FC = () => {
     </div>
   );
 };
-
