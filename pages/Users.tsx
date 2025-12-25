@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from '../components/UIComponents';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, useToast, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
-import { User, Role } from '../types';
+import { User, Role, Karyawan } from '../types';
+import { UserPlus, Contact } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -24,6 +25,7 @@ export const UsersPage: React.FC = () => {
   }
 
   const [users, setUsers] = useState<User[]>([]);
+  const [employees, setEmployees] = useState<Karyawan[]>([]); // For auto-registration
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<User | null>(null);
   const [formData, setFormData] = useState<Partial<User>>({});
@@ -35,8 +37,9 @@ export const UsersPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    // Realtime subscription to users list
-    const unsubscribe = api.subscribeUsers((data) => {
+    
+    // Subscribe to users list
+    const unsubscribeUsers = api.subscribeUsers((data) => {
       if (!search) {
         setUsers(data);
       } else {
@@ -45,7 +48,16 @@ export const UsersPage: React.FC = () => {
       }
       setLoading(false);
     });
-    return () => unsubscribe();
+
+    // Subscribe to karyawan list for the "Import" feature
+    const unsubscribeEmployees = api.subscribeKaryawan((data) => {
+      setEmployees(data);
+    });
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribeEmployees();
+    };
   }, [search]);
 
   const handleSubmit = async () => {
@@ -59,7 +71,6 @@ export const UsersPage: React.FC = () => {
     setLoading(false);
     setIsModalOpen(false);
     showToast(`User ${formData.nama} berhasil disimpan!`, "success");
-    // No need to call loadData(), subscription handles it
   };
 
   const handleDelete = async () => {
@@ -84,6 +95,25 @@ export const UsersPage: React.FC = () => {
   const openEdit = (u: User) => {
     setFormData({ ...u }); 
     setIsModalOpen(true);
+  };
+
+  // Helper logic to populate from Employee selection
+  const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const empId = e.target.value;
+    if (!empId) return;
+
+    const emp = employees.find(x => x.id === empId);
+    if (emp) {
+      setFormData({
+        ...formData,
+        nama: emp.nama,
+        username: emp.nik, // Standard practice: default username is NIK
+        jabatanDivisi: emp.divisi,
+        // If they are regular employees, often default to PETUGAS or KOORDINATORDIVISI
+        jabatan: 'PETUGAS' 
+      });
+      showToast(`Data ${emp.nama} berhasil dimuat ke formulir.`, "info");
+    }
   };
 
   const handleExportExcel = () => {
@@ -188,6 +218,31 @@ export const UsersPage: React.FC = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={formData.id ? "Edit User" : "Add User"}>
         <div className="space-y-4">
+          
+          {/* OPTION TO POPULATE FROM EMPLOYEES (Only on NEW USER) */}
+          {!formData.id && (
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 mb-2">
+               <label className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">
+                  <Contact size={14} /> Ambil Data dari Karyawan
+               </label>
+               <select 
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-primary outline-none"
+                  onChange={handleEmployeeSelect}
+                  defaultValue=""
+               >
+                  <option value="">-- Pilih Karyawan untuk Auto-Fill --</option>
+                  {employees
+                    .filter(emp => !users.some(u => u.username === emp.nik)) // Filter employees who aren't already users
+                    .map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.nama} (NIK: {emp.nik})</option>
+                  ))}
+               </select>
+               <p className="text-[10px] text-blue-500 mt-1.5 italic">
+                  *Memilih karyawan akan otomatis mengisi Nama, Username (NIK), dan Divisi.
+               </p>
+            </div>
+          )}
+
           <div>
             <Input label="Nama Lengkap" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
           </div>
@@ -213,18 +268,18 @@ export const UsersPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Show Jabatan Divisi dropdown only if Role is KOORDINATORDIVISI */}
-          {formData.jabatan === 'KOORDINATORDIVISI' && (
-             <div>
-               <Select 
-                 label="Jabatan Divisi (Khusus Koordinator)" 
-                 value={formData.jabatanDivisi || ''} 
-                 onChange={e => setFormData({...formData, jabatanDivisi: e.target.value})} 
-                 options={divisionOptions} 
-               />
-               <p className="text-xs text-gray-500 mt-1">Wajib diisi untuk Koordinator Divisi agar dapat mengakses absensi divisi terkait.</p>
-             </div>
-          )}
+          {/* Show Jabatan Divisi dropdown always but focus on KOORDINATORDIVISI */}
+          <div>
+            <Select 
+              label="Jabatan Divisi" 
+              value={formData.jabatanDivisi || ''} 
+              onChange={e => setFormData({...formData, jabatanDivisi: e.target.value})} 
+              options={divisionOptions} 
+            />
+            {formData.jabatan === 'KOORDINATORDIVISI' && (
+              <p className="text-[10px] text-orange-600 mt-1 font-medium">Wajib diisi untuk Koordinator Divisi agar dapat mengakses absensi divisi terkait.</p>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Cancel</Button>
@@ -235,4 +290,3 @@ export const UsersPage: React.FC = () => {
     </div>
   );
 };
-
