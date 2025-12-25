@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Card, Button, Input, Modal, LoadingSpinner, useToast, Logo, PrintPreviewDialog, ConfirmationModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, AbsensiRecord, User, Role, AbsensiDetail } from '../types';
-import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut, Trash2, Lock } from 'lucide-react';
+import { Plus, Calendar, CalendarDays, Check, Pencil, Printer, CloudLightning, Camera, Clock, XCircle, MapPin, User as UserIcon, LogIn, LogOut, Trash2, Lock, RefreshCw } from 'lucide-react';
 
 export const AbsensiPage: React.FC = () => {
   // Get current user to check role
@@ -41,6 +41,7 @@ export const AbsensiPage: React.FC = () => {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState<'MASUK' | 'PULANG' | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment'); // Camera Toggle State
   const videoRef = useRef<HTMLVideoElement>(null);
   const [streamObj, setStreamObj] = useState<MediaStream | null>(null);
 
@@ -178,10 +179,19 @@ export const AbsensiPage: React.FC = () => {
     setIsAbsenModalOpen(true);
   };
 
-  const startCamera = async (mode: 'MASUK' | 'PULANG') => {
+  const startCamera = async (mode: 'MASUK' | 'PULANG', preferredFacing?: 'user' | 'environment') => {
     setCameraActive(mode);
+    const currentFacing = preferredFacing || facingMode;
+    
+    // Stop existing stream if any before switching
+    if (streamObj) {
+      streamObj.getTracks().forEach(track => track.stop());
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: currentFacing } 
+      });
       setStreamObj(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -190,6 +200,14 @@ export const AbsensiPage: React.FC = () => {
       console.error(err);
       showToast("Gagal mengakses kamera. Pastikan izin diberikan.", "error");
       setCameraActive(null);
+    }
+  };
+
+  const toggleCamera = () => {
+    const newFacing = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacing);
+    if (cameraActive) {
+      startCamera(cameraActive, newFacing);
     }
   };
 
@@ -216,6 +234,12 @@ export const AbsensiPage: React.FC = () => {
     
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      // If front camera, mirror the photo to feel natural
+      if (facingMode === 'user') {
+          ctx.translate(w, 0);
+          ctx.scale(-1, 1);
+      }
+      
       ctx.drawImage(videoRef.current, 0, 0, w, h);
       const base64 = canvas.toDataURL('image/jpeg', 0.6); // Compress quality
       
@@ -243,7 +267,6 @@ export const AbsensiPage: React.FC = () => {
     }
 
     // FIX: Update Legacy Boolean (Checked if EITHER Masuk OR Pulang exists)
-    // Previously it only checked jamMasuk, causing "Pulang First" to mark as Absent (false)
     const isPresent = !!newDetail.jamMasuk || !!newDetail.jamPulang; 
 
     // Construct Update
@@ -260,7 +283,6 @@ export const AbsensiPage: React.FC = () => {
     try {
         await api.saveAbsensiRecord(updatedRecord);
         showToast(`Berhasil absen ${type.toLowerCase()}!`, "success");
-        // Don't close modal immediately, let user see result
     } catch (e) {
         showToast("Gagal menyimpan absensi.", "error");
     }
@@ -273,9 +295,6 @@ export const AbsensiPage: React.FC = () => {
 
     // Admin Override logic
     const updatedHari = { ...record.hari, [selectedDayIndex]: checked };
-    
-    // If unchecked, we might want to clear details or just leave them as history
-    // For now, we just update the boolean status
     
     const updatedRecord = { 
         ...record, 
@@ -624,15 +643,27 @@ export const AbsensiPage: React.FC = () => {
               ) : (
                 /* CAMERA VIEW */
                 <div className="relative bg-black rounded-2xl overflow-hidden aspect-[3/4] sm:aspect-video flex flex-col">
-                   <video ref={videoRef} autoPlay playsInline muted className="flex-1 object-cover w-full h-full"></video>
+                   <video 
+                     ref={videoRef} 
+                     autoPlay 
+                     playsInline 
+                     muted 
+                     className={`flex-1 object-cover w-full h-full ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+                   ></video>
                    
                    <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/60 to-transparent text-white flex justify-between items-center z-10">
                       <span className="font-bold flex items-center gap-2">
                         <Camera size={16}/> {cameraActive === 'MASUK' ? 'Foto Masuk' : 'Foto Pulang'}
                       </span>
-                      <button onClick={stopCamera} className="bg-white/20 p-1.5 rounded-full backdrop-blur-md">
-                         <XCircle size={20} />
-                      </button>
+                      <div className="flex gap-2">
+                        {/* CAMERA TOGGLE BUTTON */}
+                        <button onClick={toggleCamera} className="bg-white/20 p-2 rounded-full backdrop-blur-md hover:bg-white/40 transition-colors" title="Ganti Kamera">
+                           <RefreshCw size={20} />
+                        </button>
+                        <button onClick={stopCamera} className="bg-white/20 p-2 rounded-full backdrop-blur-md hover:bg-white/40 transition-colors">
+                           <XCircle size={20} />
+                        </button>
+                      </div>
                    </div>
                    
                    {/* TARGET NAME OVERLAY */}
