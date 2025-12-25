@@ -4,7 +4,7 @@ import { Navigate } from '../components/UIComponents';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, ConfirmationModal, PreviewModal, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, User, Role } from '../types';
-import { Eye, FileText, Download, Phone, CreditCard, Activity, Pencil, Trash2, Edit, SortAsc, CheckCircle2 } from 'lucide-react';
+import { Eye, FileText, Download, Phone, CreditCard, Activity, Pencil, Trash2, Edit, SortAsc, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -31,14 +31,18 @@ export const KaryawanPage: React.FC = () => {
   }
 
   const [data, setData] = useState<Karyawan[]>([]);
+  const [allOriginalData, setAllOriginalData] = useState<Karyawan[]>([]); // To help with UPSERT logic
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false); // Bulk Edit Modal
   const [deleteItem, setDeleteItem] = useState<Karyawan | null>(null);
+  const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false); // Bulk Delete Confirmation
   const [formData, setFormData] = useState<Partial<Karyawan>>({});
   const [bulkData, setBulkData] = useState<Karyawan[]>([]); // Data for bulk editing
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSortingDivisi, setIsSortingDivisi] = useState(false);
+  
+  // Sorting State
+  const [sortBy, setSortBy] = useState<'nama' | 'divisi' | 'nik'>('nama');
   
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
@@ -53,6 +57,7 @@ export const KaryawanPage: React.FC = () => {
   useEffect(() => {
     setLoading(true);
     const unsubscribe = api.subscribeKaryawan((items) => {
+      setAllOriginalData(items);
       let processed = [...items];
       
       // Apply Search
@@ -61,19 +66,22 @@ export const KaryawanPage: React.FC = () => {
         processed = processed.filter(i => i.nama.toLowerCase().includes(lower) || i.nik.includes(lower));
       }
 
-      // Apply Sorting by Divisi if active
-      if (isSortingDivisi) {
-        processed.sort((a, b) => a.divisi.localeCompare(b.divisi));
-      } else {
-        // Default sort by name
-        processed.sort((a, b) => a.nama.localeCompare(b.nama));
-      }
+      // Apply Advanced Sorting
+      processed.sort((a, b) => {
+        if (sortBy === 'divisi') {
+          return a.divisi.localeCompare(b.divisi);
+        } else if (sortBy === 'nik') {
+          return a.nik.localeCompare(b.nik);
+        } else {
+          return a.nama.localeCompare(b.nama);
+        }
+      });
 
       setData(processed);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [search, isSortingDivisi]);
+  }, [search, sortBy]);
 
   const handleSubmit = async () => {
     if (
@@ -97,7 +105,7 @@ export const KaryawanPage: React.FC = () => {
     showToast(`Data Karyawan ${formData.nama} berhasil disimpan!`, "success");
   };
 
-  // --- BULK EDIT LOGIC ---
+  // --- BULK EDIT & DELETE ALL LOGIC ---
   const openBulkEdit = () => {
     setBulkData(JSON.parse(JSON.stringify(data))); // Deep copy current filtered data
     setIsBulkModalOpen(true);
@@ -112,7 +120,6 @@ export const KaryawanPage: React.FC = () => {
   const handleSaveBulk = async () => {
     setLoading(true);
     try {
-      // Loop through all items in bulkData and save them
       for (const item of bulkData) {
         await api.saveKaryawan(item);
       }
@@ -120,6 +127,23 @@ export const KaryawanPage: React.FC = () => {
       setIsBulkModalOpen(false);
     } catch (e) {
       showToast("Terjadi kesalahan saat menyimpan data masal.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setLoading(true);
+    try {
+      // Loop through bulkData (which represents currently filtered/displayed items) and delete them
+      for (const item of bulkData) {
+        await api.deleteKaryawan(item.id);
+      }
+      showToast(`Berhasil menghapus ${bulkData.length} data karyawan.`, "success");
+      setIsDeleteAllConfirmOpen(false);
+      setIsBulkModalOpen(false);
+    } catch (e) {
+      showToast("Gagal menghapus data masal.", "error");
     } finally {
       setLoading(false);
     }
@@ -202,8 +226,8 @@ export const KaryawanPage: React.FC = () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const dataBuffer = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(dataBuffer, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -213,7 +237,7 @@ export const KaryawanPage: React.FC = () => {
           return;
         }
 
-        if (confirm(`Ditemukan ${jsonData.length} data karyawan. Apakah anda yakin ingin mengimpornya?`)) {
+        if (confirm(`Ditemukan ${jsonData.length} data karyawan. Sistem akan memperbarui data jika NIK sudah ada, atau menambah data baru jika NIK belum ada. Lanjutkan?`)) {
           setLoading(true);
           let successCount = 0;
           
@@ -222,8 +246,11 @@ export const KaryawanPage: React.FC = () => {
             const nama = row['Nama Karyawan'] || row['Nama'] || ''; 
             if (!nik || !nama) continue;
 
+            // SMART UPSERT LOGIC: Check if NIK already exists in Database
+            const existingKaryawan = allOriginalData.find(k => k.nik === nik);
+
             const newItem: Karyawan = {
-              id: '', 
+              id: existingKaryawan ? existingKaryawan.id : '', // Maintain ID if updating
               nik: nik,
               nama: nama,
               divisi: row['Divisi'] || 'Asisten Lapangan',
@@ -232,7 +259,7 @@ export const KaryawanPage: React.FC = () => {
               noBpjs: String(row['No BPJS'] || row['BPJS'] || '-'),
               bank: (row['Bank'] as any) || 'BANK BRI',
               rekening: String(row['No Rekening'] || row['Rekening'] || ''),
-              sertifikat: '' 
+              sertifikat: existingKaryawan ? existingKaryawan.sertifikat : '' 
             };
 
             await api.saveKaryawan(newItem);
@@ -240,7 +267,7 @@ export const KaryawanPage: React.FC = () => {
           }
           
           setLoading(false);
-          showToast(`Berhasil mengimpor ${successCount} data Karyawan.`, "success");
+          showToast(`Berhasil memproses ${successCount} data Karyawan (Update/Insert).`, "success");
         }
       } catch (err) {
         console.error(err);
@@ -352,33 +379,34 @@ export const KaryawanPage: React.FC = () => {
       />
       
       {/* --- SUB TOOLBAR FOR SORTING AND BULK EDIT --- */}
-      <div className="flex flex-wrap items-center gap-3 mb-6 no-print">
-          <button 
-             onClick={() => setIsSortingDivisi(!isSortingDivisi)}
-             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border shadow-sm
-                ${isSortingDivisi 
-                   ? 'bg-primary text-white border-primary' 
-                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
-          >
-             <SortAsc size={16} />
-             {isSortingDivisi ? 'Urutan: Divisi' : 'Urutkan Divisi'}
-          </button>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 no-print">
+          <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+                  <SortAsc size={16} className="text-gray-400" />
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Urutkan:</span>
+                  <select 
+                     value={sortBy} 
+                     onChange={(e) => setSortBy(e.target.value as any)}
+                     className="bg-transparent text-sm font-bold text-primary outline-none cursor-pointer"
+                  >
+                     <option value="nama">Nama (A-Z)</option>
+                     <option value="divisi">Divisi</option>
+                     <option value="nik">NIK</option>
+                  </select>
+              </div>
+          </div>
 
-          {canBulkEdit && (
-            <button 
-                onClick={openBulkEdit}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
-            >
-                <Edit size={16} />
-                Edit Masal (Semua)
-            </button>
-          )}
-
-          {isSortingDivisi && (
-              <span className="text-[10px] uppercase font-black text-primary bg-blue-50 px-2 py-1 rounded border border-blue-100 animate-pulse">
-                  Mode Urut Divisi Aktif
-              </span>
-          )}
+          <div className="flex items-center gap-2">
+              {canBulkEdit && (
+                <button 
+                    onClick={openBulkEdit}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
+                >
+                    <Edit size={16} />
+                    Edit Masal / Hapus Semua
+                </button>
+              )}
+          </div>
       </div>
       
       {loading ? (
@@ -450,22 +478,41 @@ export const KaryawanPage: React.FC = () => {
         isLoading={loading}
       />
 
+      {/* BULK DELETE CONFIRMATION */}
+      <ConfirmationModal 
+        isOpen={isDeleteAllConfirmOpen}
+        onClose={() => setIsDeleteAllConfirmOpen(false)}
+        onConfirm={handleDeleteAll}
+        title="Hapus Semua Data Terpilih"
+        message={`PERINGATAN: Tindakan ini akan menghapus permanen ${bulkData.length} data karyawan yang saat ini tampil di layar. Anda yakin ingin melanjutkan?`}
+        isLoading={loading}
+      />
+
       <PreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} src={previewSrc} title="Preview Sertifikat" />
 
       {/* --- BULK EDIT MODAL --- */}
-      <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Edit Masal Data Karyawan">
+      <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Edit Masal / Hapus Masal Data Karyawan">
          <div className="space-y-4">
             <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 flex gap-3 items-start">
                <Activity className="text-amber-600 shrink-0 mt-1" size={18} />
                <div className="text-xs text-amber-800">
-                  <p className="font-bold">Mode Edit Masal</p>
-                  <p className="mt-1">Anda sedang mengedit {bulkData.length} data karyawan yang tampil. Pastikan memeriksa kembali sebelum menekan simpan.</p>
+                  <p className="font-bold">Mode Pengolahan Masal</p>
+                  <p className="mt-1">Anda sedang mengolah {bulkData.length} data karyawan yang tampil. Anda bisa mengubah data secara cepat atau menghapus semua data yang tampil sekaligus.</p>
                </div>
             </div>
 
-            <div className="max-h-[60vh] overflow-auto border rounded-xl">
+            <div className="flex justify-start">
+               <button 
+                  onClick={() => setIsDeleteAllConfirmOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-700 rounded-lg text-xs font-bold border border-red-100 hover:bg-red-100 transition-all"
+               >
+                  <Trash2 size={14} /> Hapus Semua Data Tampil
+               </button>
+            </div>
+
+            <div className="max-h-[50vh] overflow-auto border rounded-xl shadow-inner bg-gray-50">
                <table className="w-full text-sm text-left border-collapse">
-                  <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                  <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                      <tr>
                         <th className="p-3 font-bold text-gray-600 border-b">Nama Karyawan</th>
                         <th className="p-3 font-bold text-gray-600 border-b">Divisi</th>
@@ -474,7 +521,7 @@ export const KaryawanPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
                      {bulkData.map((item, idx) => (
-                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                        <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
                            <td className="p-3">
                               <input 
                                  type="text" 
@@ -495,7 +542,7 @@ export const KaryawanPage: React.FC = () => {
                            <td className="p-3">
                               <input 
                                  type="number" 
-                                 className="w-full bg-transparent border-b border-transparent focus:border-primary outline-none py-1 font-mono font-bold text-blue-700" 
+                                 className="w-full bg-transparent border-b border-transparent focus:border-primary outline-none py-1 font-mono font-bold text-blue-700 text-right" 
                                  value={item.honorHarian ?? ''}
                                  onChange={(e) => handleBulkChange(idx, 'honorHarian', parseInt(e.target.value) || 0)}
                               />
@@ -509,7 +556,7 @@ export const KaryawanPage: React.FC = () => {
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                <Button variant="secondary" onClick={() => setIsBulkModalOpen(false)}>Batal</Button>
                <Button onClick={handleSaveBulk} isLoading={loading} icon={<CheckCircle2 size={18} />}>
-                  Simpan Semua Perubahan
+                  Simpan Perubahan
                </Button>
             </div>
          </div>
