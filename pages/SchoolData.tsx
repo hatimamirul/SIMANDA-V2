@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
@@ -334,9 +335,10 @@ export const SchoolPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-2 mb-6">
-               <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
-                  <span className="block text-xl font-bold text-blue-700">{item.jmlsiswa}</span>
-                  <span className="text-[10px] text-blue-600 font-medium">Siswa</span>
+               {/* MODIFIED: Changed Siswa box color to Emerald/Green theme */}
+               <div className="bg-emerald-50 rounded-lg p-2 text-center border border-emerald-100">
+                  <span className="block text-xl font-bold text-emerald-700">{item.jmlsiswa}</span>
+                  <span className="text-[10px] text-emerald-600 font-medium">Siswa</span>
                </div>
                <div className="bg-indigo-50 rounded-lg p-2 text-center border border-indigo-100">
                   <span className="block text-xl font-bold text-indigo-700">{item.pmBesar}</span>
