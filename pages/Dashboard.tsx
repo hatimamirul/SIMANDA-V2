@@ -10,7 +10,7 @@ import {
   Package, UserCog, Bell,
   ArrowUpRight, Database, AlertCircle, CheckCircle2,
   FileCheck, FileClock, GraduationCap, FileText, PieChart as PieIcon, ListChecks,
-  Clock, LayoutGrid, Zap
+  Clock, LayoutGrid, Zap, MapPin
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, 
@@ -347,8 +347,9 @@ export const Dashboard: React.FC = () => {
                       <table className="w-full text-sm text-left border-collapse">
                           <thead>
                               <tr className="bg-gray-50/50 border-b border-gray-100">
-                                  <th className="p-4 font-black text-gray-400 uppercase text-[9px] tracking-widest w-12">No</th>
+                                  <th className="p-4 font-black text-gray-400 uppercase text-[9px] tracking-widest w-12 text-center">No</th>
                                   <th className="p-4 font-black text-gray-600 uppercase text-[9px] tracking-widest">Nama Lembaga Pendidikan</th>
+                                  <th className="p-4 font-black text-gray-500 uppercase text-[9px] tracking-widest">Desa</th>
                                   <th className="p-4 font-black text-blue-600 uppercase text-[9px] tracking-widest text-center">P. Besar</th>
                                   <th className="p-4 font-black text-red-600 uppercase text-[9px] tracking-widest text-center">P. Kecil</th>
                                   <th className="p-4 font-black text-purple-600 uppercase text-[9px] tracking-widest text-center">Guru</th>
@@ -357,15 +358,20 @@ export const Dashboard: React.FC = () => {
                           <tbody className="divide-y divide-gray-50 bg-white">
                               {dataLoading ? (
                                   [...Array(5)].map((_, i) => (
-                                      <tr key={i}><td colSpan={5} className="p-4"><div className="h-4 bg-gray-100 rounded animate-pulse"></div></td></tr>
+                                      <tr key={i}><td colSpan={6} className="p-4"><div className="h-4 bg-gray-100 rounded animate-pulse"></div></td></tr>
                                   ))
                               ) : proposalInSchools.length === 0 ? (
-                                  <tr><td colSpan={5} className="p-12 text-center text-gray-400 italic font-medium">Belum ada data proposal dengan status 'SUDAH'</td></tr>
+                                  <tr><td colSpan={6} className="p-12 text-center text-gray-400 italic font-medium">Belum ada data proposal dengan status 'SUDAH'</td></tr>
                               ) : (
                                   proposalInSchools.map((s, idx) => (
                                       <tr key={s.id} className="hover:bg-blue-50/30 transition-colors">
-                                          <td className="p-4 text-gray-400 font-mono text-xs">{idx + 1}</td>
+                                          <td className="p-4 text-gray-400 font-mono text-xs text-center">{idx + 1}</td>
                                           <td className="p-4 font-bold text-gray-700">{s.nama}</td>
+                                          <td className="p-4">
+                                            <span className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                                              <MapPin size={10} className="text-gray-400"/> {s.desa || '-'}
+                                            </span>
+                                          </td>
                                           <td className="p-4 text-center font-mono font-black text-blue-700">{s.pmBesar || 0}</td>
                                           <td className="p-4 text-center font-mono font-black text-red-700">{s.pmKecil || 0}</td>
                                           <td className="p-4 text-center font-mono font-black text-purple-700">{s.jmlguru || 0}</td>
@@ -376,7 +382,7 @@ export const Dashboard: React.FC = () => {
                           {!dataLoading && proposalInSchools.length > 0 && (
                               <tfoot className="bg-slate-900 text-white font-bold">
                                   <tr>
-                                      <td colSpan={2} className="p-5 text-right uppercase tracking-[0.2em] text-[10px] text-slate-400">Total Keseluruhan</td>
+                                      <td colSpan={3} className="p-5 text-right uppercase tracking-[0.2em] text-[10px] text-slate-400 border-r border-slate-800">Total Keseluruhan</td>
                                       <td className="p-5 text-center font-mono text-xl text-yellow-400 font-black">{totals.pmBesar}</td>
                                       <td className="p-5 text-center font-mono text-xl text-yellow-400 font-black">{totals.pmKecil}</td>
                                       <td className="p-5 text-center font-mono text-xl text-yellow-400 font-black">{totals.guru}</td>
