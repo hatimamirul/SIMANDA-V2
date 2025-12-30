@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, Button, Input, Modal, LoadingSpinner, useToast, Logo, PrintPreviewDialog, ConfirmationModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
@@ -344,6 +343,9 @@ export const AbsensiPage: React.FC = () => {
   const formatDate = (date: Date) => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: '2-digit' }).format(date);
   const getDayName = (date: Date) => new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(date);
   const getFullDate = (date: Date) => new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' }).format(date);
+
+  // ADDED: Date for Signature
+  const todayDate = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   const currentPeriode = periodes.find(p => p.id === selectedPeriode);
   const printFilename = `Laporan_Absensi_${currentPeriode?.nama.replace(/\s+/g, '_') || 'SPPG'}`;
@@ -727,40 +729,51 @@ export const AbsensiPage: React.FC = () => {
         title="Laporan Absensi"
         filename={printFilename}
       >
-        <div className="text-center mb-6">
-           <h1 className="text-xl font-bold uppercase">Laporan Absensi Karyawan</h1>
-           <h2 className="text-lg uppercase text-gray-600">{currentPeriode?.nama}</h2>
-           <p className="text-sm text-gray-500 mt-1">Divisi: {isKoordinator ? currentUser?.jabatanDivisi : 'Semua Divisi'}</p>
+        <style>{`
+          @media print {
+            tr { page-break-inside: avoid; }
+            .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+          }
+        `}</style>
+
+        <div className="text-center mb-8">
+           <div className="border-b-2 border-black pb-4 mb-4">
+              <h1 className="text-2xl font-black uppercase tracking-wide">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
+              <p className="text-sm font-bold uppercase">KECAMATAN NGADILUWIH - KABUPATEN KEDIRI</p>
+           </div>
+           <h2 className="text-lg font-bold uppercase underline decoration-2 underline-offset-4">Laporan Rekapitulasi Absensi</h2>
+           <p className="text-sm font-bold uppercase mt-1">Periode: {currentPeriode?.nama}</p>
+           <p className="text-xs text-gray-600 mt-1 uppercase font-medium">Divisi: {isKoordinator ? currentUser?.jabatanDivisi : 'Semua Divisi'}</p>
         </div>
 
         {sortedDivisions.map(divisi => (
-          <div key={divisi} className="mb-8 break-inside-avoid">
-            <div className="bg-gray-200 px-3 py-1 font-bold text-sm border border-gray-400 border-b-0 inline-block">{divisi}</div>
-            <table className="w-full border-collapse border border-gray-400 text-xs">
+          <div key={divisi} className="mb-8 avoid-break">
+            <div className="bg-gray-100 px-3 py-1.5 font-bold text-xs border border-black border-b-0 inline-block uppercase tracking-wider">{divisi}</div>
+            <table className="w-full border-collapse border border-black text-[10px]">
                <thead>
-                 <tr className="bg-gray-100">
-                    <th className="border border-gray-400 p-1 w-8 text-center">No</th>
-                    <th className="border border-gray-400 p-1 text-left">Nama</th>
+                 <tr className="bg-gray-200">
+                    <th className="border border-black p-1 w-8 text-center">NO</th>
+                    <th className="border border-black p-1 text-left pl-2">NAMA KARYAWAN</th>
                     {calendarDates.map((date, i) => (
-                       <th key={i} className="border border-gray-400 p-1 w-8 text-center">
-                          <div className="text-[9px] uppercase">{getDayName(date)}</div>
+                       <th key={i} className="border border-black p-1 w-6 text-center">
+                          <div className="text-[8px] uppercase">{getDayName(date)}</div>
                           <div>{date.getDate()}</div>
                        </th>
                     ))}
-                    <th className="border border-gray-400 p-1 w-10 text-center">Jml</th>
+                    <th className="border border-black p-1 w-10 text-center">JML</th>
                  </tr>
                </thead>
                <tbody>
                   {groupedData[divisi].map((record, idx) => (
                     <tr key={record.id}>
-                       <td className="border border-gray-400 p-1 text-center">{idx + 1}</td>
-                       <td className="border border-gray-400 p-1 truncate max-w-[150px]">{record.namaKaryawan}</td>
+                       <td className="border border-black p-1 text-center font-medium">{idx + 1}</td>
+                       <td className="border border-black p-1 pl-2 uppercase font-medium truncate max-w-[150px]">{record.namaKaryawan}</td>
                        {calendarDates.map((_, i) => (
-                          <td key={i} className="border border-gray-400 p-1 text-center font-bold">
+                          <td key={i} className="border border-black p-0 text-center font-bold align-middle">
                              {record.hari[i+1] ? 'v' : ''}
                           </td>
                        ))}
-                       <td className="border border-gray-400 p-1 text-center font-bold bg-gray-50">{record.totalHadir}</td>
+                       <td className="border border-black p-1 text-center font-bold bg-gray-50">{record.totalHadir}</td>
                     </tr>
                   ))}
                </tbody>
@@ -768,11 +781,11 @@ export const AbsensiPage: React.FC = () => {
           </div>
         ))}
 
-        <div className="mt-8 flex justify-end">
-           <div className="text-center w-48">
-              <p className="mb-16">Mengetahui,</p>
-              <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
-              <p className="text-xs">Kepala SPPG</p>
+        <div className="mt-10 flex justify-end avoid-break">
+           <div className="text-center min-w-[250px]">
+              <p className="text-xs font-medium mb-1">Ngadiluwih, {todayDate}</p>
+              <p className="text-sm font-bold uppercase mb-24">Kepala SPPG</p>
+              <p className="font-bold underline text-sm uppercase leading-none">Tiurmasi Saulina Sirait, S.T.</p>
            </div>
         </div>
       </PrintPreviewDialog>
