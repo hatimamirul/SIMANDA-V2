@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
 import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText } from 'lucide-react';
 
@@ -341,6 +340,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               </table>
               <div className="mt-12 flex justify-end page-break-inside-avoid">
                  <div className="text-center min-w-[220px] text-black">
+                    <p className="text-sm mb-1">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
                     <p className="mb-20 text-sm">Mengetahui,</p>
                     <p className="font-bold underline text-sm whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
                     <p className="text-xs font-medium uppercase mt-0.5">Kepala SPPG</p>
@@ -623,4 +623,3 @@ export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelet
     </table>
   </div>
 );
-  
