@@ -253,7 +253,7 @@ export const HonorKaryawanPage: React.FC = () => {
         defaultFilename={defaultFilename}
       />
 
-      {/* --- BULK PRINT MODAL (MURNI PDF / NATIVE PRINT) --- */}
+      {/* --- BULK PRINT MODAL (MURNI PDF / NATIVE PRINT - UPDATED) --- */}
       <PrintPreviewDialog
         isOpen={isBulkPrintOpen}
         onClose={() => setIsBulkPrintOpen(false)}
@@ -272,22 +272,23 @@ export const HonorKaryawanPage: React.FC = () => {
               background: white;
               border: 1px solid #ccc;
               border-radius: 4px;
-              padding: 10px;
+              padding: 0;
               height: 350px; 
               overflow: hidden;
               position: relative;
+              box-sizing: border-box;
            }
 
-           /* --- PRINT STYLES (A4 Precision) --- */
+           /* --- PRINT STYLES (A4 Precision - Dynamic Flow) --- */
            @media print {
              @page { 
-               size: A4 portrait; /* Wajib Portrait */
-               margin: 0; /* Nol Margin di @page, kita atur padding di body */
+               size: A4 portrait;
+               margin: 5mm; 
              }
              body { 
                background: white; 
                margin: 0;
-               padding: 10mm 10mm 5mm 10mm; /* Top/Right/Bottom/Left Padding Kertas */
+               padding: 5mm; 
                -webkit-print-color-adjust: exact; 
                print-color-adjust: exact;
              }
@@ -297,44 +298,38 @@ export const HonorKaryawanPage: React.FC = () => {
                width: 100%;
              }
              
-             /* Container Slip: Tinggi Fix 92mm */
+             /* Container Slip */
              .slip-wrapper {
-                display: block;
+                display: flex;
+                flex-direction: column;
                 width: 100%;
-                /* 
-                   A4 = 297mm. 
-                   Padding Body Atas = 10mm. 
-                   Sisa = 287mm.
-                   3 Slip x 92mm = 276mm.
-                   Sisa Spasi = 11mm (untuk gap antar slip).
-                */
-                height: 92mm; 
-                border: 1px solid #000; /* Border Hitam Tegas */
-                margin-bottom: 4mm;     /* Jarak antar slip */
+                
+                /* Auto height to fit content, prevent cutting */
+                height: auto; 
+                min-height: 85mm; /* ~1/3 A4 */
+                
+                border: 2px solid #000; 
+                margin-bottom: 5mm;     
+                
                 box-sizing: border-box;
-                page-break-inside: avoid; /* Mencegah potong tengah */
-                break-inside: avoid;
+                
+                /* CRITICAL: Prevent cutting inside the slip */
+                page-break-inside: avoid !important; 
+                break-inside: avoid !important;
+                
                 position: relative;
                 background-color: white;
                 box-shadow: none;
-                border-radius: 4px;
-                padding: 0; /* Reset padding wrapper */
-             }
-
-             /* Setiap item ke-3 (akhir halaman) reset margin dan page break */
-             .slip-wrapper:nth-child(3n) {
-                page-break-after: always;
-                break-after: page;
-                margin-bottom: 0;
+                border-radius: 0;
              }
            }
 
            /* --- INTERNAL SLIP LAYOUT --- */
            .slip-inner {
-              padding: 10px 15px;
+              padding: 12px 15px;
               display: flex;
               flex-direction: column;
-              height: 100%;
+              flex: 1;
               justify-content: space-between;
               font-family: Arial, Helvetica, sans-serif;
               color: #000;
@@ -348,64 +343,64 @@ export const HonorKaryawanPage: React.FC = () => {
               margin-bottom: 4px;
            }
            .slip-header img {
-              width: 40px;
-              height: 40px;
+              width: 45px;
+              height: 45px;
               object-fit: contain;
            }
            .slip-title-block {
               line-height: 1.1;
            }
-           .slip-title-main { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #000; }
-           .slip-title-sub { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #333; }
+           .slip-title-main { font-size: 16px; font-weight: 800; text-transform: uppercase; color: #000; }
+           .slip-title-sub { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #333; }
 
-           /* Garis Tebal */
+           /* Divider */
            .slip-divider {
               border-bottom: 2px solid #000;
-              margin-bottom: 8px;
+              margin-bottom: 10px;
            }
 
-           /* Grid Data Kiri Kanan */
+           /* Grid Data */
            .slip-info-grid {
               display: grid;
-              grid-template-columns: 1fr 1fr; /* 50% 50% */
+              grid-template-columns: 1.2fr 1fr; /* Name gets more space */
               column-gap: 20px;
-              font-size: 10px;
-              margin-bottom: 5px;
+              font-size: 11px;
+              margin-bottom: 8px;
            }
-           .info-row { display: flex; align-items: flex-start; margin-bottom: 2px; }
-           .info-label { width: 65px; font-weight: 700; color: #444; text-transform: uppercase; }
+           .info-row { display: flex; align-items: flex-start; margin-bottom: 3px; }
+           .info-label { width: 70px; font-weight: 700; color: #444; text-transform: uppercase; }
            .info-sep { width: 10px; text-align: center; font-weight: 700; }
            .info-val { flex: 1; font-weight: 700; color: #000; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
            /* Box Rincian */
            .calc-box {
-              background-color: #f3f4f6; /* Abu muda saat cetak */
+              background-color: #f3f4f6;
               border: 1px solid #999;
               border-radius: 4px;
-              padding: 5px 10px;
-              margin-bottom: 5px;
+              padding: 8px 12px;
+              margin-bottom: 8px;
            }
-           .calc-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; color: #000; }
+           .calc-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #000; }
            .calc-row.total { 
               border-top: 1px dashed #000; 
-              margin-top: 3px; 
-              padding-top: 3px; 
-              font-size: 11px;
+              margin-top: 6px; 
+              padding-top: 6px; 
+              font-size: 13px;
               font-weight: 900;
            }
 
-           /* Footer Tanda Tangan */
+           /* Footer */
            .signatures-row {
               display: flex;
               justify-content: space-between;
               align-items: flex-end;
-              margin-top: auto; 
-              padding-bottom: 0px;
+              margin-top: 10px; 
+              padding-bottom: 5px;
            }
-           .sig-block { text-align: center; min-width: 120px; }
-           .sig-title { font-size: 8px; color: #000; font-weight: 700; margin-bottom: 30px; text-transform: uppercase; } 
-           .sig-date { font-size: 9px; color: #000; font-style: italic; margin-bottom: 2px; text-align: right; }
-           .sig-name { font-size: 9px; font-weight: 800; text-transform: uppercase; text-decoration: underline; color: #000; }
+           .sig-block { text-align: center; min-width: 140px; }
+           .sig-title { font-size: 9px; color: #000; font-weight: 700; margin-bottom: 40px; text-transform: uppercase; } 
+           .sig-date { font-size: 10px; color: #000; font-style: italic; margin-bottom: 2px; text-align: right; }
+           .sig-name { font-size: 10px; font-weight: 800; text-transform: uppercase; text-decoration: underline; color: #000; }
 
          `}</style>
 
@@ -430,7 +425,7 @@ export const HonorKaryawanPage: React.FC = () => {
                              <div>
                                 <div className="info-row">
                                    <span className="info-label">NAMA</span><span className="info-sep">:</span>
-                                   <span className="info-val">{item.nama}</span>
+                                   <span className="info-val" title={item.nama}>{item.nama}</span>
                                 </div>
                                 <div className="info-row">
                                    <span className="info-label">DIVISI</span><span className="info-sep">:</span>
