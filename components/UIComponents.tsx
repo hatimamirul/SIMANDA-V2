@@ -339,7 +339,6 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                     )}
                  </tbody>
               </table>
-              {/* UPDATED SIGNATURE AREA (EXPORT MODAL) */}
               <div className="mt-12 flex justify-end page-break-inside-avoid">
                  <div className="text-center min-w-[220px] text-black">
                     <p className="mb-20 text-sm">Mengetahui,</p>
@@ -537,7 +536,6 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
                   <tfoot> <tr className="bg-gray-100"> <td colSpan={3} className="border border-black px-4 py-3 text-right text-base font-bold">TOTAL DITERIMA</td> <td className="border border-black px-4 py-3 text-right text-base font-bold">{formatCurrency(data.totalTerima)}</td> </tr> </tfoot>
                 </table>
               </div>
-              {/* UPDATED SIGNATURE AREA (SLIP GAJI MODAL) */}
               <div className="grid grid-cols-2 mt-8 px-4 text-black text-sm gap-x-16">
                 <div className="flex flex-col items-center justify-end">
                   <p className="mb-20 font-bold">Penerima,</p>
@@ -547,8 +545,8 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
                   <p className="mb-1 text-center">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
                   <p className="mb-20 text-center">Mengetahui,</p>
                   <div className="w-full text-center">
-                     <p className="font-bold underline whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
-                     <p className="text-xs uppercase mt-0.5">Kepala SPPG</p>
+                     <p className="font-bold underline text-sm whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
+                     <p className="text-xs font-medium uppercase mt-0.5">Kepala SPPG</p>
                   </div>
                 </div>
               </div>
