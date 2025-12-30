@@ -779,12 +779,13 @@ export const AbsensiPage: React.FC = () => {
              </div>
            ))}
 
-           {/* UPDATED SIGNATURE AREA (OFFICIAL FORMAT) */}
+           {/* FOOTER TTD - SESUAI PERMINTAAN */}
            <div className="mt-12 flex justify-end">
               <div className="text-center min-w-[280px] text-black">
                  <p className="text-sm mb-1">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
                  <p className="mb-20 text-sm font-medium">Mengetahui,</p>
                  <div className="w-full">
+                    {/* Menggunakan whitespace-nowrap agar nama dan gelar menyatu dalam satu baris */}
                     <p className="font-bold underline text-base whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
                     <p className="text-xs uppercase font-black tracking-widest mt-1">Kepala SPPG</p>
                  </div>
