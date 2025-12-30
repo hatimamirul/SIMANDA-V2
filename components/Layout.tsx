@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation } from '../components/UIComponents'; // Import useLocation for manual active check
+import { useLocation } from '../components/UIComponents'; 
 import { 
   LayoutDashboard, 
   Users, 
@@ -21,14 +21,15 @@ import {
   Heart,
   CalendarCheck,
   ShieldAlert,
-  Package, // Icon for Inventory
-  Truck, // Icon for Supplier
-  ArrowDownToLine, // Icon for Incoming
-  ArrowUpFromLine, // Icon for Outgoing
-  ClipboardList, // Icon for Stock Opname
-  Layers, // Icon for Stock Current
-  Settings, // New Icon for System
-  BookOpen // New Icon for School Group
+  Package, 
+  Truck, 
+  ArrowDownToLine, 
+  ArrowUpFromLine, 
+  ClipboardList, 
+  Layers, 
+  Settings, 
+  BookOpen,
+  FileText // Icon for Documents
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -39,22 +40,16 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-// MODIFIED: SidebarItem now uses native anchor behavior with forced reload for fresh data
 const SidebarItem: React.FC<{ to: string; icon?: React.ReactNode; label: string; onClick?: () => void; isSubItem?: boolean }> = ({ to, icon, label, onClick, isSubItem }) => {
-  // Manual Active State Check
   const isActive = window.location.pathname === to || (to !== '/' && window.location.pathname.startsWith(to));
 
   const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent default SPA router behavior
-    
+    e.preventDefault(); 
     if (onClick) onClick();
-
-    // FORCE REFRESH: Navigate using window.location to trigger a full page reload
-    // This ensures data is 100% fresh and re-initializes real-time connections
     if (window.location.pathname === to) {
-        window.location.reload(); // If same page, just reload
+        window.location.reload(); 
     } else {
-        window.location.href = to; // If different page, navigate (which causes load)
+        window.location.href = to; 
     }
   };
 
@@ -86,7 +81,6 @@ const SidebarDropdown: React.FC<{
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
 
-  // Auto-expand if a child route is active
   useEffect(() => {
     const isChildActive = React.Children.toArray(children).some((child: any) => {
       return child.props.to && location.pathname.startsWith(child.props.to);
@@ -94,7 +88,7 @@ const SidebarDropdown: React.FC<{
     if (isChildActive) {
       setExpanded(true);
     }
-  }, [location.pathname, children]); // Fix dependency to pathname primitive
+  }, [location.pathname, children]); 
 
   const toggleExpand = () => {
     if (!sidebarOpen) {
@@ -122,7 +116,6 @@ const SidebarDropdown: React.FC<{
         )}
       </button>
       
-      {/* Sub-menu items container */}
       <div 
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
           sidebarOpen && expanded ? 'max-h-96 opacity-100 mt-1 space-y-1' : 'max-h-0 opacity-0'
@@ -135,7 +128,6 @@ const SidebarDropdown: React.FC<{
 };
 
 export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
-  // FIX: Initialize based on window width directly to prevent flash or wrong state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [isOpen, setIsOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
@@ -145,69 +137,42 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       const width = window.innerWidth;
       const mobile = width < 1024;
       setIsMobile(mobile);
-      
-      // FIX: Only force open on Desktop. 
-      // Do NOT auto-close on Mobile resize events (like address bar scrolling).
       if (!mobile) {
          setIsOpen(true);
       }
     };
-    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar on route change for mobile
   useEffect(() => {
     if (isMobile) setIsOpen(false);
-  }, [location.pathname, isMobile]); // CRITICAL FIX: Depend on pathname string, not location object reference
+  }, [location.pathname, isMobile]); 
 
   const role: Role = user?.jabatan || 'PETUGAS';
 
-  // Permission Logic
   const canSeeUsers = role === 'SUPERADMIN';
   const canSeeKaryawan = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
   const canSeeAbsensi = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG' || role === 'KOORDINATORDIVISI';
-  
-  // Sekolah Data Permissions
   const canSeeSekolah = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG' || role === 'PETUGAS';
-  const canSeePICSekolah = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG'; // Petugas excluded
-  
-  // B3 Data Permissions
+  const canSeePICSekolah = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG'; 
   const canSeeB3 = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG' || role === 'PETUGAS';
-  const canSeeKaderB3 = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG'; // Petugas excluded
-
-  // Finance
+  const canSeeKaderB3 = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG'; 
   const canSeeFinance = role === 'SUPERADMIN' || role === 'KSPPG';
-  
-  // Inventory (Stok Bahan Baku) Permissions
   const canSeeInventory = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
-
-  const canSeeLogs = role === 'SUPERADMIN';
-
-  // Group Permissions
-  const showKepegawaian = canSeeKaryawan || canSeeAbsensi;
-  const showSekolahGroup = canSeeSekolah || canSeePICSekolah;
-  const showB3Group = canSeeB3 || canSeeKaderB3;
-  const showSystemGroup = canSeeUsers || canSeeLogs;
+  const canSeeDocs = role !== 'PETUGAS' && role !== 'KOORDINATORDIVISI'; // Limit to Admins
 
   return (
     <div className="flex h-screen bg-[#F4F8FF] overflow-hidden">
-      {/* Mobile Backdrop (Increased z-index to 40) */}
       {isMobile && isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)} />
       )}
 
-      {/* Sidebar (Increased z-index to 50 to be on top of everything) */}
       <aside 
         className={`fixed lg:relative z-50 h-full bg-[#f8fbff] border-r border-white/50 shadow-xl transition-all duration-300 ease-in-out flex flex-col left-0
           ${isOpen ? 'w-64 translate-x-0' : '-translate-x-full w-64 lg:w-20 lg:translate-x-0'}
         `}
       >
-        {/* Logo Area */}
         <div className={`h-28 flex items-center ${isOpen ? 'justify-between px-6' : 'justify-center'} border-b border-gray-100 transition-all duration-300`}>
           {isOpen ? (
             <div className="flex items-center gap-4 w-full">
@@ -229,63 +194,37 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           )}
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {/* 1. Dashboard */}
           <SidebarItem to="/dashboard" icon={<LayoutDashboard size={20} />} label={isOpen ? "Dashboard" : ""} />
           
-          {/* 2. Kepegawaian (HR) */}
-          {showKepegawaian && (
-             <SidebarDropdown 
-               icon={<Users size={20} />} 
-               label="Kepegawaian" 
-               isOpen={isOpen}
-               sidebarOpen={isOpen}
-               setSidebarOpen={setIsOpen}
-             >
-               {canSeeKaryawan && <SidebarItem to="/karyawan" icon={<Contact size={18} />} label="Data Karyawan" isSubItem />}
-               {canSeeAbsensi && <SidebarItem to="/absensi" icon={<CalendarCheck size={18} />} label="Absensi SPPG" isSubItem />}
+          {canSeeDocs && (
+             <SidebarItem to="/dokumen" icon={<FileText size={20} />} label={isOpen ? "Arsip & Dokumen" : ""} />
+          )}
+
+          {canSeeKaryawan && (
+             <SidebarDropdown icon={<Users size={20} />} label="Kepegawaian" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
+               <SidebarItem to="/karyawan" icon={<Contact size={18} />} label="Data Karyawan" isSubItem />
+               <SidebarItem to="/absensi" icon={<CalendarCheck size={18} />} label="Absensi SPPG" isSubItem />
              </SidebarDropdown>
           )}
 
-          {/* 3. Manajemen Sekolah */}
-          {showSekolahGroup && (
-             <SidebarDropdown 
-               icon={<School size={20} />} 
-               label="Manajemen Sekolah" 
-               isOpen={isOpen}
-               sidebarOpen={isOpen}
-               setSidebarOpen={setIsOpen}
-             >
-               {canSeeSekolah && <SidebarItem to="/sekolah" icon={<BookOpen size={18} />} label="Data PM Sekolah" isSubItem />}
-               {canSeeSekolah && <SidebarItem to="/alergi" icon={<ShieldAlert size={18} />} label="Data Alergi" isSubItem />}
+          {canSeeSekolah && (
+             <SidebarDropdown icon={<School size={20} />} label="Manajemen Sekolah" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
+               <SidebarItem to="/sekolah" icon={<BookOpen size={18} />} label="Data PM Sekolah" isSubItem />
+               <SidebarItem to="/alergi" icon={<ShieldAlert size={18} />} label="Data Alergi" isSubItem />
                {canSeePICSekolah && <SidebarItem to="/pic-sekolah" icon={<UserCog size={18} />} label="Data PIC Sekolah" isSubItem />}
              </SidebarDropdown>
           )}
 
-          {/* 4. Manajemen B3 */}
-          {showB3Group && (
-             <SidebarDropdown 
-               icon={<Baby size={20} />} 
-               label="Manajemen B3" 
-               isOpen={isOpen}
-               sidebarOpen={isOpen}
-               setSidebarOpen={setIsOpen}
-             >
-               {canSeeB3 && <SidebarItem to="/b3" icon={<Heart size={18} />} label="Data PM B3" isSubItem />}
+          {canSeeB3 && (
+             <SidebarDropdown icon={<Baby size={20} />} label="Manajemen B3" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
+               <SidebarItem to="/b3" icon={<Heart size={18} />} label="Data PM B3" isSubItem />
                {canSeeKaderB3 && <SidebarItem to="/kader-b3" icon={<Stethoscope size={18} />} label="Data Kader B3" isSubItem />}
              </SidebarDropdown>
           )}
 
-          {/* 5. Gudang / Inventory */}
           {canSeeInventory && (
-             <SidebarDropdown 
-               icon={<Package size={20} />} 
-               label="Logistik & Gudang" 
-               isOpen={isOpen}
-               sidebarOpen={isOpen}
-               setSidebarOpen={setIsOpen}
-             >
+             <SidebarDropdown icon={<Package size={20} />} label="Logistik & Gudang" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
                <SidebarItem to="/inventory/stok-saat-ini" icon={<Layers size={18} />} label="Stok Saat Ini" isSubItem />
                <SidebarItem to="/inventory/bahan-masuk" icon={<ArrowDownToLine size={18} />} label="Bahan Masuk" isSubItem />
                <SidebarItem to="/inventory/bahan-keluar" icon={<ArrowUpFromLine size={18} />} label="Bahan Keluar" isSubItem />
@@ -294,37 +233,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
              </SidebarDropdown>
           )}
           
-          {/* 6. Keuangan */}
           {canSeeFinance && (
-            <SidebarDropdown 
-              icon={<Wallet size={20} />} 
-              label="Keuangan & Gaji" 
-              isOpen={isOpen}
-              sidebarOpen={isOpen}
-              setSidebarOpen={setIsOpen}
-            >
+            <SidebarDropdown icon={<Wallet size={20} />} label="Keuangan & Gaji" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
               <SidebarItem to="/honor-karyawan" icon={<Briefcase size={18} />} label="Honor Karyawan" isSubItem />
               <SidebarItem to="/honor-pic" icon={<GraduationCap size={18} />} label="Honor PIC Sekolah" isSubItem />
               <SidebarItem to="/honor-kader" icon={<Heart size={18} />} label="Honor Kader B3" isSubItem />
             </SidebarDropdown>
           )}
 
-          {/* 7. System Admin */}
-          {showSystemGroup && (
-             <SidebarDropdown 
-               icon={<Settings size={20} />} 
-               label="Sistem & Admin" 
-               isOpen={isOpen}
-               sidebarOpen={isOpen}
-               setSidebarOpen={setIsOpen}
-             >
-               {canSeeUsers && <SidebarItem to="/users" icon={<UserCog size={18} />} label="Manajemen User" isSubItem />}
-               {canSeeLogs && <SidebarItem to="/logs" icon={<Activity size={18} />} label="Log Aktivitas" isSubItem />}
+          {canSeeUsers && (
+             <SidebarDropdown icon={<Settings size={20} />} label="Sistem & Admin" isOpen={isOpen} sidebarOpen={isOpen} setSidebarOpen={setIsOpen}>
+               <SidebarItem to="/users" icon={<UserCog size={18} />} label="Manajemen User" isSubItem />
              </SidebarDropdown>
           )}
         </nav>
 
-        {/* User Footer */}
         <div className="p-4 border-t border-gray-100">
           <div className={`flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-50 ${!isOpen && 'justify-center'}`}>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold shrink-0">
@@ -337,11 +260,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               </div>
             )}
             {isOpen && (
-              <button 
-                onClick={onLogout}
-                className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                title="Logout"
-              >
+              <button onClick={onLogout} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Logout">
                 <LogOut size={18} />
               </button>
             )}
@@ -349,9 +268,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-        {/* Navbar for Mobile (Increased z-index to 30 to sit above content but below sidebar/backdrop) */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 lg:hidden z-30 sticky top-0">
            <button onClick={() => setIsOpen(true)} className="p-2 -ml-2 text-gray-600">
              <Menu />
@@ -359,10 +276,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
            <div className="flex flex-col items-center">
              <span className="font-bold text-gray-700 text-sm">SIMANDA SPPG</span>
            </div>
-           <div className="w-8"></div> {/* Spacer */}
+           <div className="w-8"></div>
         </header>
 
-        {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
            <div className="max-w-7xl mx-auto">
              {children}
@@ -372,4 +288,3 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     </div>
   );
 };
-
