@@ -781,7 +781,7 @@ export const AbsensiPage: React.FC = () => {
           </div>
         ))}
 
-        <div className="mt-10 flex justify-end avoid-break">
+        <div className="mt-8 flex justify-end avoid-break">
            <div className="text-center min-w-[250px]">
               <p className="text-xs font-medium mb-1">Ngadiluwih, {todayDate}</p>
               <p className="text-sm font-bold uppercase mb-24">Kepala SPPG</p>
