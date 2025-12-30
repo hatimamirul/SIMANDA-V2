@@ -739,7 +739,7 @@ export const AbsensiPage: React.FC = () => {
         <div className="text-center mb-8">
            <div className="border-b-2 border-black pb-4 mb-4">
               <h1 className="text-2xl font-black uppercase tracking-wide">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
-              <p className="text-sm font-bold uppercase">KECAMATAN NGADILUWIH - KABUPATEN KEDIRI</p>
+              <p className="text-sm font-bold uppercase">DESA TALES SETONO - KECAMATAN NGADILUWIH - KABUPATEN KEDIRI</p>
            </div>
            <h2 className="text-lg font-bold uppercase underline decoration-2 underline-offset-4">Laporan Rekapitulasi Absensi</h2>
            <p className="text-sm font-bold uppercase mt-1">Periode: {currentPeriode?.nama}</p>
