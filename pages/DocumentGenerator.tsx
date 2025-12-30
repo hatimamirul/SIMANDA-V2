@@ -3,10 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Select, Input, PrintPreviewDialog, Logo } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, PMSekolah, PMB3 } from '../types';
-// Added School to lucide-react imports
-import { FileText, Printer, FileEdit, Search, Info, School } from 'lucide-react';
+import { FileText, Printer, FileEdit, Search, Info, School, Utensils, RotateCcw, UserPlus } from 'lucide-react';
 
-type TemplateType = 'SURAT_TUGAS' | 'BERITA_ACARA' | 'TANDA_TERIMA_HONOR' | 'LAPORAN_PENDATAAN';
+type TemplateType = 'SURAT_TUGAS' | 'BERITA_ACARA' | 'TANDA_TERIMA_HONOR' | 'BA_PENERIMAAN_MAKANAN' | 'BA_PENGEMBALIAN_KOTAK';
 
 export const DocumentGeneratorPage: React.FC = () => {
   const [template, setTemplate] = useState<TemplateType>('SURAT_TUGAS');
@@ -14,6 +13,18 @@ export const DocumentGeneratorPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState('');
   const [selectedData, setSelectedData] = useState<any>(null);
   
+  // Additional Fields for the new templates
+  const [extraFields, setExtraFields] = useState({
+    jamKejadian: '07:30',
+    jamExpired: '11:00',
+    jumlahPorsi: '',
+    jumlahOmpreng: '',
+    namaPenyerah: '',
+    telpPenyerah: '',
+    namaPenerima: '',
+    telpPenerima: ''
+  });
+
   // Lists for selection
   const [employees, setEmployees] = useState<Karyawan[]>([]);
   const [schools, setSchools] = useState<PMSekolah[]>([]);
@@ -21,7 +32,7 @@ export const DocumentGeneratorPage: React.FC = () => {
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [docDate, setDocDate] = useState(new Date().toISOString().split('T')[0]);
-  const [docNumber, setDocNumber] = useState('001/SPPG-TALES/2025');
+  const [docNumber, setDocNumber] = useState(`001/BA-SPPG/${new Date().getFullYear()}`);
 
   useEffect(() => {
     const unsubK = api.subscribeKaryawan(setEmployees);
@@ -29,6 +40,13 @@ export const DocumentGeneratorPage: React.FC = () => {
     const unsubB = api.subscribeB3s(setB3s);
     return () => { unsubK(); unsubS(); unsubB(); };
   }, []);
+
+  // Auto-switch category based on template logic
+  useEffect(() => {
+    if (template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK') {
+      setCategory('SEKOLAH');
+    }
+  }, [template]);
 
   const handleGenerate = () => {
     let found = null;
@@ -40,11 +58,12 @@ export const DocumentGeneratorPage: React.FC = () => {
         setSelectedData(found);
         setIsPreviewOpen(true);
     } else {
-        alert("Silahkan pilih data terlebih dahulu.");
+        alert("Silahkan pilih data subjek (Sekolah/Karyawan) terlebih dahulu.");
     }
   };
 
   const getFullDate = (d: string) => new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(d));
+  const getDayName = (d: string) => new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(new Date(d));
 
   const renderTemplateContent = () => {
     if (!selectedData) return null;
@@ -54,7 +73,7 @@ export const DocumentGeneratorPage: React.FC = () => {
     return (
       <div className="text-black font-serif p-4">
         {/* Kop Surat Simetris */}
-        <div className="grid grid-cols-[100px_1fr_100px] items-center border-b-4 border-black pb-4 mb-8">
+        <div className="grid grid-cols-[100px_1fr_100px] items-center border-b-4 border-black pb-4 mb-6">
             <div className="h-20 w-full flex items-center justify-center">
                 <img src={LOGO_URI} alt="Logo" className="max-h-full object-contain" />
             </div>
@@ -68,14 +87,88 @@ export const DocumentGeneratorPage: React.FC = () => {
 
         {/* Judul Dokumen */}
         <div className="text-center mb-8">
-           <h2 className="text-xl font-bold underline uppercase">
-              {template.replace(/_/g, ' ')}
+           <h2 className="text-lg font-bold uppercase leading-tight">
+              {template === 'BA_PENERIMAAN_MAKANAN' && "BERITA ACARA PENERIMAAN PAKET MAKANAN PROGRAM MAKAN BERGIZI GRATIS"}
+              {template === 'BA_PENGEMBALIAN_KOTAK' && "BERITA ACARA PENGEMBALIAN KOTAK MAKAN PROGRAM MAKAN BERGIZI GRATIS"}
+              {template === 'SURAT_TUGAS' && "SURAT TUGAS OPERASIONAL"}
+              {template === 'BERITA_ACARA' && "BERITA ACARA KOORDINASI"}
+              {template === 'TANDA_TERIMA_HONOR' && "TANDA TERIMA HONORARIUM"}
            </h2>
-           <p className="font-bold">Nomor: {docNumber}</p>
+           <h3 className="text-md font-bold uppercase mt-1">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG) TALES , KABUPATEN KEDIRI</h3>
+           {template !== 'BA_PENERIMAAN_MAKANAN' && template !== 'BA_PENGEMBALIAN_KOTAK' && (
+             <p className="font-bold mt-2">Nomor: {docNumber}</p>
+           )}
         </div>
 
-        {/* Isi Dokumen Berdasarkan Template */}
-        <div className="space-y-6 leading-relaxed text-sm">
+        {/* Isi Dokumen */}
+        <div className="space-y-6 leading-relaxed text-[13px]">
+           {/* TEMPLATE BARU: PENERIMAAN MAKANAN */}
+           {template === 'BA_PENERIMAAN_MAKANAN' && (
+             <div className="space-y-4">
+                <p>
+                  Pada Hari <span className="font-bold">{getDayName(docDate)}</span> Tanggal <span className="font-bold">{getFullDate(docDate)}</span> Jam <span className="font-bold">{extraFields.jamKejadian}</span> telah diterima paket makanan sejumlah <span className="font-bold">{extraFields.jumlahPorsi || '..........'}</span> porsi dari Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales Kabupaten Kediri yang melayani <span className="font-bold">{selectedData.nama}</span>. Baik dimakan sebelum jam <span className="font-bold">{extraFields.jamExpired}</span>.
+                </p>
+                
+                <div className="mt-12 grid grid-cols-3 gap-4 text-center">
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Yang Menyerahkan :</p>
+                      <p>Nomor Telepon : {extraFields.telpPenyerah || '....................'}</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">{extraFields.namaPenyerah || '................................'}</p>
+                      </div>
+                   </div>
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Diterima Oleh :</p>
+                      <p>Nomor Telepon : {extraFields.telpPenerima || '....................'}</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">{extraFields.namaPenerima || '................................'}</p>
+                      </div>
+                   </div>
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Mengetahui,</p>
+                      <p>Kepala SPPG Tales , Kabupaten Kediri</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* TEMPLATE BARU: PENGEMBALIAN KOTAK */}
+           {template === 'BA_PENGEMBALIAN_KOTAK' && (
+             <div className="space-y-4">
+                <p>
+                  Pada Hari <span className="font-bold">{getDayName(docDate)}</span> Tanggal <span className="font-bold">{getFullDate(docDate)}</span> Jam <span className="font-bold">{extraFields.jamKejadian}</span> telah diserahkan kembali kotak makan sejumlah <span className="font-bold">{extraFields.jumlahOmpreng || '..........'}</span> ompreng makan dari <span className="font-bold">{selectedData.nama}</span> kepada Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales , Kabupaten Kediri.
+                </p>
+                
+                <div className="mt-12 grid grid-cols-3 gap-4 text-center">
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Yang Menyerahkan :</p>
+                      <p>Nomor Telepon : {extraFields.telpPenyerah || '....................'}</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">{extraFields.namaPenyerah || '................................'}</p>
+                      </div>
+                   </div>
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Diterima Oleh :</p>
+                      <p>Nomor Telepon : {extraFields.telpPenerima || '....................'}</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">{extraFields.namaPenerima || '................................'}</p>
+                      </div>
+                   </div>
+                   <div className="flex flex-col justify-between h-40">
+                      <p>Mengetahui,</p>
+                      <p>Kepala SPPG Tales , Kabupaten Kediri</p>
+                      <div className="mt-auto">
+                        <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* TEMPLATE LAMA: SURAT TUGAS */}
            {template === 'SURAT_TUGAS' && (
              <>
                <p>Yang bertanda tangan di bawah ini Kepala Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales Setono, menugaskan kepada:</p>
@@ -85,28 +178,21 @@ export const DocumentGeneratorPage: React.FC = () => {
                     {category === 'KARYAWAN' && <tr><td className="py-1">NIK</td><td>: {selectedData.nik}</td></tr>}
                     {category === 'KARYAWAN' && <tr><td className="py-1">Divisi</td><td>: {selectedData.divisi}</td></tr>}
                     {category === 'SEKOLAH' && <tr><td className="py-1">NPSN</td><td>: {selectedData.npsn}</td></tr>}
-                    {category === 'B3' && <tr><td className="py-1">Desa</td><td>: {selectedData.desa}</td></tr>}
                   </tbody>
                </table>
-               <p>Untuk melaksanakan tugas pendataan dan pelayanan pemenuhan gizi di wilayah Kecamatan Ngadiluwih pada tanggal {getFullDate(docDate)} sampai dengan selesai.</p>
-               <p>Demikian surat tugas ini diberikan untuk dapat dipergunakan sebagaimana mestinya dengan penuh tanggung jawab.</p>
+               <p>Untuk melaksanakan tugas operasional pemenuhan gizi di wilayah Kecamatan Ngadiluwih pada tanggal {getFullDate(docDate)} sampai dengan selesai.</p>
+               <div className="mt-16 grid grid-cols-2 gap-16 px-8 text-center">
+                  <div></div>
+                  <div>
+                    <p>Ngadiluwih, {getFullDate(docDate)}</p>
+                    <p className="mb-24 font-bold">Kepala SPPG,</p>
+                    <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                  </div>
+               </div>
              </>
            )}
 
-           {template === 'BERITA_ACARA' && (
-             <>
-               <p>Pada hari ini, tanggal <span className="font-bold">{getFullDate(docDate)}</span>, telah dilakukan koordinasi antara SPPG Tales Setono dengan pihak terkait:</p>
-               <table className="w-full ml-8">
-                  <tbody>
-                    <tr><td className="w-32 py-1">Subjek</td><td>: <span className="font-bold">{selectedData.nama}</span></td></tr>
-                    <tr><td className="py-1">Keperluan</td><td>: Koordinasi Program Pemenuhan Gizi Nasional</td></tr>
-                  </tbody>
-               </table>
-               <p>Hasil koordinasi menyatakan bahwa seluruh data telah diverifikasi dan siap untuk ditindaklanjuti sesuai dengan standar operasional prosedur yang berlaku.</p>
-               <p>Berita acara ini dibuat dalam keadaan sadar untuk dipergunakan sebagai arsip administrasi.</p>
-             </>
-           )}
-
+           {/* TEMPLATE LAMA: TANDA TERIMA */}
            {template === 'TANDA_TERIMA_HONOR' && (
              <>
                <p>Telah diterima uang sebesar <span className="font-bold italic"> (Terbilang: ........................................... ) </span> dari SPPG Tales Setono sebagai pembayaran Honorarium atas:</p>
@@ -117,24 +203,20 @@ export const DocumentGeneratorPage: React.FC = () => {
                     <tr><td className="py-1">Tanggal Bayar</td><td>: {getFullDate(docDate)}</td></tr>
                   </tbody>
                </table>
-               <div className="border-2 border-black p-4 inline-block font-bold mt-4">
-                  Rp. ...............................
+               <div className="border-2 border-black p-4 inline-block font-bold mt-4">Rp. ...............................</div>
+               <div className="mt-16 grid grid-cols-2 gap-16 px-8 text-center">
+                  <div>
+                    <p className="mb-24">Penerima,</p>
+                    <p className="font-bold underline">{selectedData.nama}</p>
+                  </div>
+                  <div>
+                    <p>Ngadiluwih, {getFullDate(docDate)}</p>
+                    <p className="mb-24 font-bold">Kepala SPPG,</p>
+                    <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                  </div>
                </div>
              </>
            )}
-        </div>
-
-        {/* Tanda Tangan */}
-        <div className="mt-16 grid grid-cols-2 gap-16 px-8">
-           <div className="text-center">
-              <p className="mb-24">Penerima/Petugas,</p>
-              <p className="font-bold underline">{selectedData.nama}</p>
-           </div>
-           <div className="text-center">
-              <p>Ngadiluwih, {getFullDate(docDate)}</p>
-              <p className="mb-24 font-bold">Kepala SPPG,</p>
-              <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
-           </div>
         </div>
       </div>
     );
@@ -159,8 +241,8 @@ export const DocumentGeneratorPage: React.FC = () => {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <Card className="p-6 md:col-span-1 space-y-5 h-fit">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <Card className="p-6 lg:col-span-1 space-y-5 h-fit">
             <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-2">
                 <FileText size={18} className="text-primary"/> Pengaturan Dokumen
             </h3>
@@ -170,8 +252,9 @@ export const DocumentGeneratorPage: React.FC = () => {
                 value={template} 
                 onChange={e => setTemplate(e.target.value as TemplateType)} 
                 options={[
+                    { value: 'BA_PENERIMAAN_MAKANAN', label: 'BA Penerimaan Makanan (Sekolah)' },
+                    { value: 'BA_PENGEMBALIAN_KOTAK', label: 'BA Pengembalian Kotak (Sekolah)' },
                     { value: 'SURAT_TUGAS', label: 'Surat Tugas (Karyawan)' },
-                    { value: 'BERITA_ACARA', label: 'Berita Acara Koordinasi' },
                     { value: 'TANDA_TERIMA_HONOR', label: 'Tanda Terima Pembayaran' },
                 ]}
             />
@@ -179,6 +262,7 @@ export const DocumentGeneratorPage: React.FC = () => {
             <Select 
                 label="Sumber Data Subjek" 
                 value={category} 
+                disabled={template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK'}
                 onChange={e => { setCategory(e.target.value as any); setSelectedId(''); }} 
                 options={[
                     { value: 'KARYAWAN', label: 'Data Karyawan' },
@@ -188,61 +272,104 @@ export const DocumentGeneratorPage: React.FC = () => {
             />
 
             <Select 
-                label="Pilih Subjek / Subjek" 
+                label="Pilih Nama Subjek (Sekolah/Karyawan)" 
                 value={selectedId} 
                 onChange={e => setSelectedId(e.target.value)} 
                 options={[{value: '', label: '-- Pilih --'}, ...getCategoryOptions()]}
             />
 
             <Input 
-                label="Nomor Dokumen" 
-                value={docNumber} 
-                onChange={e => setDocNumber(e.target.value)} 
-            />
-
-            <Input 
-                label="Tanggal Dokumen" 
+                label="Tanggal Kejadian/Dokumen" 
                 type="date" 
                 value={docDate} 
                 onChange={e => setDocDate(e.target.value)} 
             />
 
+            {/* DYNAMIC FIELDS FOR NEW TEMPLATES */}
+            {(template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK') && (
+              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
+                 <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Detail Isian Berita Acara</h4>
+                 
+                 <div className="grid grid-cols-2 gap-3">
+                    <Input label="Jam Kejadian" type="time" value={extraFields.jamKejadian} onChange={e => setExtraFields({...extraFields, jamKejadian: e.target.value})} />
+                    {template === 'BA_PENERIMAAN_MAKANAN' && (
+                      <Input label="Batas Makan" type="time" value={extraFields.jamExpired} onChange={e => setExtraFields({...extraFields, jamExpired: e.target.value})} />
+                    )}
+                 </div>
+
+                 <Input 
+                    label={template === 'BA_PENERIMAAN_MAKANAN' ? "Jumlah Porsi" : "Jumlah Ompreng"} 
+                    type="number" 
+                    value={template === 'BA_PENERIMAAN_MAKANAN' ? extraFields.jumlahPorsi : extraFields.jumlahOmpreng} 
+                    onChange={e => setExtraFields({
+                        ...extraFields, 
+                        [template === 'BA_PENERIMAAN_MAKANAN' ? 'jumlahPorsi' : 'jumlahOmpreng']: e.target.value
+                    })} 
+                 />
+
+                 <div className="space-y-3 pt-2 border-t border-gray-200">
+                    <Input label="Nama Penyerah" placeholder="Siapa yang menyerahkan?" value={extraFields.namaPenyerah} onChange={e => setExtraFields({...extraFields, namaPenyerah: e.target.value})} />
+                    <Input label="No Telp Penyerah" placeholder="WA/Telp" value={extraFields.telpPenyerah} onChange={e => setExtraFields({...extraFields, telpPenyerah: e.target.value})} />
+                 </div>
+
+                 <div className="space-y-3 pt-2 border-t border-gray-200">
+                    <Input label="Nama Penerima" placeholder="Siapa yang menerima?" value={extraFields.namaPenerima} onChange={e => setExtraFields({...extraFields, namaPenerima: e.target.value})} />
+                    <Input label="No Telp Penerima" placeholder="WA/Telp" value={extraFields.telpPenerima} onChange={e => setExtraFields({...extraFields, telpPenerima: e.target.value})} />
+                 </div>
+              </div>
+            )}
+
             <div className="pt-4">
-                <Button onClick={handleGenerate} className="w-full" icon={<Printer size={18}/>}>Generate Dokumen</Button>
+                <Button onClick={handleGenerate} className="w-full" icon={<Printer size={18}/>}>Preview & Cetak</Button>
             </div>
          </Card>
 
-         <div className="md:col-span-2 space-y-6">
-            <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 flex gap-4">
-                <Info className="text-amber-600 shrink-0" size={20} />
-                <div className="text-sm text-amber-900 leading-relaxed">
-                    <p className="font-bold mb-1">Panduan Penggunaan</p>
-                    <ul className="list-disc ml-4 space-y-1">
-                        <li>Pilih template yang ingin Anda gunakan.</li>
-                        <li>Pilih kategori data (Karyawan/Sekolah/B3).</li>
-                        <li>Sistem akan menarik data real-time untuk mengisi variabel nama, NIK, dan lokasi.</li>
-                        <li>Klik "Generate" untuk melihat preview dan mencetak dokumen.</li>
-                    </ul>
+         <div className="lg:col-span-2 space-y-6">
+            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 flex gap-4">
+                <Info className="text-blue-600 shrink-0" size={20} />
+                <div className="text-sm text-blue-900 leading-relaxed">
+                    <p className="font-bold mb-1">Keterangan Template Baru</p>
+                    <p>Dua template baru (Penerimaan Makanan & Pengembalian Kotak) telah disesuaikan dengan format fisik SPPG. Pastikan Anda memilih **Nama Sekolah** yang benar agar sistem dapat menarik data nama lembaga secara otomatis.</p>
                 </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-primary transition-colors cursor-pointer group">
-                   <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                      <FileText size={24} />
+                <div 
+                   onClick={() => setTemplate('BA_PENERIMAAN_MAKANAN')}
+                   className={`bg-white p-6 rounded-2xl border transition-all cursor-pointer group flex items-center gap-4 ${template === 'BA_PENERIMAAN_MAKANAN' ? 'border-primary ring-2 ring-primary/20 shadow-md' : 'border-gray-100 shadow-sm hover:border-blue-300'}`}
+                >
+                   <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Utensils size={24} />
                    </div>
                    <div>
-                      <h4 className="font-bold text-gray-800">Template Karyawan</h4>
-                      <p className="text-xs text-gray-400">Surat Tugas, Slip Gaji, Tanda Terima.</p>
+                      <h4 className="font-bold text-gray-800">BA Penerimaan</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Logistik Sekolah</p>
                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-primary transition-colors cursor-pointer group">
-                   <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                      <School size={24} />
+
+                <div 
+                   onClick={() => setTemplate('BA_PENGEMBALIAN_KOTAK')}
+                   className={`bg-white p-6 rounded-2xl border transition-all cursor-pointer group flex items-center gap-4 ${template === 'BA_PENGEMBALIAN_KOTAK' ? 'border-primary ring-2 ring-primary/20 shadow-md' : 'border-gray-100 shadow-sm hover:border-purple-300'}`}
+                >
+                   <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <RotateCcw size={24} />
                    </div>
                    <div>
-                      <h4 className="font-bold text-gray-800">Template Sekolah</h4>
-                      <p className="text-xs text-gray-400">Berita Acara, Serah Terima PM.</p>
+                      <h4 className="font-bold text-gray-800">BA Pengembalian</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Logistik Sekolah</p>
+                   </div>
+                </div>
+
+                <div 
+                   onClick={() => setTemplate('SURAT_TUGAS')}
+                   className={`bg-white p-6 rounded-2xl border transition-all cursor-pointer group flex items-center gap-4 ${template === 'SURAT_TUGAS' ? 'border-primary ring-2 ring-primary/20 shadow-md' : 'border-gray-100 shadow-sm hover:border-orange-300'}`}
+                >
+                   <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <UserPlus size={24} />
+                   </div>
+                   <div>
+                      <h4 className="font-bold text-gray-800">Surat Tugas</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Administrasi SDM</p>
                    </div>
                 </div>
             </div>
