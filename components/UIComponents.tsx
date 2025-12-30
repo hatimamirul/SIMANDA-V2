@@ -338,8 +338,10 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                     )}
                  </tbody>
               </table>
+              {/* UPDATED SIGNATURE FOOTER */}
               <div className="mt-12 flex justify-end page-break-inside-avoid">
                  <div className="text-center min-w-[220px] text-black">
+                    <p className="text-sm mb-1">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
                     <p className="mb-20 text-sm">Mengetahui,</p>
                     <p className="font-bold underline text-sm whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
                     <p className="text-xs font-medium uppercase mt-0.5">Kepala SPPG</p>
