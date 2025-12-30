@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Table, Button, LoadingSpinner, SlipGajiModal, ExportModal, PrintPreviewDialog, Logo } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, HonorariumRow } from '../types';
-import { Calendar, Wallet, FileDown, CalendarDays, Printer, Files } from 'lucide-react';
+import { Calendar, Wallet, FileDown, CalendarDays, Printer, Files, Image as ImageIcon } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -12,6 +12,7 @@ export const HonorKaryawanPage: React.FC = () => {
   const [periodes, setPeriodes] = useState<Periode[]>([]);
   const [selectedPeriode, setSelectedPeriode] = useState<string>('');
   const [honorData, setHonorData] = useState<HonorariumRow[]>([]);
+  const [isExportingImage, setIsExportingImage] = useState(false);
   
   // Slip Gaji State
   const [isSlipOpen, setIsSlipOpen] = useState(false);
@@ -107,10 +108,47 @@ export const HonorKaryawanPage: React.FC = () => {
     XLSX.writeFile(wb, `Honorarium_Karyawan_${currentPeriodeName}.xlsx`);
   };
 
+  const handleExportImageHD = async () => {
+    const element = document.getElementById('bulk-slip-content');
+    if (!element) return;
+
+    setIsExportingImage(true);
+    
+    try {
+        // Access html2pdf's bundled html2canvas or use global if available
+        // Note: html2pdf bundle usually exposes html2canvas globally or via the internal worker
+        // We will try a standard approach assuming html2canvas is available via the script tag in index.html
+        
+        // Wait a moment for rendering
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // @ts-ignore
+        const canvas = await (window.html2canvas || (window.html2pdf && window.html2pdf().worker && window.html2pdf().worker.html2canvas))(element, {
+            scale: 3, // HD Quality (3x Resolution)
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            windowWidth: element.scrollWidth,
+            windowHeight: element.scrollHeight
+        });
+
+        const image = canvas.toDataURL("image/png", 1.0);
+        const link = document.createElement('a');
+        link.download = `Slip_Gaji_Batch_${currentPeriodeName.replace(/\s+/g, '_')}_HD.png`;
+        link.href = image;
+        link.click();
+
+    } catch (error) {
+        console.error("Export Image Failed:", error);
+        alert("Gagal melakukan export gambar. Pastikan browser mendukung fitur ini.");
+    } finally {
+        setIsExportingImage(false);
+    }
+  };
+
   const handlePrintSlip = (item: HonorariumRow) => {
     const periode = periodes.find(p => p.id === selectedPeriode);
     
-    // Construct default filename: Slip_Gaji_NamaKaryawan_Periode.pdf
     const safeNama = item.nama.replace(/\s+/g, '_');
     const safePeriode = (periode?.nama || 'Periode').replace(/\s+/g, '_');
     const fileName = `Slip_Gaji_${safeNama}_${safePeriode}.pdf`;
@@ -253,33 +291,48 @@ export const HonorKaryawanPage: React.FC = () => {
         defaultFilename={defaultFilename}
       />
 
-      {/* --- BULK PRINT MODAL (MURNI PDF / NATIVE PRINT - UPDATED) --- */}
+      {/* --- BULK PRINT MODAL (PROFESSIONAL LAYOUT & HD EXPORT) --- */}
       <PrintPreviewDialog
         isOpen={isBulkPrintOpen}
         onClose={() => setIsBulkPrintOpen(false)}
         title={`Cetak Semua Slip - ${periodeInfo?.nama || ''}`}
         filename={`Slip_Gaji_Batch_${periodeInfo?.nama?.replace(/\s+/g, '_')}`}
       >
+         <div className="no-print mb-6 flex justify-end">
+            <Button 
+               variant="success" 
+               onClick={handleExportImageHD} 
+               isLoading={isExportingImage}
+               icon={<ImageIcon size={18} />}
+               className="shadow-lg transform hover:-translate-y-0.5 transition-all"
+            >
+               Export Image (Full HD)
+            </Button>
+         </div>
+
          <style>{`
            /* Screen Styles */
            .bulk-container { 
-              display: grid; 
-              gap: 20px; 
-              grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
+              display: flex;
+              flex-direction: column;
+              gap: 20px;
+              width: 100%;
+              background: #525659; /* Contrast background for screen view */
+              padding: 20px;
+              align-items: center;
            }
            
            .slip-wrapper {
               background: white;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              padding: 0;
-              height: 350px; 
-              overflow: hidden;
-              position: relative;
+              width: 100%;
+              max-width: 210mm; /* A4 Width restriction */
+              min-height: 9.5cm; /* Est height ~1/3 A4 */
               box-sizing: border-box;
+              position: relative;
+              box-shadow: 0 4px 10px rgba(0,0,0,0.15);
            }
 
-           /* --- PRINT STYLES (A4 Precision - Dynamic Flow) --- */
+           /* --- PRINT STYLES (Professional A4) --- */
            @media print {
              @page { 
                size: A4 portrait;
@@ -288,7 +341,7 @@ export const HonorKaryawanPage: React.FC = () => {
              body { 
                background: white; 
                margin: 0;
-               padding: 5mm; 
+               padding: 0;
                -webkit-print-color-adjust: exact; 
                print-color-adjust: exact;
              }
@@ -296,20 +349,20 @@ export const HonorKaryawanPage: React.FC = () => {
              .bulk-container { 
                display: block; 
                width: 100%;
+               padding: 0;
+               background: white;
              }
              
              /* Container Slip */
              .slip-wrapper {
-                display: flex;
-                flex-direction: column;
+                display: block;
                 width: 100%;
+                max-width: 100%;
+                min-height: auto;
                 
-                /* Auto height to fit content, prevent cutting */
-                height: auto; 
-                min-height: 85mm; /* ~1/3 A4 */
-                
-                border: 2px solid #000; 
-                margin-bottom: 5mm;     
+                /* Border tipis untuk potong */
+                border: 1px dashed #ccc; 
+                margin-bottom: 0;     
                 
                 box-sizing: border-box;
                 
@@ -320,162 +373,159 @@ export const HonorKaryawanPage: React.FC = () => {
                 position: relative;
                 background-color: white;
                 box-shadow: none;
-                border-radius: 0;
              }
            }
 
-           /* --- INTERNAL SLIP LAYOUT --- */
+           /* --- INTERNAL SLIP LAYOUT (PROFESSIONAL DESIGN) --- */
            .slip-inner {
-              padding: 12px 15px;
-              display: flex;
-              flex-direction: column;
-              flex: 1;
-              justify-content: space-between;
-              font-family: Arial, Helvetica, sans-serif;
+              padding: 15px 25px;
+              font-family: 'Arial', sans-serif; /* Clean Sans Serif */
               color: #000;
+              border: 1px solid white; /* Invisible border for spacing logic */
            }
 
-           /* Header */
+           /* Header Area */
            .slip-header {
               display: flex;
               align-items: center;
-              gap: 12px;
-              margin-bottom: 4px;
+              justify-content: space-between;
+              border-bottom: 3px double #000; /* Double line for professional look */
+              padding-bottom: 10px;
+              margin-bottom: 15px;
            }
-           .slip-header img {
-              width: 45px;
-              height: 45px;
-              object-fit: contain;
-           }
-           .slip-title-block {
-              line-height: 1.1;
-           }
-           .slip-title-main { font-size: 16px; font-weight: 800; text-transform: uppercase; color: #000; }
-           .slip-title-sub { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #333; }
+           .header-left { display: flex; align-items: center; gap: 15px; }
+           .header-logo img { width: 55px; height: 55px; object-fit: contain; }
+           .header-text h1 { font-size: 16px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+           .header-text h2 { font-size: 11px; font-weight: 600; margin: 2px 0 0 0; text-transform: uppercase; color: #444; }
+           .header-right { text-align: right; }
+           .slip-label { font-size: 18px; font-weight: 800; text-transform: uppercase; color: #000; border: 2px solid #000; padding: 2px 10px; display: inline-block; }
 
-           /* Divider */
-           .slip-divider {
-              border-bottom: 2px solid #000;
-              margin-bottom: 10px;
+           /* Content Grid */
+           .slip-content {
+              display: flex;
+              gap: 30px;
+              margin-bottom: 15px;
            }
+           .col-left { flex: 1; }
+           .col-right { flex: 1; }
 
-           /* Grid Data */
-           .slip-info-grid {
-              display: grid;
-              grid-template-columns: 1.2fr 1fr; /* Name gets more space */
-              column-gap: 20px;
-              font-size: 11px;
-              margin-bottom: 8px;
-           }
-           .info-row { display: flex; align-items: flex-start; margin-bottom: 3px; }
-           .info-label { width: 70px; font-weight: 700; color: #444; text-transform: uppercase; }
-           .info-sep { width: 10px; text-align: center; font-weight: 700; }
-           .info-val { flex: 1; font-weight: 700; color: #000; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+           /* Data Rows */
+           .data-row { display: flex; font-size: 11px; margin-bottom: 4px; align-items: flex-start; }
+           .label { width: 90px; font-weight: 600; color: #555; }
+           .sep { width: 10px; font-weight: 600; }
+           .val { flex: 1; font-weight: 800; color: #000; }
 
-           /* Box Rincian */
-           .calc-box {
-              background-color: #f3f4f6;
-              border: 1px solid #999;
-              border-radius: 4px;
-              padding: 8px 12px;
-              margin-bottom: 8px;
-           }
-           .calc-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #000; }
-           .calc-row.total { 
-              border-top: 1px dashed #000; 
-              margin-top: 6px; 
-              padding-top: 6px; 
-              font-size: 13px;
-              font-weight: 900;
-           }
+           /* Calculation Table */
+           .calc-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 11px; }
+           .calc-table th { background-color: #f0f0f0; border: 1px solid #000; padding: 4px 8px; text-align: left; font-weight: 800; text-transform: uppercase; }
+           .calc-table td { border: 1px solid #000; padding: 4px 8px; }
+           .calc-table .num { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; }
+           .calc-table .total-row { background-color: #e6e6e6; font-weight: 800; font-size: 12px; }
 
            /* Footer */
-           .signatures-row {
+           .slip-footer {
               display: flex;
               justify-content: space-between;
               align-items: flex-end;
-              margin-top: 10px; 
-              padding-bottom: 5px;
+              margin-top: 15px;
+              padding-top: 5px;
            }
-           .sig-block { text-align: center; min-width: 140px; }
-           .sig-title { font-size: 9px; color: #000; font-weight: 700; margin-bottom: 40px; text-transform: uppercase; } 
-           .sig-date { font-size: 10px; color: #000; font-style: italic; margin-bottom: 2px; text-align: right; }
-           .sig-name { font-size: 10px; font-weight: 800; text-transform: uppercase; text-decoration: underline; color: #000; }
+           .sig-box { text-align: center; width: 160px; }
+           .sig-place { font-size: 10px; margin-bottom: 5px; font-style: italic; text-align: center; }
+           .sig-title { font-size: 10px; font-weight: 700; margin-bottom: 45px; text-transform: uppercase; }
+           .sig-name { font-size: 11px; font-weight: 800; text-decoration: underline; text-transform: uppercase; }
 
          `}</style>
 
-         <div className="bulk-container">
+         <div id="bulk-slip-content" className="bulk-container">
             {honorData.map((item) => (
                <div key={item.id} className="slip-wrapper">
                   <div className="slip-inner">
                       
-                      {/* Top Section */}
-                      <div>
-                          <div className="slip-header">
-                             <Logo />
-                             <div className="slip-title-block">
-                                <div className="slip-title-main">SPPG NGADILUWIH</div>
-                                <div className="slip-title-sub">SLIP GAJI - {periodeInfo?.nama}</div>
-                             </div>
-                          </div>
-                          <div className="slip-divider"></div>
-
-                          <div className="slip-info-grid">
-                             {/* Left Column */}
-                             <div>
-                                <div className="info-row">
-                                   <span className="info-label">NAMA</span><span className="info-sep">:</span>
-                                   <span className="info-val" title={item.nama}>{item.nama}</span>
-                                </div>
-                                <div className="info-row">
-                                   <span className="info-label">DIVISI</span><span className="info-sep">:</span>
-                                   <span className="info-val">{item.divisi}</span>
-                                </div>
-                             </div>
-                             {/* Right Column */}
-                             <div>
-                                <div className="info-row">
-                                   <span className="info-label">PERIODE</span><span className="info-sep">:</span>
-                                   <span className="info-val">{periodeDateInfo}</span>
-                                </div>
-                                <div className="info-row">
-                                   <span className="info-label">BANK</span><span className="info-sep">:</span>
-                                   <span className="info-val">{item.bank} - {item.rekening}</span>
-                                </div>
-                             </div>
-                          </div>
-
-                          <div className="calc-box">
-                             <div className="calc-row">
-                                <span>Honorarium Harian</span>
-                                <span className="font-mono">{formatCurrency(item.honorHarian)}</span>
-                             </div>
-                             <div className="calc-row">
-                                <span>Total Kehadiran</span>
-                                <span className="font-mono">{item.totalHadir} Hari</span>
-                             </div>
-                             <div className="calc-row total">
-                                <span>TOTAL DITERIMA</span>
-                                <span>{formatCurrency(item.totalTerima)}</span>
-                             </div>
-                          </div>
+                      {/* Professional Header */}
+                      <div className="slip-header">
+                         <div className="header-left">
+                            <div className="header-logo"><Logo /></div>
+                            <div className="header-text">
+                               <h1>SPPG Ngadiluwih</h1>
+                               <h2>Satuan Pelayanan Pemenuhan Gizi</h2>
+                            </div>
+                         </div>
+                         <div className="header-right">
+                            <div className="slip-label">SLIP GAJI</div>
+                         </div>
                       </div>
 
-                      {/* Bottom Section (Signatures) */}
-                      <div>
-                          <div className="sig-date">
-                             Ngadiluwih, {new Date().toLocaleDateString('id-ID')}
-                          </div>
-                          <div className="signatures-row">
-                             <div className="sig-block">
-                                <div className="sig-title">PENERIMA</div>
-                                <div className="sig-name">{item.nama}</div>
-                             </div>
-                             <div className="sig-block">
-                                <div className="sig-title">KEPALA SPPG</div>
-                                <div className="sig-name">Tiurmasi S.S., S.T.</div>
-                             </div>
-                          </div>
+                      {/* Content Grid */}
+                      <div className="slip-content">
+                         {/* Left: Employee Info */}
+                         <div className="col-left">
+                            <div className="data-row">
+                               <span className="label">NAMA</span><span className="sep">:</span>
+                               <span className="val">{item.nama}</span>
+                            </div>
+                            <div className="data-row">
+                               <span className="label">DIVISI</span><span className="sep">:</span>
+                               <span className="val">{item.divisi}</span>
+                            </div>
+                            <div className="data-row">
+                               <span className="label">PERIODE</span><span className="sep">:</span>
+                               <span className="val" style={{fontSize: '10px'}}>{periodeDateInfo}</span>
+                            </div>
+                         </div>
+                         
+                         {/* Right: Bank Info */}
+                         <div className="col-right">
+                            <div className="data-row">
+                               <span className="label">BANK</span><span className="sep">:</span>
+                               <span className="val">{item.bank}</span>
+                            </div>
+                            <div className="data-row">
+                               <span className="label">NO. REK</span><span className="sep">:</span>
+                               <span className="val">{item.rekening}</span>
+                            </div>
+                            <div className="data-row">
+                               <span className="label">BULAN</span><span className="sep">:</span>
+                               <span className="val">{periodeInfo?.nama}</span>
+                            </div>
+                         </div>
+                      </div>
+
+                      {/* Details Table */}
+                      <table className="calc-table">
+                         <thead>
+                            <tr>
+                               <th>KETERANGAN</th>
+                               <th style={{textAlign: 'center', width: '60px'}}>VOL</th>
+                               <th style={{textAlign: 'right', width: '100px'}}>SATUAN</th>
+                               <th style={{textAlign: 'right', width: '110px'}}>JUMLAH</th>
+                            </tr>
+                         </thead>
+                         <tbody>
+                            <tr>
+                               <td>Honorarium Harian</td>
+                               <td style={{textAlign: 'center'}}>{item.totalHadir}</td>
+                               <td className="num">{new Intl.NumberFormat('id-ID').format(item.honorHarian)}</td>
+                               <td className="num">{new Intl.NumberFormat('id-ID').format(item.totalTerima)}</td>
+                            </tr>
+                            <tr className="total-row">
+                               <td colSpan={3} style={{textAlign: 'right', paddingRight: '15px'}}>TOTAL DITERIMA</td>
+                               <td className="num">{formatCurrency(item.totalTerima)}</td>
+                            </tr>
+                         </tbody>
+                      </table>
+
+                      {/* Footer Signatures */}
+                      <div className="slip-footer">
+                         <div className="sig-box">
+                            <div className="sig-title">PENERIMA</div>
+                            <div className="sig-name">{item.nama}</div>
+                         </div>
+                         <div className="sig-box">
+                            <div className="sig-place">Ngadiluwih, {new Date().toLocaleDateString('id-ID')}</div>
+                            <div className="sig-title">KEPALA SPPG</div>
+                            <div className="sig-name">Tiurmasi S.S., S.T.</div>
+                         </div>
                       </div>
 
                   </div>
