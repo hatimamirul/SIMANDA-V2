@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Select, Input, PrintPreviewDialog, Logo } from '../components/UIComponents';
+import { Card, Button, Select, Input, PrintPreviewDialog } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Karyawan, PMSekolah, PMB3 } from '../types';
-import { FileText, Printer, FileEdit, Search, Info, School, Utensils, RotateCcw, UserPlus } from 'lucide-react';
+import { FileText, Printer, FileEdit, Info, Utensils, RotateCcw, UserPlus } from 'lucide-react';
 
 type TemplateType = 'SURAT_TUGAS' | 'BERITA_ACARA' | 'TANDA_TERIMA_HONOR' | 'BA_PENERIMAAN_MAKANAN' | 'BA_PENGEMBALIAN_KOTAK';
 
@@ -13,7 +13,6 @@ export const DocumentGeneratorPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState('');
   const [selectedData, setSelectedData] = useState<any>(null);
   
-  // Additional Fields for the new templates
   const [extraFields, setExtraFields] = useState({
     jamKejadian: '07:30',
     jamExpired: '11:00',
@@ -25,7 +24,6 @@ export const DocumentGeneratorPage: React.FC = () => {
     telpPenerima: ''
   });
 
-  // Lists for selection
   const [employees, setEmployees] = useState<Karyawan[]>([]);
   const [schools, setSchools] = useState<PMSekolah[]>([]);
   const [b3s, setB3s] = useState<PMB3[]>([]);
@@ -41,7 +39,6 @@ export const DocumentGeneratorPage: React.FC = () => {
     return () => { unsubK(); unsubS(); unsubB(); };
   }, []);
 
-  // Auto-switch category based on template logic
   useEffect(() => {
     if (template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK') {
       setCategory('SEKOLAH');
@@ -68,14 +65,79 @@ export const DocumentGeneratorPage: React.FC = () => {
   const renderTemplateContent = () => {
     if (!selectedData) return null;
 
-    const LOGO_URI = "https://lh3.googleusercontent.com/d/1ocxhsbrHv2rNUe3r3kEma6oV167MGWea";
+    const BGN_LOGO = "https://lh3.googleusercontent.com/d/1ocxhsbrHv2rNUe3r3kEma6oV167MGWea";
 
+    // Layout Khusus untuk BA sesuai Gambar Asli
+    if (template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK') {
+      return (
+        <div className="text-black font-sans p-6 max-w-[800px] mx-auto bg-white border border-gray-100">
+          {/* Header Sesuai Gambar: Logo di Kiri, Judul di Kanan/Tengah */}
+          <div className="flex items-start gap-4 mb-10">
+            <img src={BGN_LOGO} alt="BGN Logo" className="w-24 h-24 object-contain" />
+            <div className="flex-1 text-center pt-2">
+              <h1 className="text-[17px] font-bold leading-tight uppercase">
+                {template === 'BA_PENERIMAAN_MAKANAN' 
+                  ? "BERITA ACARA PENERIMAAN PAKET MAKANAN PROGRAM MAKAN BERGIZI GRATIS" 
+                  : "BERITA ACARA PENGEMBALIAN KOTAK MAKAN PROGRAM MAKAN BERGIZI GRATIS"}
+              </h1>
+              <h2 className="text-[16px] font-bold leading-tight uppercase mt-1">
+                SATUAN PELAYANAN PEMENUHAN GIZI (SPPG) TALES , KABUPATEN KEDIRI
+              </h2>
+            </div>
+          </div>
+
+          {/* Isi Dokumen */}
+          <div className="text-[15px] leading-relaxed mb-12">
+            {template === 'BA_PENERIMAAN_MAKANAN' ? (
+              <p>
+                Pada Hari <span className="font-bold underline min-w-[80px] inline-block text-center">{getDayName(docDate)}</span> Tanggal <span className="font-bold underline min-w-[150px] inline-block text-center">{getFullDate(docDate)}</span> Jam <span className="font-bold underline min-w-[80px] inline-block text-center">{extraFields.jamKejadian}</span> telah diterima paket makanan sejumlah <span className="font-bold underline min-w-[100px] inline-block text-center">{extraFields.jumlahPorsi || '..........'}</span> porsi dari Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales Kabupaten Kediri yang melayani <span className="font-bold underline min-w-[200px] inline-block text-center">{selectedData.nama}</span>. Baik dimakan sebelum jam <span className="font-bold underline min-w-[80px] inline-block text-center">{extraFields.jamExpired}</span>.
+              </p>
+            ) : (
+              <p>
+                Pada Hari <span className="font-bold underline min-w-[80px] inline-block text-center">{getDayName(docDate)}</span> Tanggal <span className="font-bold underline min-w-[150px] inline-block text-center">{getFullDate(docDate)}</span> Jam <span className="font-bold underline min-w-[80px] inline-block text-center">{extraFields.jamKejadian}</span> telah diserahkan kembali kotak makan sejumlah <span className="font-bold underline min-w-[100px] inline-block text-center">{extraFields.jumlahOmpreng || '..........'}</span> ompreng makan dari <span className="font-bold underline min-w-[200px] inline-block text-center">{selectedData.nama}</span> kepada Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales , Kabupaten Kediri.
+              </p>
+            )}
+          </div>
+
+          {/* Bagian Tanda Tangan Sesuai Layout Gambar */}
+          <div className="grid grid-cols-2 gap-y-12">
+            {/* Atas Kiri: Penyerah */}
+            <div className="space-y-1">
+              <p className="font-medium">Yang Menyerahkan :</p>
+              <p className="font-medium">Nomor Telepon : <span className="font-bold">{extraFields.telpPenyerah}</span></p>
+              <div className="pt-20">
+                <p className="font-bold underline decoration-1 underline-offset-4">{extraFields.namaPenyerah || '____________________'}</p>
+              </div>
+            </div>
+
+            {/* Atas Kanan: Mengetahui */}
+            <div className="text-left pl-10">
+              <p className="font-medium">Mengetahui,</p>
+              <p className="font-medium">Kepala SPPG Tales , Kabupaten Kediri</p>
+              <div className="pt-24">
+                <p className="font-bold underline decoration-1 underline-offset-4">Tiurmasi Saulina Sirait, S.T.</p>
+              </div>
+            </div>
+
+            {/* Bawah Kiri: Diterima Oleh */}
+            <div className="space-y-1">
+              <p className="font-medium">Diterima Oleh :</p>
+              <p className="font-medium">Nomor Telepon : <span className="font-bold">{extraFields.telpPenerima}</span></p>
+              <div className="pt-20">
+                <p className="font-bold underline decoration-1 underline-offset-4">{extraFields.namaPenerima || '____________________'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Letterhead untuk Surat Tugas / Tanda Terima
     return (
       <div className="text-black font-serif p-4">
-        {/* Kop Surat Simetris */}
         <div className="grid grid-cols-[100px_1fr_100px] items-center border-b-4 border-black pb-4 mb-6">
             <div className="h-20 w-full flex items-center justify-center">
-                <img src={LOGO_URI} alt="Logo" className="max-h-full object-contain" />
+                <img src={BGN_LOGO} alt="Logo" className="max-h-full object-contain" />
             </div>
             <div className="text-center px-4">
                 <h1 className="text-2xl font-bold uppercase leading-tight">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
@@ -85,90 +147,16 @@ export const DocumentGeneratorPage: React.FC = () => {
             <div className="w-[100px]"></div>
         </div>
 
-        {/* Judul Dokumen */}
         <div className="text-center mb-8">
-           <h2 className="text-lg font-bold uppercase leading-tight">
-              {template === 'BA_PENERIMAAN_MAKANAN' && "BERITA ACARA PENERIMAAN PAKET MAKANAN PROGRAM MAKAN BERGIZI GRATIS"}
-              {template === 'BA_PENGEMBALIAN_KOTAK' && "BERITA ACARA PENGEMBALIAN KOTAK MAKAN PROGRAM MAKAN BERGIZI GRATIS"}
+           <h2 className="text-lg font-bold underline uppercase leading-tight">
               {template === 'SURAT_TUGAS' && "SURAT TUGAS OPERASIONAL"}
               {template === 'BERITA_ACARA' && "BERITA ACARA KOORDINASI"}
               {template === 'TANDA_TERIMA_HONOR' && "TANDA TERIMA HONORARIUM"}
            </h2>
-           <h3 className="text-md font-bold uppercase mt-1">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG) TALES , KABUPATEN KEDIRI</h3>
-           {template !== 'BA_PENERIMAAN_MAKANAN' && template !== 'BA_PENGEMBALIAN_KOTAK' && (
-             <p className="font-bold mt-2">Nomor: {docNumber}</p>
-           )}
+           <p className="font-bold mt-2">Nomor: {docNumber}</p>
         </div>
 
-        {/* Isi Dokumen */}
-        <div className="space-y-6 leading-relaxed text-[13px]">
-           {/* TEMPLATE BARU: PENERIMAAN MAKANAN */}
-           {template === 'BA_PENERIMAAN_MAKANAN' && (
-             <div className="space-y-4">
-                <p>
-                  Pada Hari <span className="font-bold">{getDayName(docDate)}</span> Tanggal <span className="font-bold">{getFullDate(docDate)}</span> Jam <span className="font-bold">{extraFields.jamKejadian}</span> telah diterima paket makanan sejumlah <span className="font-bold">{extraFields.jumlahPorsi || '..........'}</span> porsi dari Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales Kabupaten Kediri yang melayani <span className="font-bold">{selectedData.nama}</span>. Baik dimakan sebelum jam <span className="font-bold">{extraFields.jamExpired}</span>.
-                </p>
-                
-                <div className="mt-12 grid grid-cols-3 gap-4 text-center">
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Yang Menyerahkan :</p>
-                      <p>Nomor Telepon : {extraFields.telpPenyerah || '....................'}</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">{extraFields.namaPenyerah || '................................'}</p>
-                      </div>
-                   </div>
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Diterima Oleh :</p>
-                      <p>Nomor Telepon : {extraFields.telpPenerima || '....................'}</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">{extraFields.namaPenerima || '................................'}</p>
-                      </div>
-                   </div>
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Mengetahui,</p>
-                      <p>Kepala SPPG Tales , Kabupaten Kediri</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
-                      </div>
-                   </div>
-                </div>
-             </div>
-           )}
-
-           {/* TEMPLATE BARU: PENGEMBALIAN KOTAK */}
-           {template === 'BA_PENGEMBALIAN_KOTAK' && (
-             <div className="space-y-4">
-                <p>
-                  Pada Hari <span className="font-bold">{getDayName(docDate)}</span> Tanggal <span className="font-bold">{getFullDate(docDate)}</span> Jam <span className="font-bold">{extraFields.jamKejadian}</span> telah diserahkan kembali kotak makan sejumlah <span className="font-bold">{extraFields.jumlahOmpreng || '..........'}</span> ompreng makan dari <span className="font-bold">{selectedData.nama}</span> kepada Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales , Kabupaten Kediri.
-                </p>
-                
-                <div className="mt-12 grid grid-cols-3 gap-4 text-center">
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Yang Menyerahkan :</p>
-                      <p>Nomor Telepon : {extraFields.telpPenyerah || '....................'}</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">{extraFields.namaPenyerah || '................................'}</p>
-                      </div>
-                   </div>
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Diterima Oleh :</p>
-                      <p>Nomor Telepon : {extraFields.telpPenerima || '....................'}</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">{extraFields.namaPenerima || '................................'}</p>
-                      </div>
-                   </div>
-                   <div className="flex flex-col justify-between h-40">
-                      <p>Mengetahui,</p>
-                      <p>Kepala SPPG Tales , Kabupaten Kediri</p>
-                      <div className="mt-auto">
-                        <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
-                      </div>
-                   </div>
-                </div>
-             </div>
-           )}
-
-           {/* TEMPLATE LAMA: SURAT TUGAS */}
+        <div className="space-y-6 leading-relaxed text-[14px]">
            {template === 'SURAT_TUGAS' && (
              <>
                <p>Yang bertanda tangan di bawah ini Kepala Satuan Pelayanan Pemenuhan Gizi (SPPG) Tales Setono, menugaskan kepada:</p>
@@ -192,7 +180,6 @@ export const DocumentGeneratorPage: React.FC = () => {
              </>
            )}
 
-           {/* TEMPLATE LAMA: TANDA TERIMA */}
            {template === 'TANDA_TERIMA_HONOR' && (
              <>
                <p>Telah diterima uang sebesar <span className="font-bold italic"> (Terbilang: ........................................... ) </span> dari SPPG Tales Setono sebagai pembayaran Honorarium atas:</p>
@@ -285,7 +272,6 @@ export const DocumentGeneratorPage: React.FC = () => {
                 onChange={e => setDocDate(e.target.value)} 
             />
 
-            {/* DYNAMIC FIELDS FOR NEW TEMPLATES */}
             {(template === 'BA_PENERIMAAN_MAKANAN' || template === 'BA_PENGEMBALIAN_KOTAK') && (
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-4">
                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Detail Isian Berita Acara</h4>
@@ -308,13 +294,13 @@ export const DocumentGeneratorPage: React.FC = () => {
                  />
 
                  <div className="space-y-3 pt-2 border-t border-gray-200">
-                    <Input label="Nama Penyerah" placeholder="Siapa yang menyerahkan?" value={extraFields.namaPenyerah} onChange={e => setExtraFields({...extraFields, namaPenyerah: e.target.value})} />
-                    <Input label="No Telp Penyerah" placeholder="WA/Telp" value={extraFields.telpPenyerah} onChange={e => setExtraFields({...extraFields, telpPenyerah: e.target.value})} />
+                    <Input label="Nama Penyerah" placeholder="Nama Penyerah" value={extraFields.namaPenyerah} onChange={e => setExtraFields({...extraFields, namaPenyerah: e.target.value})} />
+                    <Input label="No Telp Penyerah" placeholder="No Telp" value={extraFields.telpPenyerah} onChange={e => setExtraFields({...extraFields, telpPenyerah: e.target.value})} />
                  </div>
 
                  <div className="space-y-3 pt-2 border-t border-gray-200">
-                    <Input label="Nama Penerima" placeholder="Siapa yang menerima?" value={extraFields.namaPenerima} onChange={e => setExtraFields({...extraFields, namaPenerima: e.target.value})} />
-                    <Input label="No Telp Penerima" placeholder="WA/Telp" value={extraFields.telpPenerima} onChange={e => setExtraFields({...extraFields, telpPenerima: e.target.value})} />
+                    <Input label="Nama Penerima" placeholder="Nama Penerima" value={extraFields.namaPenerima} onChange={e => setExtraFields({...extraFields, namaPenerima: e.target.value})} />
+                    <Input label="No Telp Penerima" placeholder="No Telp" value={extraFields.telpPenerima} onChange={e => setExtraFields({...extraFields, telpPenerima: e.target.value})} />
                  </div>
               </div>
             )}
@@ -328,8 +314,8 @@ export const DocumentGeneratorPage: React.FC = () => {
             <div className="bg-blue-50 p-5 rounded-2xl border border-blue-200 flex gap-4">
                 <Info className="text-blue-600 shrink-0" size={20} />
                 <div className="text-sm text-blue-900 leading-relaxed">
-                    <p className="font-bold mb-1">Keterangan Template Baru</p>
-                    <p>Dua template baru (Penerimaan Makanan & Pengembalian Kotak) telah disesuaikan dengan format fisik SPPG. Pastikan Anda memilih **Nama Sekolah** yang benar agar sistem dapat menarik data nama lembaga secara otomatis.</p>
+                    <p className="font-bold mb-1">Panduan Template Baru</p>
+                    <p>Format dokumen ini biarkan seperti aslinya sesuai lampiran. Sistem akan menarik data **Nama Sekolah** secara otomatis untuk mengisi kolom yang melayani.</p>
                 </div>
             </div>
             
