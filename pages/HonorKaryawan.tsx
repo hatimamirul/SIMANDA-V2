@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, LoadingSpinner, SlipGajiModal, ExportModal } from '../components/UIComponents';
+import { Card, Table, Button, LoadingSpinner, SlipGajiModal, ExportModal, PrintPreviewDialog, Logo } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { Periode, HonorariumRow } from '../types';
-import { Calendar, Wallet, FileDown, CalendarDays, Printer } from 'lucide-react';
+import { Calendar, Wallet, FileDown, CalendarDays, Printer, Files } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -21,6 +20,9 @@ export const HonorKaryawanPage: React.FC = () => {
   
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Bulk Print State
+  const [isBulkPrintOpen, setIsBulkPrintOpen] = useState(false);
 
   // Realtime Subscription to Periodes
   useEffect(() => {
@@ -128,6 +130,9 @@ export const HonorKaryawanPage: React.FC = () => {
     setIsSlipOpen(true);
   };
 
+  const periodeInfo = periodes.find(p => p.id === selectedPeriode);
+  const periodeDateInfo = getPeriodeDateRange(selectedPeriode);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
@@ -167,13 +172,16 @@ export const HonorKaryawanPage: React.FC = () => {
                 <p className="text-blue-100 text-sm font-medium mb-1">Total Anggaran Honorarium</p>
                 <h3 className="text-3xl font-bold">{formatCurrency(totalBudget)}</h3>
                 <div className="mt-2 text-xs text-blue-200 bg-white/10 inline-block px-3 py-1.5 rounded-lg border border-white/10">
-                  <p className="font-semibold">{periodes.find(p => p.id === selectedPeriode)?.nama}</p>
+                  <p className="font-semibold">{periodeInfo?.nama}</p>
                   <p className="mt-0.5 opacity-90 flex items-center gap-1.5">
-                    <CalendarDays size={12}/> {getPeriodeDateRange(selectedPeriode)}
+                    <CalendarDays size={12}/> {periodeDateInfo}
                   </p>
                 </div>
               </div>
-              <div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setIsBulkPrintOpen(true)} icon={<Files size={18}/>}>
+                  Cetak Semua Slip
+                </Button>
                 <Button variant="secondary" onClick={() => setIsExportModalOpen(true)} icon={<FileDown size={18}/>}>
                   Export Laporan
                 </Button>
@@ -244,6 +252,115 @@ export const HonorKaryawanPage: React.FC = () => {
         data={selectedSlipData}
         defaultFilename={defaultFilename}
       />
+
+      {/* --- BULK PRINT MODAL (COMPACT LAYOUT) --- */}
+      <PrintPreviewDialog
+        isOpen={isBulkPrintOpen}
+        onClose={() => setIsBulkPrintOpen(false)}
+        title={`Cetak Semua Slip - ${periodeInfo?.nama || ''}`}
+        filename={`Bulk_Slip_${periodeInfo?.nama?.replace(/\s+/g, '_')}`}
+      >
+         <style>{`
+           /* Tampilan Layar */
+           .bulk-grid { 
+              display: grid; 
+              grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+              gap: 20px; 
+           }
+           
+           /* Tampilan Cetak (A4) */
+           @media print {
+             @page { 
+               size: A4 portrait; 
+               margin: 10mm; 
+             }
+             .bulk-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr; /* 2 Kolom per baris */
+                gap: 15px;
+                width: 100%;
+             }
+             .slip-container {
+                page-break-inside: avoid; /* Jangan potong slip di tengah halaman */
+                break-inside: avoid;
+                border: 1px solid #000;
+                padding: 10px;
+                height: 100%;
+                background-color: white;
+             }
+             /* Perkecil font khusus cetak */
+             .slip-container, .slip-container * {
+                font-size: 10px !important;
+             }
+             .slip-header {
+                font-size: 12px !important;
+             }
+             .slip-amount {
+                font-size: 14px !important;
+             }
+           }
+         `}</style>
+
+         <div className="bulk-grid">
+            {honorData.map((item) => (
+               <div key={item.id} className="slip-container bg-white border border-gray-300 p-4 rounded-lg shadow-sm">
+                  {/* Header Slip Kompak */}
+                  <div className="flex items-center gap-3 border-b border-black pb-2 mb-2">
+                     <Logo className="w-8 h-8" />
+                     <div className="leading-tight">
+                        <h3 className="font-bold text-gray-900 uppercase slip-header">SPPG Ngadiluwih</h3>
+                        <p className="text-[10px] text-gray-600 font-medium">{periodeInfo?.nama}</p>
+                     </div>
+                  </div>
+
+                  {/* Body Slip */}
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 mb-3 text-xs text-gray-800">
+                     <div>
+                        <span className="font-bold text-gray-500 block text-[9px] uppercase">Nama Karyawan</span>
+                        <span className="font-semibold uppercase">{item.nama}</span>
+                     </div>
+                     <div className="text-right">
+                        <span className="font-bold text-gray-500 block text-[9px] uppercase">Divisi</span>
+                        <span className="font-semibold">{item.divisi}</span>
+                     </div>
+                     <div>
+                        <span className="font-bold text-gray-500 block text-[9px] uppercase">Bank & Rekening</span>
+                        <span>{item.bank} - {item.rekening}</span>
+                     </div>
+                     <div className="text-right">
+                        <span className="font-bold text-gray-500 block text-[9px] uppercase">Periode</span>
+                        <span>{periodeDateInfo}</span>
+                     </div>
+                  </div>
+
+                  {/* Perhitungan */}
+                  <div className="bg-gray-50 border border-gray-200 rounded p-2 mb-3">
+                     <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] text-gray-500">Honor Harian</span>
+                        <span className="font-mono">{formatCurrency(item.honorHarian)}</span>
+                     </div>
+                     <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-1">
+                        <span className="text-[10px] text-gray-500">Total Hadir</span>
+                        <span className="font-mono">{item.totalHadir} Hari</span>
+                     </div>
+                     <div className="flex justify-between items-center">
+                        <span className="font-bold text-gray-800 uppercase text-[10px]">Total Diterima</span>
+                        <span className="font-bold text-gray-900 font-mono slip-amount">{formatCurrency(item.totalTerima)}</span>
+                     </div>
+                  </div>
+
+                  {/* Footer Tanda Tangan */}
+                  <div className="flex justify-end mt-4">
+                     <div className="text-center w-28">
+                        <p className="text-[9px] text-gray-500 mb-8">Ngadiluwih, {new Date().toLocaleDateString('id-ID')}</p>
+                        <p className="font-bold underline text-[10px]">Tiurmasi S.S., S.T.</p>
+                        <p className="text-[9px] uppercase">Kepala SPPG</p>
+                     </div>
+                  </div>
+               </div>
+            ))}
+         </div>
+      </PrintPreviewDialog>
     </div>
   );
 };
