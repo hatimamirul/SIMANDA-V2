@@ -1,0 +1,7 @@
+{
+  "name": "SIMANDA FIKS",
+  "description": "WEB APP SIMANDA SPPG",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
