@@ -253,7 +253,7 @@ export const HonorKaryawanPage: React.FC = () => {
         defaultFilename={defaultFilename}
       />
 
-      {/* --- BULK PRINT MODAL (FORMAT VERTIKAL 3 PER LEMBAR) --- */}
+      {/* --- BULK PRINT MODAL (FORMAT A4 PROFESIONAL) --- */}
       <PrintPreviewDialog
         isOpen={isBulkPrintOpen}
         onClose={() => setIsBulkPrintOpen(false)}
@@ -261,7 +261,7 @@ export const HonorKaryawanPage: React.FC = () => {
         filename={`Bulk_Slip_${periodeInfo?.nama?.replace(/\s+/g, '_')}`}
       >
          <style>{`
-           /* Tampilan Layar (Screen) - Grid Responsif */
+           /* Tampilan Layar (Screen) */
            .bulk-container { 
               display: grid; 
               gap: 20px; 
@@ -275,14 +275,15 @@ export const HonorKaryawanPage: React.FC = () => {
               box-shadow: 0 2px 4px rgba(0,0,0,0.05);
            }
 
-           /* Tampilan Cetak (Print) - Format Vertikal 3 Slip/A4 */
+           /* Tampilan Cetak (Print) - Layout Presisi */
            @media print {
              @page { 
                size: A4 portrait; 
-               margin: 5mm; 
+               margin: 5mm; /* Margin minimal agar muat maksimal */
              }
              body { 
                background: white; 
+               margin: 0; padding: 0;
                -webkit-print-color-adjust: exact; 
              }
              
@@ -291,123 +292,134 @@ export const HonorKaryawanPage: React.FC = () => {
                width: 100%;
              }
              
+             /* Container Slip Individual */
              .slip-wrapper {
                 display: block;
                 width: 100%;
-                /* Mengatur tinggi agar muat pas 3 slip dalam 297mm (tinggi A4) dikurangi margin */
+                /* Tinggi total A4 = 297mm. Margin 5mm x 2 = 10mm. Sisa 287mm. 
+                   287mm / 3 = ~95mm. Kita pakai 92mm agar aman dari bleed. */
                 height: 92mm; 
-                border: 1px dashed #666; /* Garis potong putus-putus */
+                border: 1px solid #000; /* Border Solid Hitam Profesional */
                 margin-bottom: 2mm; 
-                padding: 5mm 8mm; /* Padding isi slip */
+                padding: 5mm 8mm; 
                 box-sizing: border-box;
                 page-break-inside: avoid;
                 position: relative;
                 background-color: white;
                 box-shadow: none;
                 border-radius: 0;
+                overflow: hidden;
              }
 
-             /* Paksa ganti halaman setiap 3 item */
+             /* Logic Page Break per 3 Item */
              .slip-wrapper:nth-child(3n) {
                 page-break-after: always;
                 margin-bottom: 0;
-                border-bottom: 1px dashed #666;
              }
 
-             /* Typography Khusus Cetak */
-             .slip-title { font-size: 14px !important; font-weight: 800 !important; text-transform: uppercase; }
-             .slip-subtitle { font-size: 10px !important; color: #444; }
+             /* Tipografi Profesional */
+             .slip-header-title { font-size: 14px !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 0.5px; }
+             .slip-header-sub { font-size: 10px !important; color: #333; font-weight: 600; text-transform: uppercase; }
              
              .slip-label { 
                font-size: 9px !important; 
-               color: #555; 
+               color: #666; 
                text-transform: uppercase; 
                font-weight: 700 !important; 
                letter-spacing: 0.05em;
+               margin-bottom: 1px;
              }
              
              .slip-value { 
-               font-size: 11px !important; 
+               font-size: 12px !important; 
                font-weight: 600 !important; 
                color: #000; 
+               line-height: 1.2;
              }
              
+             .slip-box {
+                background-color: #f8f9fa !important;
+                border: 1px solid #ddd;
+                padding: 4px 8px;
+                border-radius: 4px;
+             }
+
              .slip-total-label { font-size: 10px !important; font-weight: 800 !important; text-transform: uppercase; }
-             .slip-total-value { font-size: 13px !important; font-weight: 800 !important; }
+             .slip-total-value { font-size: 14px !important; font-weight: 900 !important; }
              
              .slip-sign-text { font-size: 9px !important; color: #444; }
-             .slip-sign-name { font-size: 10px !important; font-weight: 700 !important; text-decoration: underline; }
+             .slip-sign-name { font-size: 10px !important; font-weight: 700 !important; text-decoration: underline; text-transform: uppercase; }
            }
          `}</style>
 
          <div className="bulk-container">
             {honorData.map((item) => (
                <div key={item.id} className="slip-wrapper">
-                  {/* Header Slip */}
+                  {/* Header: Logo & Instansi */}
                   <div className="flex items-center gap-3 border-b-2 border-black pb-2 mb-3">
                      <Logo className="w-10 h-10 object-contain" />
                      <div className="leading-tight">
-                        <h1 className="slip-title">SPPG NGADILUWIH</h1>
-                        <p className="slip-subtitle font-medium">Periode: {periodeInfo?.nama}</p>
+                        <h1 className="slip-header-title">SPPG NGADILUWIH</h1>
+                        <p className="slip-header-sub">SLIP GAJI KARYAWAN - {periodeInfo?.nama}</p>
                      </div>
                   </div>
 
-                  {/* Body Slip (Grid 2 Kolom) */}
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 mb-3">
-                     {/* Kolom Kiri: Info Karyawan */}
+                  {/* Body: Informasi Utama (Grid Layout) */}
+                  <div className="grid grid-cols-2 gap-x-8 mb-3">
+                     {/* Kolom Kiri */}
                      <div className="space-y-2">
                         <div>
-                           <span className="slip-label block">Nama Karyawan</span>
-                           <span className="slip-value block truncate uppercase">{item.nama}</span>
+                           <div className="slip-label">Nama Karyawan</div>
+                           <div className="slip-value uppercase">{item.nama}</div>
                         </div>
                         <div>
-                           <span className="slip-label block">Jabatan / Divisi</span>
-                           <span className="slip-value block truncate">{item.divisi}</span>
+                           <div className="slip-label">Divisi / Jabatan</div>
+                           <div className="slip-value">{item.divisi}</div>
                         </div>
                      </div>
                      
-                     {/* Kolom Kanan: Info Pembayaran */}
-                     <div className="text-right space-y-2">
+                     {/* Kolom Kanan */}
+                     <div className="space-y-2 text-right">
                         <div>
-                           <span className="slip-label block">Tanggal Periode</span>
-                           <span className="slip-value block truncate">{periodeDateInfo}</span>
+                           <div className="slip-label">Periode Absensi</div>
+                           <div className="slip-value">{periodeDateInfo}</div>
                         </div>
                         <div>
-                           <span className="slip-label block">Bank & Rekening</span>
-                           <span className="slip-value block truncate">{item.bank} - {item.rekening}</span>
+                           <div className="slip-label">Bank Transfer</div>
+                           <div className="slip-value">{item.bank} - {item.rekening}</div>
                         </div>
                      </div>
                   </div>
 
-                  {/* Rincian Box (Ringkasan) */}
-                  <div className="bg-gray-50 border border-gray-300 p-2 rounded mb-1">
+                  {/* Box Rincian Gaji */}
+                  <div className="slip-box mb-1">
                      <div className="flex justify-between items-center mb-1">
-                        <span className="slip-label text-gray-600">Honor Harian</span>
+                        <span className="slip-label">Honor Harian</span>
                         <span className="slip-value font-mono">{formatCurrency(item.honorHarian)}</span>
                      </div>
                      <div className="flex justify-between items-center mb-2 border-b border-gray-300 pb-1">
-                        <span className="slip-label text-gray-600">Total Kehadiran</span>
+                        <span className="slip-label">Jumlah Kehadiran</span>
                         <span className="slip-value font-mono">{item.totalHadir} Hari</span>
                      </div>
                      <div className="flex justify-between items-center pt-0.5">
-                        <span className="slip-total-label">Total Diterima</span>
+                        <span className="slip-total-label">TOTAL DITERIMA</span>
                         <span className="slip-total-value">{formatCurrency(item.totalTerima)}</span>
                      </div>
                   </div>
 
                   {/* Footer Tanda Tangan (Absolute Bottom) */}
-                  <div className="absolute bottom-4 left-0 w-full px-8">
+                  <div className="absolute bottom-3 left-0 w-full px-8">
                      <div className="flex justify-between items-end">
                         {/* Tanda Tangan Penerima */}
                         <div className="text-center w-32">
-                           <p className="slip-sign-text mb-10 font-bold uppercase">Penerima</p>
-                           <p className="slip-sign-name uppercase">{item.nama.split(' ')[0]} {item.nama.split(' ')[1] || ''}</p>
+                           <p className="slip-sign-text mb-8 font-bold uppercase">Penerima</p>
+                           <p className="slip-sign-name">{item.nama.split(' ')[0]} {item.nama.split(' ')[1] || ''}</p>
                         </div>
                         
                         {/* Tanda Tangan Kepala SPPG */}
                         <div className="text-center w-40">
                            <p className="slip-sign-text mb-1 italic">Ngadiluwih, {new Date().toLocaleDateString('id-ID')}</p>
-                           <p className="slip-sign-text mb-10 font-bold uppercase">Kepala SPPG</p>
+                           <p className="slip-sign-text mb-8 font-bold uppercase">Kepala SPPG</p>
                            <p className="slip-sign-name">Tiurmasi S.S., S.T.</p>
                         </div>
                      </div>
