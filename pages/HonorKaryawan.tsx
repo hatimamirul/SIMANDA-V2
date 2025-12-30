@@ -253,42 +253,43 @@ export const HonorKaryawanPage: React.FC = () => {
         defaultFilename={defaultFilename}
       />
 
-      {/* --- BULK PRINT MODAL (FORMAT SLIP PREMIUM PRESISI A4) --- */}
+      {/* --- BULK PRINT MODAL (MURNI PDF / NATIVE PRINT) --- */}
       <PrintPreviewDialog
         isOpen={isBulkPrintOpen}
         onClose={() => setIsBulkPrintOpen(false)}
         title={`Cetak Semua Slip - ${periodeInfo?.nama || ''}`}
-        filename={`Bulk_Slip_${periodeInfo?.nama?.replace(/\s+/g, '_')}`}
+        filename={`Slip_Gaji_Batch_${periodeInfo?.nama?.replace(/\s+/g, '_')}`}
       >
          <style>{`
-           /* Tampilan Layar (Screen) */
+           /* Screen Styles */
            .bulk-container { 
               display: grid; 
               gap: 20px; 
-              grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); 
+              grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
            }
            
            .slip-wrapper {
               background: white;
               border: 1px solid #ccc;
               border-radius: 4px;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+              padding: 10px;
+              height: 350px; 
               overflow: hidden;
               position: relative;
-              /* Tinggi fix agar mirip tampilan cetak */
-              height: 350px; 
            }
 
-           /* Tampilan Cetak (Print) - Layout Presisi 3 Slip per A4 */
+           /* --- PRINT STYLES (A4 Precision) --- */
            @media print {
              @page { 
-               size: A4 portrait; 
-               margin: 5mm 10mm; /* Atas/Bawah 5mm, Kiri/Kanan 10mm */
+               size: A4 portrait; /* Wajib Portrait */
+               margin: 0; /* Nol Margin di @page, kita atur padding di body */
              }
              body { 
                background: white; 
-               margin: 0; padding: 0;
+               margin: 0;
+               padding: 10mm 10mm 5mm 10mm; /* Top/Right/Bottom/Left Padding Kertas */
                -webkit-print-color-adjust: exact; 
+               print-color-adjust: exact;
              }
              
              .bulk-container { 
@@ -296,113 +297,115 @@ export const HonorKaryawanPage: React.FC = () => {
                width: 100%;
              }
              
-             /* Container Slip Individual */
+             /* Container Slip: Tinggi Fix 92mm */
              .slip-wrapper {
                 display: block;
                 width: 100%;
                 /* 
-                   Tinggi Kertas A4 = 297mm. 
-                   Margin Atas 5mm + Bawah 5mm = 10mm.
-                   Sisa area cetak = 287mm.
-                   287mm / 3 = 95.6mm per slip.
-                   Kita set 92mm agar ada sedikit jarak aman (gap).
+                   A4 = 297mm. 
+                   Padding Body Atas = 10mm. 
+                   Sisa = 287mm.
+                   3 Slip x 92mm = 276mm.
+                   Sisa Spasi = 11mm (untuk gap antar slip).
                 */
                 height: 92mm; 
-                border: 1px solid #999; 
-                margin-bottom: 3mm; /* Jarak antar slip */
+                border: 1px solid #000; /* Border Hitam Tegas */
+                margin-bottom: 4mm;     /* Jarak antar slip */
                 box-sizing: border-box;
-                page-break-inside: avoid;
+                page-break-inside: avoid; /* Mencegah potong tengah */
+                break-inside: avoid;
                 position: relative;
                 background-color: white;
                 box-shadow: none;
                 border-radius: 4px;
+                padding: 0; /* Reset padding wrapper */
              }
 
-             /* Logic Page Break: Paksa ganti halaman setiap 3 item */
+             /* Setiap item ke-3 (akhir halaman) reset margin dan page break */
              .slip-wrapper:nth-child(3n) {
                 page-break-after: always;
+                break-after: page;
                 margin-bottom: 0;
              }
            }
 
-           /* --- STYLING ISI SLIP (COMMON) --- */
+           /* --- INTERNAL SLIP LAYOUT --- */
            .slip-inner {
-              padding: 12px 18px;
+              padding: 10px 15px;
               display: flex;
               flex-direction: column;
               height: 100%;
               justify-content: space-between;
-              font-family: Arial, sans-serif;
+              font-family: Arial, Helvetica, sans-serif;
+              color: #000;
            }
 
-           /* Header Area */
+           /* Header */
            .slip-header {
               display: flex;
               align-items: center;
               gap: 12px;
-              margin-bottom: 5px;
+              margin-bottom: 4px;
            }
            .slip-header img {
-              width: 45px;
-              height: 45px;
+              width: 40px;
+              height: 40px;
               object-fit: contain;
            }
            .slip-title-block {
-              line-height: 1.2;
+              line-height: 1.1;
            }
-           .slip-title-main { font-size: 16px; font-weight: 800; text-transform: uppercase; color: #000; letter-spacing: 0.5px; }
-           .slip-title-sub { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #444; }
+           .slip-title-main { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #000; }
+           .slip-title-sub { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #333; }
 
-           /* Divider Line */
+           /* Garis Tebal */
            .slip-divider {
               border-bottom: 2px solid #000;
-              margin-bottom: 12px;
+              margin-bottom: 8px;
            }
 
-           /* Info Grid (Nama, Divisi vs Periode, Bank) */
+           /* Grid Data Kiri Kanan */
            .slip-info-grid {
               display: grid;
-              grid-template-columns: 1fr 1fr;
+              grid-template-columns: 1fr 1fr; /* 50% 50% */
               column-gap: 20px;
-              row-gap: 4px;
               font-size: 10px;
-              margin-bottom: 8px;
+              margin-bottom: 5px;
            }
-           .info-row { display: flex; align-items: flex-start; }
-           .info-label { width: 60px; font-weight: 700; color: #666; text-transform: uppercase; }
+           .info-row { display: flex; align-items: flex-start; margin-bottom: 2px; }
+           .info-label { width: 65px; font-weight: 700; color: #444; text-transform: uppercase; }
            .info-sep { width: 10px; text-align: center; font-weight: 700; }
-           .info-val { flex: 1; font-weight: 700; color: #000; text-transform: uppercase; }
+           .info-val { flex: 1; font-weight: 700; color: #000; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-           /* Calculation Box (Gray Background) */
+           /* Box Rincian */
            .calc-box {
-              background-color: #f3f4f6; /* Gray-100 */
-              border: 1px solid #d1d5db;
-              border-radius: 6px;
-              padding: 6px 12px;
-              margin-bottom: 8px;
+              background-color: #f3f4f6; /* Abu muda saat cetak */
+              border: 1px solid #999;
+              border-radius: 4px;
+              padding: 5px 10px;
+              margin-bottom: 5px;
            }
-           .calc-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; color: #333; }
+           .calc-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 2px; color: #000; }
            .calc-row.total { 
-              border-top: 1px dashed #999; 
-              margin-top: 4px; 
-              padding-top: 4px; 
-              font-size: 12px;
-              font-weight: 800;
-              color: #000;
+              border-top: 1px dashed #000; 
+              margin-top: 3px; 
+              padding-top: 3px; 
+              font-size: 11px;
+              font-weight: 900;
            }
 
-           /* Footer Signatures */
+           /* Footer Tanda Tangan */
            .signatures-row {
               display: flex;
               justify-content: space-between;
               align-items: flex-end;
-              margin-top: auto; /* Push to bottom */
-              padding-bottom: 5px;
+              margin-top: auto; 
+              padding-bottom: 0px;
            }
-           .sig-block { text-align: center; min-width: 140px; }
-           .sig-title { font-size: 9px; color: #555; font-weight: 600; margin-bottom: 30px; text-transform: uppercase; } /* Space for signing */
-           .sig-date { font-size: 9px; color: #444; font-style: italic; margin-bottom: 2px; text-align: right; margin-right: 10px; }
-           .sig-name { font-size: 10px; font-weight: 800; text-transform: uppercase; text-decoration: underline; color: #000; }
+           .sig-block { text-align: center; min-width: 120px; }
+           .sig-title { font-size: 8px; color: #000; font-weight: 700; margin-bottom: 30px; text-transform: uppercase; } 
+           .sig-date { font-size: 9px; color: #000; font-style: italic; margin-bottom: 2px; text-align: right; }
+           .sig-name { font-size: 9px; font-weight: 800; text-transform: uppercase; text-decoration: underline; color: #000; }
 
          `}</style>
 
