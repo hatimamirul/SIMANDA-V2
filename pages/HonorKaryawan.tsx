@@ -115,15 +115,18 @@ export const HonorKaryawanPage: React.FC = () => {
     setIsExportingImage(true);
     
     try {
-        // Access html2pdf's bundled html2canvas or use global if available
-        // Note: html2pdf bundle usually exposes html2canvas globally or via the internal worker
-        // We will try a standard approach assuming html2canvas is available via the script tag in index.html
-        
         // Wait a moment for rendering
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        // Use global html2canvas explicitly (added in index.html)
         // @ts-ignore
-        const canvas = await (window.html2canvas || (window.html2pdf && window.html2pdf().worker && window.html2pdf().worker.html2canvas))(element, {
+        const html2canvas = window.html2canvas;
+
+        if (!html2canvas) {
+            throw new Error("Library html2canvas belum dimuat. Silahkan refresh halaman.");
+        }
+
+        const canvas = await html2canvas(element, {
             scale: 3, // HD Quality (3x Resolution)
             useCORS: true,
             backgroundColor: '#ffffff',
@@ -138,9 +141,9 @@ export const HonorKaryawanPage: React.FC = () => {
         link.href = image;
         link.click();
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Export Image Failed:", error);
-        alert("Gagal melakukan export gambar. Pastikan browser mendukung fitur ini.");
+        alert(`Gagal melakukan export gambar: ${error.message || "Pastikan browser mendukung fitur ini."}`);
     } finally {
         setIsExportingImage(false);
     }
