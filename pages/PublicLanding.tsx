@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from '../components/UIComponents';
 import { api } from '../services/mockService';
@@ -88,14 +87,13 @@ export const PublicLanding: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<boolean[]>([]);
 
-  // Daftar Foto HD (Updated to Google Drive DIRECT LINK format)
-  // Format: https://lh3.googleusercontent.com/d/[FILE_ID]
+  // Daftar Foto HD (Stabilized with Unsplash Source)
   const heroImages = [
-    "https://lh3.googleusercontent.com/d/1EzIG1vfpAnHFiNAkiZRIP0MmMNm8IKkE", // Healthy Plate
-    "https://lh3.googleusercontent.com/d/1oGUr8LWox9IYW9s_WeBAQLgtx4AkKmrl", // Chef Serving
-    "https://lh3.googleusercontent.com/d/13aoYC7Z6GZGHm7wpj3CeXjaXSrR2Ni7V", // Kids in Class
-    "https://lh3.googleusercontent.com/d/1mc9JGxrXb_ferO2Hs3zmHlS2dYIxRqq7", // Fresh Vegetables
-    "https://lh3.googleusercontent.com/d/1sIRR2InrXABLGgiWBz8UF1TGmL6_WHKA"  // Food Preparation
+    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=2070&auto=format&fit=crop", // Healthy Food Plate Top View
+    "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9f4?q=80&w=2070&auto=format&fit=crop", // Chef Cooking / Serving
+    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=2070&auto=format&fit=crop", // Kids / Charity
+    "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=2070&auto=format&fit=crop", // Fresh Ingredients
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop"  // Meal Preparation
   ];
 
   useEffect(() => {
@@ -120,7 +118,7 @@ export const PublicLanding: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll);
 
-    // Preload next image logic to prevent stutter
+    // Preload next image logic
     const preloadImage = (index: number) => {
         const img = new Image();
         img.src = heroImages[index];
@@ -222,6 +220,7 @@ export const PublicLanding: React.FC = () => {
                     alt="Hero Background" 
                     className={`w-full h-full object-cover transition-opacity duration-1000 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => handleImageLoad(index)}
+                    // Fallback if Unsplash fails, use a solid color or default
                     onError={(e) => {
                         e.currentTarget.style.display = 'none';
                     }}
