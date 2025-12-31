@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -20,6 +19,9 @@ export const SchoolPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState('');
   
+  // NEW: State for current edit session note
+  const [tempNote, setTempNote] = useState('');
+
   // Filtering States
   const [filterDesa, setFilterDesa] = useState('');
   const [filterJenis, setFilterJenis] = useState('');
@@ -139,11 +141,23 @@ export const SchoolPage: React.FC = () => {
     if (!validate()) return;
     
     setLoading(true);
-    await api.savePM(formData as PMSekolah);
+
+    // --- NOTE LOGIC ---
+    let finalNote = formData.catatan || '';
+    if (tempNote.trim()) {
+        const timestamp = new Date().toLocaleString('id-ID', { 
+            day: '2-digit', month: '2-digit', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        });
+        // Prepend new note with timestamp
+        const newEntry = `[${timestamp}] ${tempNote.trim()}`;
+        finalNote = finalNote ? `${newEntry}\n${finalNote}` : newEntry;
+    }
+
+    await api.savePM({ ...formData, catatan: finalNote } as PMSekolah);
     setLoading(false);
     setIsModalOpen(false);
     showToast(`Data Sekolah ${formData.nama} berhasil disimpan!`, "success");
-    // loadData handled by subscription
   };
 
   const handleDelete = async () => {
@@ -161,7 +175,6 @@ export const SchoolPage: React.FC = () => {
   };
 
   const openAdd = () => {
-    // Set default Desa if available
     setFormData({ 
       nama: '', 
       npsn: '', 
@@ -174,8 +187,10 @@ export const SchoolPage: React.FC = () => {
       narahubung: '', 
       hp: '', 
       buktiScan: '',
-      statusProposal: 'BELUM' // Default
+      statusProposal: 'BELUM',
+      catatan: ''
     });
+    setTempNote('');
     setValidationError('');
     setIsModalOpen(true);
   };
@@ -208,7 +223,8 @@ export const SchoolPage: React.FC = () => {
       'PM Kecil': item.pmKecil,
       'Jumlah Guru': item.jmlguru,
       'Narahubung': item.narahubung,
-      'No HP': item.hp
+      'No HP': item.hp,
+      'Catatan': item.catatan || '-'
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
@@ -253,7 +269,8 @@ export const SchoolPage: React.FC = () => {
               narahubung: row['Narahubung'] || '',
               hp: String(row['No HP'] || ''),
               buktiScan: '', // Cannot import files via excel
-              statusProposal: 'BELUM' // Default
+              statusProposal: 'BELUM',
+              catatan: row['Catatan'] || ''
             };
 
             await api.savePM(newItem);
@@ -335,7 +352,6 @@ export const SchoolPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-2 mb-6">
-               {/* MODIFIED: Changed Siswa box color to Emerald/Green theme */}
                <div className="bg-emerald-50 rounded-lg p-2 text-center border border-emerald-100">
                   <span className="block text-xl font-bold text-emerald-700">{item.jmlsiswa}</span>
                   <span className="text-[10px] text-emerald-600 font-medium">Siswa</span>
@@ -365,7 +381,7 @@ export const SchoolPage: React.FC = () => {
                         <Eye size={16} />
                       </button>
                   )}
-                  <button onClick={() => { setFormData(item); setValidationError(''); setIsModalOpen(true); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
+                  <button onClick={() => { setFormData(item); setTempNote(''); setValidationError(''); setIsModalOpen(true); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="Edit">
                       <Pencil size={16} />
                   </button>
                   {canDelete && (
@@ -482,11 +498,11 @@ export const SchoolPage: React.FC = () => {
                 accessor: (i) => {
                   const allergyCount = getAllergyCount(i.id);
                   return (
-                    <div className="flex items-center gap-2">
-                       <span>{i.nama}</span>
+                    <div className="flex flex-col">
+                       <span className="font-semibold text-gray-700">{i.nama}</span>
                        {allergyCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100" title={`${allergyCount} Siswa memiliki alergi`}>
-                            <ShieldAlert size={12} /> Ada Alergi
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 w-fit" title={`${allergyCount} Siswa memiliki alergi`}>
+                            <ShieldAlert size={10} /> Ada Alergi
                           </span>
                        )}
                     </div>
@@ -503,27 +519,20 @@ export const SchoolPage: React.FC = () => {
               },
               { header: 'Jenis', accessor: 'jenis' },
               { header: 'Siswa', accessor: 'jmlsiswa' },
-              { 
-                header: 'PM Besar', 
-                accessor: (i) => (
-                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-blue-100 text-blue-700 font-bold text-xs border border-blue-200">
-                    {i.pmBesar || 0}
-                  </span>
-                )
-              },
-              { 
-                header: 'PM Kecil', 
-                accessor: (i) => (
-                  <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-red-100 text-red-700 font-bold text-xs border border-red-200">
-                    {i.pmKecil || 0}
-                  </span>
-                )
-              },
+              { header: 'PM Besar', accessor: 'pmBesar' },
+              { header: 'PM Kecil', accessor: 'pmKecil' },
               { header: 'Guru', accessor: 'jmlguru' },
               { header: 'Narahubung', accessor: 'narahubung' },
-              { header: 'No HP Narahubung', accessor: 'hp' },
               { 
-                header: 'BUKTI SCAN PENDATAAN', 
+                header: 'Catatan', 
+                accessor: (i) => (
+                  <span className="text-xs text-gray-500 truncate max-w-[150px] inline-block" title={i.catatan}>
+                    {i.catatan ? i.catatan.split('\n')[0] : '-'}
+                  </span>
+                ) 
+              },
+              { 
+                header: 'BUKTI SCAN', 
                 accessor: (i) => i.buktiScan ? (
                   <button 
                     type="button"
@@ -535,7 +544,7 @@ export const SchoolPage: React.FC = () => {
                 ) : <span className="text-gray-400 text-xs italic">Tidak ada</span>
               },
             ]}
-            onEdit={(i) => { setFormData(i); setValidationError(''); setIsModalOpen(true); }}
+            onEdit={(i) => { setFormData(i); setTempNote(''); setValidationError(''); setIsModalOpen(true); }}
             onDelete={setDeleteItem}
           />
         </Card>
@@ -560,7 +569,8 @@ export const SchoolPage: React.FC = () => {
             { header: 'PM Kecil', accessor: 'pmKecil' },
             { header: 'Guru', accessor: 'jmlguru' },
             { header: 'Narahubung', accessor: 'narahubung' },
-            { header: 'No HP', accessor: 'hp' }
+            { header: 'No HP', accessor: 'hp' },
+            { header: 'Catatan', accessor: 'catatan' }
         ]}
         onExportExcel={handleExportExcel}
       />
@@ -682,6 +692,31 @@ export const SchoolPage: React.FC = () => {
           <div>
             <Input label="No HP Narahubung" value={formData.hp} onChange={e => setFormData({...formData, hp: e.target.value})} />
             {!formData.id && <FormHelperText />}
+          </div>
+
+          {/* NOTE SECTION */}
+          <div className="border-t border-gray-200 pt-4">
+             <div className="flex items-center gap-2 mb-2">
+                <History size={16} className="text-gray-500" />
+                <label className="text-sm font-semibold text-gray-700">Catatan & Riwayat</label>
+             </div>
+             
+             {/* History Display */}
+             {formData.catatan && (
+                 <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 text-xs text-gray-600 mb-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono">
+                    {formData.catatan}
+                 </div>
+             )}
+
+             {/* New Note Input */}
+             <textarea 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                placeholder="Tambah catatan baru di sini (Opsional)..."
+                rows={3}
+                value={tempNote}
+                onChange={(e) => setTempNote(e.target.value)}
+             />
+             <p className="text-[10px] text-gray-400 mt-1 italic">*Catatan baru akan otomatis diberi tanggal dan waktu saat disimpan.</p>
           </div>
 
           <div>
