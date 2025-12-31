@@ -95,8 +95,8 @@ export const PublicLanding: React.FC = () => {
     "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144165/vercel-upload/i444wg8e5vybcwadf8va.jpg",
     "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144166/vercel-upload/kgcudzblhoweparwuk3x.jpg",
     "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144166/vercel-upload/imtho1ibnl1lwb9v0kes.jpg",
-    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/nnujzrouxsmvbj3if9s8.jpg"
-    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/kejx9lclaym51or0dthn.jpg"
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/nnujzrouxsmvbj3if9s8.jpg",
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/kejx9lclaym51or0dthn.jpg",
   ];
 
   const heroImages = USER_IMAGES;
@@ -621,3 +621,4 @@ export const PublicLanding: React.FC = () => {
     </div>
   );
 };
+
