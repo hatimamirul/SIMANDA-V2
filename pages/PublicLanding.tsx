@@ -87,14 +87,19 @@ export const PublicLanding: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<boolean[]>([]);
 
-  // Daftar Foto HD (Stabilized with Unsplash Source)
-  const heroImages = [
-    "https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=2070&auto=format&fit=crop", // Healthy Food Plate Top View
-    "https://images.unsplash.com/photo-1577106263724-2c8e03bfe9f4?q=80&w=2070&auto=format&fit=crop", // Chef Cooking / Serving
-    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=2070&auto=format&fit=crop", // Kids / Charity
-    "https://images.unsplash.com/photo-1606787366850-de6330128bfc?q=80&w=2070&auto=format&fit=crop", // Fresh Ingredients
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop"  // Meal Preparation
+  // === KONFIGURASI GAMBAR SLIDESHOW ===
+  // GANTI link di dalam array ini dengan link gambar hosting Anda sendiri.
+  // Pastikan link bersifat DIRECT (berakhiran .jpg/.png atau direct view) dan PERMANEN.
+  const USER_IMAGES = [
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144165/vercel-upload/wxruxumso4gsibhc6yqm.jpg", 
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144165/vercel-upload/i444wg8e5vybcwadf8va.jpg",
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144166/vercel-upload/kgcudzblhoweparwuk3x.jpg",
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144166/vercel-upload/imtho1ibnl1lwb9v0kes.jpg",
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/nnujzrouxsmvbj3if9s8.jpg"
+    "https://res.cloudinary.com/dxgth4i0r/image/upload/v1767144167/vercel-upload/kejx9lclaym51or0dthn.jpg"
   ];
+
+  const heroImages = USER_IMAGES;
 
   useEffect(() => {
     // Start loading
@@ -118,14 +123,9 @@ export const PublicLanding: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll);
 
-    // Preload next image logic
-    const preloadImage = (index: number) => {
-        const img = new Image();
-        img.src = heroImages[index];
-    };
-    
-    // Preload first image immediately
-    preloadImage(0);
+    // Preload first image
+    const img = new Image();
+    img.src = heroImages[0];
 
     return () => {
       unsub();
@@ -134,13 +134,6 @@ export const PublicLanding: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-
-  // Effect to preload the next image when index changes
-  useEffect(() => {
-      const nextIndex = (currentImageIndex + 1) % heroImages.length;
-      const img = new Image();
-      img.src = heroImages[nextIndex];
-  }, [currentImageIndex]);
 
   const handleImageLoad = (index: number) => {
       setLoadedImages(prev => {
@@ -220,8 +213,8 @@ export const PublicLanding: React.FC = () => {
                     alt="Hero Background" 
                     className={`w-full h-full object-cover transition-opacity duration-1000 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => handleImageLoad(index)}
-                    // Fallback if Unsplash fails, use a solid color or default
                     onError={(e) => {
+                        // Jika gambar gagal dimuat (expired/broken), sembunyikan agar tidak ada icon broken
                         e.currentTarget.style.display = 'none';
                     }}
                 />
