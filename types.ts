@@ -40,6 +40,7 @@ export interface PMSekolah {
   hp: string;
   buktiScan?: string;
   statusProposal?: 'SUDAH' | 'BELUM'; // New Field for Flagging
+  catatan?: string; // NEW: History Note Log
 }
 
 export interface AlergiSiswa {
@@ -60,6 +61,7 @@ export interface PMB3 {
   kecamatan: string;
   hp: string;
   buktiScan?: string;
+  catatan?: string; // NEW: History Note Log
 }
 
 export interface KaderB3 {
@@ -202,4 +204,3 @@ export interface StokOpname {
   keterangan?: string;
   petugas?: string;
 }
-
