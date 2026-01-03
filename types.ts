@@ -53,9 +53,9 @@ export interface PMSekolah {
   statusProposal?: 'SUDAH' | 'BELUM'; // New Field for Flagging
   catatan?: string; // NEW: History Note Log
   
-  // NEW: Schedule Data
-  hariMasuk?: string;
-  jamPulang?: string;
+  // NEW FIELDS REQUESTED
+  hariMasuk?: string; // Contoh: Senin - Sabtu
+  jamPulang?: string; // Contoh: 12.00
 }
 
 export interface AlergiSiswa {
