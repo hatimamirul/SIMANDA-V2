@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
@@ -143,8 +144,6 @@ export const SchoolPage: React.FC = () => {
       return false;
     }
     
-    // Totals are auto-calculated, so they are guaranteed to be mathematically correct.
-    // Just ensure they aren't negative.
     if ((formData.jmlsiswa || 0) < 0) {
         showToast("Jumlah siswa tidak boleh negatif.", "error");
         return false;
@@ -165,7 +164,6 @@ export const SchoolPage: React.FC = () => {
             day: '2-digit', month: '2-digit', year: 'numeric', 
             hour: '2-digit', minute: '2-digit' 
         });
-        // Prepend new note with timestamp
         const newEntry = `[${timestamp}] ${tempNote.trim()}`;
         finalNote = finalNote ? `${newEntry}\n${finalNote}` : newEntry;
     }
@@ -215,7 +213,11 @@ export const SchoolPage: React.FC = () => {
       hp: '', 
       buktiScan: '',
       statusProposal: 'BELUM',
-      catatan: ''
+      catatan: '',
+      
+      // NEW FIELDS
+      hariMasuk: "Senin - Jum'at",
+      jamPulang: ''
     });
     setTempNote('');
     setIsModalOpen(true);
@@ -247,6 +249,8 @@ export const SchoolPage: React.FC = () => {
       'Nama Sekolah': item.nama,
       'Desa': item.desa,
       'Jenis': item.jenis,
+      'Hari Masuk': item.hariMasuk || '-',
+      'Jam Pulang': item.jamPulang ? `${item.jamPulang} WIB` : '-',
       'Total Siswa': fmt(item.jmlsiswa),
       // Detailed Breakdown
       'L Besar': fmt(item.jmlLakiBesar),
@@ -320,7 +324,11 @@ export const SchoolPage: React.FC = () => {
               hp: String(row['No HP'] || ''),
               buktiScan: '', 
               statusProposal: 'BELUM',
-              catatan: row['Catatan'] || ''
+              catatan: row['Catatan'] || '',
+              
+              // NEW FIELDS IMPORT
+              hariMasuk: row['Hari Masuk'] || "Senin - Jum'at",
+              jamPulang: row['Jam Pulang'] ? String(row['Jam Pulang']).replace(' WIB', '') : ''
             };
 
             await api.savePM(newItem);
@@ -411,11 +419,20 @@ export const SchoolPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-               <MapPin size={14} className="text-red-400" /> 
-               <span>Desa {item.desa || '-'}</span>
-               <span className="text-gray-300">|</span>
-               <span>NPSN: {item.npsn}</span>
+            <div className="flex flex-col gap-1 mb-4 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+               <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-red-400" /> 
+                  <span>Desa {item.desa || '-'}</span>
+                  <span className="text-gray-300">|</span>
+                  <span>NPSN: {item.npsn}</span>
+               </div>
+               <div className="flex items-center gap-2 mt-1 pt-1 border-t border-gray-200">
+                  <FileClock size={14} className="text-blue-400" /> 
+                  <span>{item.hariMasuk || '-'}</span>
+                  {item.jamPulang && (
+                      <span className="font-bold text-blue-600 ml-auto">Pulang: {item.jamPulang}</span>
+                  )}
+               </div>
             </div>
 
             {/* MAIN STATS */}
@@ -607,6 +624,8 @@ export const SchoolPage: React.FC = () => {
                 )
               },
               { header: 'Jenis', accessor: 'jenis' },
+              { header: 'Hari Masuk', accessor: (i) => i.hariMasuk || '-' },
+              { header: 'Jam Pulang', accessor: (i) => i.jamPulang ? `${i.jamPulang} WIB` : '-' },
               { header: 'Total', accessor: 'jmlsiswa' },
               { 
                   header: 'Laki-laki (B/K)', 
@@ -671,9 +690,10 @@ export const SchoolPage: React.FC = () => {
             { header: 'Nama Sekolah', accessor: 'nama' },
             { header: 'Desa', accessor: 'desa' },
             { header: 'Jenis', accessor: 'jenis' },
+            { header: 'Hari Masuk', accessor: (i) => i.hariMasuk || '-' },
+            { header: 'Jam Pulang', accessor: (i) => i.jamPulang ? `${i.jamPulang} WIB` : '-' },
             { header: 'Siswa', accessor: (i) => fmt(i.jmlsiswa), className: 'text-center' },
-            // Removed Total Laki & Total Perempuan as requested
-            // Colored Columns
+            // Detailed Breakdown
             { header: 'L Besar', accessor: (i) => fmt(i.jmlLakiBesar), className: 'col-blue text-center' },
             { header: 'L Kecil', accessor: (i) => fmt(i.jmlLakiKecil), className: 'col-pink text-center' },
             { header: 'P Besar', accessor: (i) => fmt(i.jmlPerempuanBesar), className: 'col-blue text-center' },
@@ -855,6 +875,15 @@ export const SchoolPage: React.FC = () => {
           <div>
             <Input label="No HP Narahubung" value={formData.hp} onChange={e => setFormData({...formData, hp: e.target.value})} />
             {!formData.id && <FormHelperText />}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                  <Input label="Hari Masuk" value={formData.hariMasuk || ''} onChange={e => setFormData({...formData, hariMasuk: e.target.value})} placeholder="Contoh: Senin - Sabtu" />
+              </div>
+              <div>
+                  <Input label="Jam Pulang (WIB)" type="time" value={formData.jamPulang || ''} onChange={e => setFormData({...formData, jamPulang: e.target.value})} />
+              </div>
           </div>
 
           {/* NOTE SECTION */}
