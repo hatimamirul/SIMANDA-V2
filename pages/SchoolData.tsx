@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react'; // Added useRef
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator, ChevronDown, Check } from 'lucide-react'; // Added ChevronDown, Check
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator, ChevronDown, Check, Clock } from 'lucide-react'; // Added Clock
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -234,7 +234,10 @@ export const SchoolPage: React.FC = () => {
       hp: '', 
       buktiScan: '',
       statusProposal: 'BELUM',
-      catatan: ''
+      catatan: '',
+      // New Schedule Fields
+      hariMasuk: "Senin - Jum'at",
+      jamPulang: ''
     });
     setTempNote('');
     setIsModalOpen(true);
@@ -259,6 +262,14 @@ export const SchoolPage: React.FC = () => {
   // Helper for 0 -> -
   const fmt = (val?: number) => (val === 0 || !val) ? '-' : val;
 
+  // Helper for Jam Pulang Color
+  const getJamPulangStyle = (time?: string) => {
+      if (!time) return 'bg-gray-100 text-gray-500 border-gray-200';
+      if (time <= '10:00') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      if (time <= '12:00') return 'bg-blue-100 text-blue-700 border-blue-200';
+      return 'bg-orange-100 text-orange-700 border-orange-200';
+  };
+
   const handleExportExcel = () => {
     const dataToExport = data.map(item => ({
       'Status Proposal': item.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk',
@@ -266,6 +277,8 @@ export const SchoolPage: React.FC = () => {
       'Nama Sekolah': item.nama,
       'Desa': item.desa,
       'Jenis': item.jenis,
+      'Hari Masuk': item.hariMasuk || '-',
+      'Jam Pulang': item.jamPulang ? `${item.jamPulang} WIB` : '-',
       'Total Siswa': fmt(item.jmlsiswa),
       // Detailed Breakdown
       'L Besar': fmt(item.jmlLakiBesar),
@@ -339,7 +352,9 @@ export const SchoolPage: React.FC = () => {
               hp: String(row['No HP'] || ''),
               buktiScan: '', 
               statusProposal: 'BELUM',
-              catatan: row['Catatan'] || ''
+              catatan: row['Catatan'] || '',
+              hariMasuk: row['Hari Masuk'] || "Senin - Jum'at",
+              jamPulang: row['Jam Pulang']?.replace(' WIB', '') || ''
             };
 
             await api.savePM(newItem);
@@ -439,11 +454,21 @@ export const SchoolPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+            <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
                <MapPin size={14} className="text-red-400" /> 
                <span>Desa {item.desa || '-'}</span>
                <span className="text-gray-300">|</span>
                <span>NPSN: {item.npsn}</span>
+            </div>
+
+            {/* Schedule Badge in Grid */}
+            <div className="flex justify-between items-center bg-gray-50 px-2 py-1.5 rounded-lg mb-4 text-xs">
+                <span className="font-medium text-gray-600">{item.hariMasuk || '-'}</span>
+                {item.jamPulang && (
+                    <span className={`font-bold px-2 py-0.5 rounded border ${getJamPulangStyle(item.jamPulang)}`}>
+                        {item.jamPulang}
+                    </span>
+                )}
             </div>
 
             {/* MAIN STATS */}
@@ -665,6 +690,19 @@ export const SchoolPage: React.FC = () => {
                 )
               },
               { header: 'Jenis', accessor: 'jenis' },
+              { 
+                header: 'Jadwal Sekolah',
+                accessor: (i) => (
+                  <div className="flex flex-col text-xs">
+                    <span className="font-medium text-gray-600">{i.hariMasuk || '-'}</span>
+                    {i.jamPulang && (
+                      <span className={`mt-1 px-2 py-0.5 rounded font-bold w-fit border ${getJamPulangStyle(i.jamPulang)}`}>
+                        {i.jamPulang} WIB
+                      </span>
+                    )}
+                  </div>
+                )
+              },
               { header: 'Total', accessor: 'jmlsiswa' },
               { 
                   header: 'Laki-laki (B/K)', 
@@ -729,8 +767,9 @@ export const SchoolPage: React.FC = () => {
             { header: 'Nama Sekolah', accessor: 'nama' },
             { header: 'Desa', accessor: 'desa' },
             { header: 'Jenis', accessor: 'jenis' },
+            { header: 'Hari Masuk', accessor: (i) => i.hariMasuk || '-' },
+            { header: 'Jam Pulang', accessor: (i) => i.jamPulang || '-' },
             { header: 'Siswa', accessor: (i) => fmt(i.jmlsiswa), className: 'text-center' },
-            // Removed Total Laki & Total Perempuan as requested
             // Colored Columns
             { header: 'L Besar', accessor: (i) => fmt(i.jmlLakiBesar), className: 'col-blue text-center' },
             { header: 'L Kecil', accessor: (i) => fmt(i.jmlLakiKecil), className: 'col-pink text-center' },
@@ -803,6 +842,31 @@ export const SchoolPage: React.FC = () => {
                         ]}
                         className={formData.statusProposal === 'SUDAH' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-amber-50 border-amber-300 text-amber-800'}
                     />
+                </div>
+             </div>
+          </div>
+
+          {/* SCHEDULE INPUT (NEW) */}
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-3">
+             <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                <Clock size={16} /> Jadwal Kegiatan Belajar Mengajar
+             </h4>
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <Input 
+                      label="Hari Masuk"
+                      placeholder="Contoh: Senin - Jum'at"
+                      value={formData.hariMasuk || ''}
+                      onChange={e => setFormData({...formData, hariMasuk: e.target.value})}
+                   />
+                </div>
+                <div>
+                   <Input 
+                      label="Jam Pulang (WIB)"
+                      type="time"
+                      value={formData.jamPulang || ''}
+                      onChange={e => setFormData({...formData, jamPulang: e.target.value})}
+                   />
                 </div>
              </div>
           </div>
