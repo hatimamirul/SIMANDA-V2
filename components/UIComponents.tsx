@@ -1,10 +1,7 @@
-
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
 import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText } from 'lucide-react';
 
 // === CUSTOM ROUTER IMPLEMENTATION ===
-// This replaces react-router-dom to fix module resolution errors in the environment.
-
 const RouterContext = createContext<{ path: string; navigate: (to: string, opts?: { replace?: boolean }) => void }>({ 
   path: window.location.pathname, 
   navigate: () => {} 
@@ -94,10 +91,8 @@ export const NavLink: React.FC<{
     </a>
   );
 };
-// =====================================
 
 // === Logo ===
-// Using a more reliable Google Drive direct link format
 const LOGO_URI = "https://lh3.googleusercontent.com/d/1ocxhsbrHv2rNUe3r3kEma6oV167MGWea";
 
 export const Logo: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ className, ...props }) => {
@@ -145,7 +140,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
     
-    // Auto remove after 4 seconds (slightly longer for readability)
+    // Auto remove after 4 seconds
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
@@ -168,7 +163,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               ${toast.type === 'info' ? 'bg-white/95 border-blue-500 shadow-blue-500/20' : ''}
             `}
           >
-            {/* Icon Bubble */}
             <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5
                ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : ''}
                ${toast.type === 'error' ? 'bg-rose-100 text-rose-600' : ''}
@@ -180,7 +174,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             </div>
 
             <div className="flex-1 min-w-0">
-               {/* Status Title */}
                <h4 className={`text-sm font-bold mb-0.5 tracking-tight
                   ${toast.type === 'success' ? 'text-emerald-800' : ''}
                   ${toast.type === 'error' ? 'text-rose-800' : ''}
@@ -188,7 +181,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                `}>
                   {toast.type === 'success' ? 'BERHASIL' : toast.type === 'error' ? 'GAGAL' : 'INFORMASI'}
                </h4>
-               {/* Message Body */}
                <p className="text-sm font-medium text-gray-600 leading-snug break-words">
                  {toast.message}
                </p>
@@ -348,11 +340,13 @@ interface ExportModalProps<T> {
   title: string;
   subtitle?: string;
   data: T[];
-  columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined) }[];
-  onExportExcel?: () => void; 
+  columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined); className?: string }[];
+  onExportExcel?: () => void;
+  hideLogo?: boolean;
+  summaryData?: { [key: string]: string | number };
 }
 
-export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel }: ExportModalProps<T>) => {
+export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel, hideLogo = false, summaryData }: ExportModalProps<T>) => {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -361,6 +355,11 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
   const handleSmartExcelExport = () => {
     const XLSX = (window as any).XLSX;
     if (!XLSX) return;
+
+    if (onExportExcel) {
+        onExportExcel();
+        return;
+    }
 
     const exportData = data.map(item => {
         const row: any = {};
@@ -462,6 +461,21 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 .pdf-table tr:nth-child(even) {
                     background-color: #fdfdfd;
                 }
+                .pdf-table tfoot td {
+                    font-weight: bold;
+                    border: 1px solid #000;
+                    padding: 8px 4px;
+                    background-color: #F3F4F6;
+                }
+                
+                /* Custom Classes for Color Coding */
+                .col-blue { background-color: #DBEAFE !important; }
+                .col-pink { background-color: #FCE7F3 !important; }
+                .col-purple { background-color: #F3E8FF !important; }
+                .col-orange { background-color: #FFEDD5 !important; }
+                .col-green { background-color: #DCFCE7 !important; }
+                .col-guru { background-color: #e0e7ff !important; } /* Indigo-ish */
+                .text-center { text-align: center !important; }
                 
                 /* --- PAGINATION & PRINT RULES --- */
                 .report-header { page-break-inside: avoid; }
@@ -503,9 +517,9 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
               {/* Report Header (Kop Surat Simetris with Grid) */}
               <div className="header-grid report-header">
-                  {/* Left: Logo Box */}
+                  {/* Left: Logo Box (Hidden if hideLogo is true) */}
                   <div className="logo-container">
-                      <img src={LOGO_URI} alt="Logo" className="logo-img" />
+                      {!hideLogo && <img src={LOGO_URI} alt="Logo" className="logo-img" />}
                   </div>
 
                   {/* Center: Text (Centered in available space) */}
@@ -531,7 +545,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                     <tr>
                        <th style={{width: '35px'}}>NO</th>
                        {columns.map((col, idx) => (
-                          <th key={idx}>
+                          <th key={idx} className={col.className}>
                              {col.header}
                           </th>
                        ))}
@@ -545,7 +559,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                           <tr key={idx}>
                              <td className="text-center font-medium">{idx + 1}</td>
                              {columns.map((col, cIdx) => (
-                                <td key={cIdx}>
+                                <td key={cIdx} className={col.className}>
                                    {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as any)}
                                 </td>
                              ))}
@@ -553,6 +567,18 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                        ))
                     )}
                  </tbody>
+                 {summaryData && (
+                    <tfoot>
+                        <tr>
+                            <td colSpan={columns.length - 2} className="text-right pr-4">TOTAL KESELURUHAN</td>
+                            {columns.slice(-3).map((col, idx) => (
+                                <td key={idx} className={`text-center ${col.className}`}>
+                                    {summaryData[col.header] || '-'}
+                                </td>
+                            ))}
+                        </tr>
+                    </tfoot>
+                 )}
               </table>
 
               {/* Footer Signature Area */}
@@ -694,7 +720,7 @@ export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, 
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['css', 'legacy'] }
+      pagebreak: { mode: ['css', 'legacy'] } 
     };
 
     (window as any).html2pdf().set(opt).from(element).save().then(() => {
@@ -786,16 +812,17 @@ interface SlipGajiModalProps {
   data: {
     nama: string;
     divisi: string;
+    bank: string;
+    rekening: string;
     periode: string;
     periodeDates: string;
     totalHadir: number;
     honorHarian: number;
     totalTerima: number;
-    bank: string;
-    rekening: string;
   } | null;
   defaultFilename?: string;
 }
+
 export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, data, defaultFilename }) => {
   const componentRef = useRef<HTMLDivElement>(null);
   const [fileName, setFileName] = useState("");
