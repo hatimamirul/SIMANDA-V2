@@ -114,25 +114,38 @@ export const SchoolPage: React.FC = () => {
       !formData.desa || 
       !formData.jenis || 
       formData.jmlsiswa === undefined || 
+      formData.jmlLaki === undefined || 
+      formData.jmlPerempuan === undefined || 
       formData.pmBesar === undefined || 
       formData.pmKecil === undefined || 
       formData.jmlguru === undefined || 
       !formData.narahubung || 
       !formData.hp
     ) {
-      showToast("Gagal menyimpan! Mohon lengkapi semua data sekolah (termasuk Desa) dan revisi kembali.", "error");
+      showToast("Gagal menyimpan! Mohon lengkapi semua data sekolah (termasuk Desa, Laki-laki & Perempuan) dan revisi kembali.", "error");
       return false;
     }
 
     const siswa = formData.jmlsiswa || 0;
     const besar = formData.pmBesar || 0;
     const kecil = formData.pmKecil || 0;
+    const laki = formData.jmlLaki || 0;
+    const perempuan = formData.jmlPerempuan || 0;
 
+    // Validasi Paket Gizi
     if ((besar + kecil) !== siswa) {
-      setValidationError(`Data tidak valid! Harap perbaiki: Jumlah PM Besar (${besar}) + PM Kecil (${kecil}) = ${besar + kecil}. Harus sama dengan Jumlah Siswa (${siswa}).`);
-      showToast("Data jumlah siswa dan PM tidak valid.", "error");
+      setValidationError(`Data Paket Tidak Valid! PM Besar (${besar}) + PM Kecil (${kecil}) = ${besar + kecil}. Harus sama dengan Total Siswa (${siswa}).`);
+      showToast("Data jumlah siswa dan paket PM tidak sinkron.", "error");
       return false;
     }
+
+    // Validasi Gender
+    if ((laki + perempuan) !== siswa) {
+      setValidationError(`Data Gender Tidak Valid! Laki-laki (${laki}) + Perempuan (${perempuan}) = ${laki + perempuan}. Harus sama dengan Total Siswa (${siswa}).`);
+      showToast("Data jumlah Laki-laki dan Perempuan tidak sinkron dengan total siswa.", "error");
+      return false;
+    }
+
     setValidationError('');
     return true;
   };
@@ -181,6 +194,8 @@ export const SchoolPage: React.FC = () => {
       desa: desaOptionsRaw[0],
       jenis: 'TK', 
       jmlsiswa: undefined, 
+      jmlLaki: undefined,
+      jmlPerempuan: undefined,
       pmBesar: undefined, 
       pmKecil: undefined, 
       jmlguru: undefined, 
@@ -219,6 +234,8 @@ export const SchoolPage: React.FC = () => {
       'Jenis': item.jenis,
       'Status Proposal': item.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk',
       'Jumlah Siswa': item.jmlsiswa,
+      'Laki-laki': item.jmlLaki || 0,
+      'Perempuan': item.jmlPerempuan || 0,
       'PM Besar': item.pmBesar,
       'PM Kecil': item.pmKecil,
       'Jumlah Guru': item.jmlguru,
@@ -263,6 +280,8 @@ export const SchoolPage: React.FC = () => {
               desa: row['Desa'] || desaOptionsRaw[0],
               jenis: row['Jenis'] || 'TK',
               jmlsiswa: parseInt(row['Jumlah Siswa'] || '0'),
+              jmlLaki: parseInt(row['Laki-laki'] || '0'),
+              jmlPerempuan: parseInt(row['Perempuan'] || '0'),
               pmBesar: parseInt(row['PM Besar'] || '0'),
               pmKecil: parseInt(row['PM Kecil'] || '0'),
               jmlguru: parseInt(row['Jumlah Guru'] || '0'),
@@ -351,7 +370,7 @@ export const SchoolPage: React.FC = () => {
                <span>NPSN: {item.npsn}</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="grid grid-cols-3 gap-2 mb-2">
                <div className="bg-emerald-50 rounded-lg p-2 text-center border border-emerald-100">
                   <span className="block text-xl font-bold text-emerald-700">{item.jmlsiswa}</span>
                   <span className="text-[10px] text-emerald-600 font-medium">Siswa</span>
@@ -363,6 +382,17 @@ export const SchoolPage: React.FC = () => {
                <div className="bg-pink-50 rounded-lg p-2 text-center border border-pink-100">
                   <span className="block text-xl font-bold text-pink-700">{item.pmKecil}</span>
                   <span className="text-[10px] text-pink-600 font-medium">PM Kecil</span>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+               <div className="bg-blue-50/50 rounded-lg p-1.5 text-center border border-blue-100">
+                  <span className="text-[10px] text-blue-500 font-bold uppercase">Laki-laki</span>
+                  <span className="block text-sm font-bold text-blue-700">{item.jmlLaki || 0}</span>
+               </div>
+               <div className="bg-purple-50/50 rounded-lg p-1.5 text-center border border-purple-100">
+                  <span className="text-[10px] text-purple-500 font-bold uppercase">Perempuan</span>
+                  <span className="block text-sm font-bold text-purple-700">{item.jmlPerempuan || 0}</span>
                </div>
             </div>
 
@@ -518,7 +548,9 @@ export const SchoolPage: React.FC = () => {
                 )
               },
               { header: 'Jenis', accessor: 'jenis' },
-              { header: 'Siswa', accessor: 'jmlsiswa' },
+              { header: 'Total Siswa', accessor: 'jmlsiswa' },
+              { header: 'Laki-laki', accessor: (i) => i.jmlLaki || 0 },
+              { header: 'Perempuan', accessor: (i) => i.jmlPerempuan || 0 },
               { header: 'PM Besar', accessor: 'pmBesar' },
               { header: 'PM Kecil', accessor: 'pmKecil' },
               { header: 'Guru', accessor: 'jmlguru' },
@@ -565,6 +597,8 @@ export const SchoolPage: React.FC = () => {
             { header: 'Desa', accessor: 'desa' },
             { header: 'Jenis', accessor: 'jenis' },
             { header: 'Siswa', accessor: 'jmlsiswa' },
+            { header: 'Laki-laki', accessor: (i) => i.jmlLaki || 0 },
+            { header: 'Perempuan', accessor: (i) => i.jmlPerempuan || 0 },
             { header: 'PM Besar', accessor: 'pmBesar' },
             { header: 'PM Kecil', accessor: 'pmKecil' },
             { header: 'Guru', accessor: 'jmlguru' },
@@ -634,51 +668,77 @@ export const SchoolPage: React.FC = () => {
              </div>
           </div>
           
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-             <h4 className="text-sm font-semibold text-gray-700">Data Kuantitatif</h4>
-             <div className="grid grid-cols-3 gap-3">
+          {/* DATA KUANTITATIF (PM + GENDER) */}
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+             <h4 className="text-sm font-semibold text-gray-700">Data Kuantitatif Siswa</h4>
+             
+             {/* Total */}
+             <div>
+                <Input 
+                  label="Total Jumlah Siswa" 
+                  type="number" 
+                  value={formData.jmlsiswa ?? ''} 
+                  placeholder="Total Keseluruhan"
+                  onChange={e => setFormData({...formData, jmlsiswa: e.target.value ? parseInt(e.target.value) : undefined})} 
+                />
+                {!formData.id && <FormHelperText />}
+             </div>
+
+             {/* Split PM */}
+             <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Input 
-                    label="Jml Siswa" 
-                    type="number" 
-                    value={formData.jmlsiswa ?? ''} 
-                    placeholder="Total"
-                    onChange={e => setFormData({...formData, jmlsiswa: e.target.value ? parseInt(e.target.value) : undefined})} 
-                  />
-                  {!formData.id && <FormHelperText />}
-                </div>
-                <div>
-                  <Input 
-                    label="PM Besar" 
+                    label="PM Besar (Porsi)" 
                     type="number" 
                     value={formData.pmBesar ?? ''} 
                     placeholder="Besar"
                     onChange={e => setFormData({...formData, pmBesar: e.target.value ? parseInt(e.target.value) : undefined})} 
                   />
-                  {!formData.id && <FormHelperText />}
                 </div>
                 <div>
                   <Input 
-                    label="PM Kecil" 
+                    label="PM Kecil (Porsi)" 
                     type="number" 
                     value={formData.pmKecil ?? ''} 
                     placeholder="Kecil"
                     onChange={e => setFormData({...formData, pmKecil: e.target.value ? parseInt(e.target.value) : undefined})} 
                   />
-                  {!formData.id && <FormHelperText />}
                 </div>
              </div>
+
+             {/* Split Gender (NEW) */}
+             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200">
+                <div>
+                  <Input 
+                    label="Laki-laki" 
+                    type="number" 
+                    value={formData.jmlLaki ?? ''} 
+                    placeholder="Jml Laki-laki"
+                    onChange={e => setFormData({...formData, jmlLaki: e.target.value ? parseInt(e.target.value) : undefined})} 
+                  />
+                </div>
+                <div>
+                  <Input 
+                    label="Perempuan" 
+                    type="number" 
+                    value={formData.jmlPerempuan ?? ''} 
+                    placeholder="Jml Perempuan"
+                    onChange={e => setFormData({...formData, jmlPerempuan: e.target.value ? parseInt(e.target.value) : undefined})} 
+                  />
+                </div>
+             </div>
+
              {validationError && (
-               <div className="text-sm text-red-700 flex items-start bg-red-50 p-3 rounded border border-red-200 animate-pulse">
-                 <AlertTriangle size={18} className="mr-2 mt-0.5 shrink-0" /> 
-                 <span className="font-medium">{validationError}</span>
+               <div className="text-xs text-red-700 flex items-start bg-red-50 p-2 rounded border border-red-200 animate-pulse">
+                 <AlertTriangle size={14} className="mr-2 mt-0.5 shrink-0" /> 
+                 <span className="font-medium leading-tight">{validationError}</span>
                </div>
              )}
           </div>
 
           <div>
             <Input 
-              label="Jumlah Guru" 
+              label="Jumlah Guru & Staff" 
               type="number" 
               value={formData.jmlguru ?? ''} 
               onChange={e => setFormData({...formData, jmlguru: e.target.value ? parseInt(e.target.value) : undefined})} 
