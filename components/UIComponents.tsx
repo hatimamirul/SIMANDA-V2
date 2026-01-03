@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
-import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText, Check } from 'lucide-react';
+import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText, Check, Columns } from 'lucide-react';
 
 // === CUSTOM ROUTER IMPLEMENTATION ===
 const RouterContext = createContext<{ path: string; navigate: (to: string, opts?: { replace?: boolean }) => void }>({ 
@@ -348,12 +349,31 @@ interface ExportModalProps<T> {
 
 export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, data, columns, onExportExcel, hideLogo = false, summaryData }: ExportModalProps<T>) => {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  // NEW: State for column visibility
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+
+  // Reset hidden columns when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+        setHiddenColumns([]);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
+  // Logic to toggle column visibility
+  const toggleColumn = (header: string) => {
+      setHiddenColumns(prev => 
+          prev.includes(header) ? prev.filter(h => h !== header) : [...prev, header]
+      );
+  };
+
+  // Filter valid columns based on selection
+  const visibleColumns = columns.filter(col => !hiddenColumns.includes(col.header));
+
   // Calculate the first index that contains summary data to determine colspan
   const firstValueIndex = summaryData 
-    ? columns.findIndex(col => summaryData[col.header] !== undefined)
+    ? visibleColumns.findIndex(col => summaryData[col.header] !== undefined)
     : -1;
 
   // INTERNAL SMART EXCEL EXPORT
@@ -361,14 +381,16 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
     const XLSX = (window as any).XLSX;
     if (!XLSX) return;
 
-    if (onExportExcel) {
+    if (onExportExcel && hiddenColumns.length === 0) {
+        // If custom handler exists AND no columns hidden, use it (Default behavior)
         onExportExcel();
         return;
     }
 
+    // Otherwise, perform custom export based on visible columns
     const exportData = data.map(item => {
         const row: any = {};
-        columns.forEach(col => {
+        visibleColumns.forEach(col => {
             const val = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
             row[col.header] = val;
         });
@@ -376,7 +398,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
     });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const wscols = columns.map(col => {
+    const wscols = visibleColumns.map(col => {
         let maxLength = col.header.length;
         exportData.forEach((row: any) => {
             const cellValue = String(row[col.header] || '');
@@ -430,6 +452,29 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
             <X size={20} className="text-gray-600" />
           </button>
+        </div>
+
+        {/* --- COLUMN SELECTOR UI --- */}
+        <div className="px-6 py-3 bg-white border-b border-gray-100 flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-gray-700">
+                <Columns size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">Pilih Kolom Export:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {columns.map((col, idx) => (
+                    <label key={idx} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all select-none
+                        ${!hiddenColumns.includes(col.header) ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-400'}
+                    `}>
+                        <input 
+                            type="checkbox" 
+                            className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500"
+                            checked={!hiddenColumns.includes(col.header)}
+                            onChange={() => toggleColumn(col.header)}
+                        />
+                        {col.header}
+                    </label>
+                ))}
+            </div>
         </div>
 
         {/* Scrollable Preview Area */}
@@ -549,7 +594,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  <thead>
                     <tr>
                        <th style={{width: '35px'}}>NO</th>
-                       {columns.map((col, idx) => (
+                       {visibleColumns.map((col, idx) => (
                           <th key={idx} className={col.className}>
                              {col.header}
                           </th>
@@ -558,12 +603,12 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  </thead>
                  <tbody>
                     {data.length === 0 ? (
-                       <tr><td colSpan={columns.length + 1} className="p-4 text-center italic">Tidak ada data</td></tr>
+                       <tr><td colSpan={visibleColumns.length + 1} className="p-4 text-center italic">Tidak ada data</td></tr>
                     ) : (
                        data.map((item, idx) => (
                           <tr key={idx}>
                              <td className="text-center font-medium">{idx + 1}</td>
-                             {columns.map((col, cIdx) => (
+                             {visibleColumns.map((col, cIdx) => (
                                 <td key={cIdx} className={col.className}>
                                    {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as any)}
                                 </td>
@@ -584,13 +629,13 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                             */}
                             
                             <td 
-                                colSpan={firstValueIndex === -1 ? columns.length + 1 : firstValueIndex + 1} 
+                                colSpan={firstValueIndex === -1 ? visibleColumns.length + 1 : firstValueIndex + 1} 
                                 className="text-right font-black bg-gray-200 border border-black px-2 uppercase text-[10px] tracking-wider"
                             >
                                 TOTAL KESELURUHAN:
                             </td>
                             
-                            {columns.map((col, idx) => {
+                            {visibleColumns.map((col, idx) => {
                                 // Skip columns that are covered by the colspan above
                                 if (idx < firstValueIndex) return null;
 
