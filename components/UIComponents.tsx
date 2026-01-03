@@ -1,154 +1,331 @@
-import React, { useState, useEffect, createContext, useContext, Fragment } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
-import { 
-  X, Check, AlertCircle, Loader2, Search, Plus, 
-  Download, Upload, Edit, Trash2, Printer, 
-  FileSpreadsheet, FileText, LayoutGrid, List,
-  ChevronLeft, ChevronRight, Eye, CheckCircle2,
-  Menu
-} from 'lucide-react';
+import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
+import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText, Check } from 'lucide-react';
 
-// Re-export router components
-export { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Link };
+// === CUSTOM ROUTER IMPLEMENTATION ===
+const RouterContext = createContext<{ path: string; navigate: (to: string, opts?: { replace?: boolean }) => void }>({ 
+  path: window.location.pathname, 
+  navigate: () => {} 
+});
 
-export const LOGO_URI = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"; // Placeholder
+export const BrowserRouter: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [path, setPath] = useState(window.location.pathname);
 
-// === TOAST CONTEXT ===
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const navigate = (to: string, { replace }: { replace?: boolean } = {}) => {
+    if (replace) {
+      window.history.replaceState({}, '', to);
+    } else {
+      window.history.pushState({}, '', to);
+    }
+    setPath(to);
+    window.scrollTo(0, 0);
+  };
+
+  return <RouterContext.Provider value={{ path, navigate }}>{children}</RouterContext.Provider>;
+};
+
+export const Routes: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { path } = useContext(RouterContext);
+  let elementToRender: React.ReactNode = null;
+  let found = false;
+
+  React.Children.forEach(children, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    const { path: routePath, element } = child.props as any;
+    
+    // Simple matching
+    if (routePath === path || routePath === '*') {
+      elementToRender = element;
+      if (routePath === path) found = true; // Exact match takes precedence
+    }
+  });
+
+  return <>{elementToRender}</>;
+};
+
+export const Route: React.FC<{ path: string; element: React.ReactNode }> = () => null;
+
+export const useNavigate = () => {
+  const { navigate } = useContext(RouterContext);
+  return navigate;
+};
+
+export const useLocation = () => {
+  const { path } = useContext(RouterContext);
+  return { pathname: path };
+};
+
+export const Navigate: React.FC<{ to: string; replace?: boolean }> = ({ to, replace }) => {
+  const { navigate } = useContext(RouterContext);
+  useEffect(() => {
+    navigate(to, { replace });
+  }, [to, replace, navigate]);
+  return null;
+};
+
+export const NavLink: React.FC<{ 
+  to: string; 
+  children: React.ReactNode; 
+  className?: string | ((props: { isActive: boolean }) => string);
+  onClick?: () => void;
+}> = ({ to, children, className, onClick }) => {
+  const { path, navigate } = useContext(RouterContext);
+  const isActive = path === to || (to !== '/' && path.startsWith(to));
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onClick) onClick();
+    navigate(to);
+  };
+
+  const appliedClassName = typeof className === 'function' ? className({ isActive }) : className;
+
+  return (
+    <a href={to} onClick={handleClick} className={appliedClassName}>
+      {children}
+    </a>
+  );
+};
+
+// === Logo ===
+const LOGO_URI = "https://lh3.googleusercontent.com/d/1ocxhsbrHv2rNUe3r3kEma6oV167MGWea";
+
+export const Logo: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ className, ...props }) => {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div className={`flex items-center justify-center bg-[#0a2340] text-white font-bold rounded-full border-2 border-[#D4AF37] ${className}`} title="Logo Failed to Load" {...props}>
+        <span className="text-[0.5em] leading-tight text-center">BGN</span>
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={LOGO_URI} 
+      alt="Badan Gizi Nasional Logo" 
+      className={`object-contain ${className}`} 
+      onError={() => setError(true)}
+      referrerPolicy="no-referrer"
+      {...props}
+    />
+  );
+};
+
+// === Toast Notification System ===
 type ToastType = 'success' | 'error' | 'info';
-interface ToastContextType {
-  showToast: (message: string, type: ToastType) => void;
+
+interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
 }
+
+interface ToastContextType {
+  showToast: (message: string, type?: ToastType) => void;
+}
+
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = (message: string, type: ToastType) => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+  const showToast = (message: string, type: ToastType = 'success') => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {toast && (
-        <div className={`fixed top-5 right-5 z-[100] px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in-right border ${
-          toast.type === 'success' ? 'bg-white border-green-100 text-green-700' : 
-          toast.type === 'error' ? 'bg-white border-red-100 text-red-700' : 
-          'bg-white border-blue-100 text-blue-700'
-        }`}>
-          {toast.type === 'success' && <CheckCircle2 size={18} className="text-green-500" />}
-          {toast.type === 'error' && <AlertCircle size={18} className="text-red-500" />}
-          {toast.type === 'info' && <AlertCircle size={18} className="text-blue-500" />}
-          <span className="font-semibold text-sm">{toast.message}</span>
-        </div>
-      )}
+      <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none no-print">
+        {toasts.map((toast) => (
+          <div 
+            key={toast.id} 
+            className={`pointer-events-auto min-w-[320px] max-w-sm w-full p-4 rounded-xl shadow-2xl flex items-start gap-3 transform transition-all duration-500 animate-slide-in-right border-l-[6px] backdrop-blur-sm
+              ${toast.type === 'success' ? 'bg-white/95 border-emerald-500 shadow-emerald-500/20' : ''}
+              ${toast.type === 'error' ? 'bg-white/95 border-rose-500 shadow-rose-500/20' : ''}
+              ${toast.type === 'info' ? 'bg-white/95 border-blue-500 shadow-blue-500/20' : ''}
+            `}
+          >
+            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5
+               ${toast.type === 'success' ? 'bg-emerald-100 text-emerald-600' : ''}
+               ${toast.type === 'error' ? 'bg-rose-100 text-rose-600' : ''}
+               ${toast.type === 'info' ? 'bg-blue-100 text-blue-600' : ''}
+            `}>
+              {toast.type === 'success' && <CheckCircle size={18} strokeWidth={3} />}
+              {toast.type === 'error' && <AlertTriangle size={18} strokeWidth={3} />}
+              {toast.type === 'info' && <Info size={18} strokeWidth={3} />}
+            </div>
+
+            <div className="flex-1 min-w-0">
+               <h4 className={`text-sm font-bold mb-0.5 tracking-tight
+                  ${toast.type === 'success' ? 'text-emerald-800' : ''}
+                  ${toast.type === 'error' ? 'text-rose-800' : ''}
+                  ${toast.type === 'info' ? 'text-blue-800' : ''}
+               `}>
+                  {toast.type === 'success' ? 'BERHASIL' : toast.type === 'error' ? 'GAGAL' : 'INFORMASI'}
+               </h4>
+               <p className="text-sm font-medium text-gray-600 leading-snug break-words">
+                 {toast.message}
+               </p>
+            </div>
+
+            <button onClick={() => removeToast(toast.id)} className="text-gray-300 hover:text-gray-500 transition-colors shrink-0">
+              <X size={18} />
+            </button>
+          </div>
+        ))}
+      </div>
     </ToastContext.Provider>
   );
 };
 
 export const useToast = () => {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within a ToastProvider");
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
   return context;
 };
 
-// === BASIC COMPONENTS ===
-
-export const Logo: React.FC<{ className?: string }> = ({ className }) => (
-  <img src={LOGO_URI} alt="Logo" className={`object-contain ${className || 'w-10 h-10'}`} />
-);
-
+// === Loading Spinner ===
 export const LoadingSpinner: React.FC = () => (
-  <div className="flex justify-center p-8">
-    <Loader2 className="animate-spin text-primary" size={32} />
+  <div className="flex justify-center items-center p-4">
+    <Loader2 className="animate-spin text-primary" size={24} />
   </div>
 );
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className || ''}`}>
-    {children}
-  </div>
+// === Form Helper Text ===
+export const FormHelperText: React.FC = () => (
+  <p className="text-[10px] text-red-500 mt-0.5 ml-1 italic">*kotak tidak boleh kosong, harus di isi lengkap</p>
 );
 
+// === Button ===
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'success';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'success';
   size?: 'sm' | 'md' | 'lg';
-  isLoading?: boolean;
   icon?: React.ReactNode;
+  isLoading?: boolean;
 }
-export const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', size = 'md', isLoading, icon, className, ...props }) => {
-  const sizeStyles = {
+export const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', size = 'md', icon, className = '', isLoading, ...props }) => {
+  const baseStyle = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  
+  const variants = {
+    primary: "bg-primary hover:bg-[#1f5676] text-white focus:ring-primary",
+    secondary: "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300",
+    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-600"
+  };
+  
+  const sizes = {
     sm: "px-3 py-1.5 text-xs",
     md: "px-4 py-2 text-sm",
     lg: "px-6 py-3 text-base"
   };
-  const baseStyles = "rounded-xl font-bold transition-all duration-200 flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
-  const variants = {
-    primary: "bg-primary text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20",
-    secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
-    danger: "bg-red-50 text-red-600 hover:bg-red-100 border border-red-100",
-    success: "bg-green-50 text-green-600 hover:bg-green-100 border border-green-100"
-  };
 
   return (
-    <button className={`${baseStyles} ${sizeStyles[size]} ${variants[variant]} ${className || ''}`} disabled={isLoading} {...props}>
-      {isLoading && <Loader2 size={size === 'sm' ? 14 : 16} className="animate-spin" />}
-      {!isLoading && icon}
+    <button className={`${baseStyle} ${variants[variant]} ${sizes[size]} ${className}`} disabled={isLoading || props.disabled} {...props}>
+      {isLoading ? <Loader2 className="animate-spin mr-2" size={18} /> : (icon && <span className="mr-2">{icon}</span>)}
       {children}
     </button>
   );
 };
 
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label?: string }> = ({ label, className, ...props }) => (
-  <div className="w-full">
-    {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
-    <input 
-      className={`w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-gray-700 ${className || ''}`} 
-      {...props} 
-    />
-  </div>
-);
+// === Input ===
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+export const Input: React.FC<InputProps> = ({ label, error, className = '', type, ...props }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
 
-export const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; options: {value: string|number, label: string}[] }> = ({ label, options, className, ...props }) => (
-  <div className="w-full">
-    {label && <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>}
-    <div className="relative">
-      <select 
-        className={`w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-gray-700 appearance-none bg-white ${className || ''}`} 
-        {...props}
-      >
-        {options.map((opt, idx) => (
-          <option key={idx} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-        <ChevronRight className="rotate-90" size={16} />
+  return (
+    <div className="w-full">
+      {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
+      <div className="relative">
+        <input 
+          type={inputType}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all ${error ? 'border-red-500' : 'border-gray-300'} ${isPassword ? 'pr-10' : ''} ${className}`} 
+          {...props} 
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
       </div>
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
+  );
+};
+
+// === Select ===
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: { value: string; label: string }[];
+}
+export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => (
+  <div className="w-full">
+    {label && <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>}
+    <select 
+      className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white ${className}`} 
+      {...props}
+    >
+      {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
   </div>
 );
 
-export const FormHelperText: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
-  <p className="text-[10px] text-red-500 mt-1 italic flex items-center gap-1">
-    <AlertCircle size={10} /> {children || "Wajib diisi"}
-  </p>
+// === Card ===
+export const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ children, className = '', ...props }) => (
+  <div className={`bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] ${className}`} {...props}>
+    {children}
+  </div>
 );
 
-// === MODALS ===
-
-export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }> = ({ isOpen, onClose, title, children }) => {
+// === Modal ===
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col animate-scale-in">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
-            <X size={20} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-scale-in">
+        <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+            <X size={20} className="text-gray-600" />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6">
           {children}
         </div>
       </div>
@@ -156,294 +333,14 @@ export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; title: stri
   );
 };
 
-export const ConfirmationModal: React.FC<{ isOpen: boolean; onClose: () => void; onConfirm: () => void; title: string; message: string; isLoading?: boolean }> = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
-  if (!isOpen) return null;
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="text-center py-4">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle size={32} />
-        </div>
-        <p className="text-gray-600 mb-6">{message}</p>
-        <div className="flex gap-3 justify-center">
-          <Button variant="secondary" onClick={onClose}>Batal</Button>
-          <Button variant="danger" onClick={onConfirm} isLoading={isLoading}>Ya, Lanjutkan</Button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-export const PreviewModal: React.FC<{ isOpen: boolean; onClose: () => void; src: string | null; title: string }> = ({ isOpen, onClose, src, title }) => {
-  if (!isOpen || !src) return null;
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      <div className="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-         <button onClick={onClose} className="absolute -top-10 right-0 text-white hover:text-gray-300">
-            <X size={24} />
-         </button>
-         {src.startsWith('data:application/pdf') || src.endsWith('.pdf') ? (
-            <iframe src={src} className="w-full h-[80vh] bg-white rounded-lg" title={title}></iframe>
-         ) : (
-            <img src={src} alt="Preview" className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain bg-white" />
-         )}
-         <p className="text-white mt-4 font-medium">{title}</p>
-      </div>
-    </div>
-  );
-};
-
-export const PrintPreviewDialog: React.FC<{ isOpen: boolean; onClose: () => void; title: string; filename?: string; children: React.ReactNode }> = ({ isOpen, onClose, title, filename, children }) => {
-  if (!isOpen) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="fixed inset-0 z-[80] bg-gray-900/90 flex flex-col animate-fade-in no-print-overlay">
-       <div className="h-14 bg-gray-800 flex items-center justify-between px-4 shadow-md shrink-0">
-          <h3 className="text-white font-bold">{title}</h3>
-          <div className="flex items-center gap-2">
-             <Button variant="secondary" onClick={onClose} className="text-xs py-1.5 h-8">Tutup</Button>
-             <Button onClick={handlePrint} icon={<Printer size={14} />} className="text-xs py-1.5 h-8">Cetak / PDF</Button>
-          </div>
-       </div>
-       <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center">
-           <div className="bg-white shadow-2xl w-full max-w-[210mm] min-h-[297mm] p-[10mm] md:p-[15mm] text-black print-content">
-               {children}
-           </div>
-       </div>
-       <style>{`
-          @media print {
-            .no-print-overlay { position: static; background: white; display: block; height: auto; overflow: visible; }
-            .no-print-overlay > div:first-child { display: none; }
-            .print-content { box-shadow: none; max-width: 100%; width: 100%; padding: 0; margin: 0; }
-            body { background: white; }
-          }
-       `}</style>
-    </div>
-  );
-};
-
-// === TABLE & TOOLBAR ===
-
-export interface TableColumn<T> {
-  header: string;
-  accessor: keyof T | ((item: T) => React.ReactNode);
-  className?: string;
-}
-
-interface TableProps<T> {
-  data: T[];
-  columns: TableColumn<T>[];
-  onEdit?: (item: T) => void;
-  onDelete?: (item: T) => void;
-  isLoading?: boolean;
-  hideActions?: boolean;
-  customActions?: (item: T) => React.ReactNode;
-}
-
-export const Table = <T extends { id: string }>({ data, columns, onEdit, onDelete, isLoading, hideActions, customActions }: TableProps<T>) => {
-  if (isLoading) return <LoadingSpinner />;
-  if (data.length === 0) return <div className="p-8 text-center text-gray-400 italic">Tidak ada data untuk ditampilkan</div>;
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
-        <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase tracking-wider text-xs">
-          <tr>
-            <th className="p-4 font-bold w-12 text-center">No</th>
-            {columns.map((col, idx) => (
-              <th key={idx} className={`p-4 font-bold ${col.className || ''}`}>{col.header}</th>
-            ))}
-            {!hideActions && <th className="p-4 font-bold text-center w-32">Aksi</th>}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {data.map((item, idx) => (
-            <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
-              <td className="p-4 text-center text-gray-400 font-mono text-xs">{idx + 1}</td>
-              {columns.map((col, cIdx) => (
-                <td key={cIdx} className={`p-4 ${col.className || ''}`}>
-                  {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
-                </td>
-              ))}
-              {!hideActions && (
-                <td className="p-4">
-                  <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {customActions && customActions(item)}
-                    {onEdit && (
-                      <button onClick={() => onEdit(item)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Edit">
-                        <Edit size={16} />
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button onClick={() => onDelete(item)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Hapus">
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-interface ToolbarProps {
-  title: string;
-  onSearch: (val: string) => void;
-  onAdd?: () => void;
-  onExport?: () => void;
-  onImport?: (file: File) => void;
-  searchPlaceholder?: string;
-  layoutMode?: 'table' | 'grid';
-  onLayoutChange?: (mode: 'table' | 'grid') => void;
-}
-
-export const Toolbar: React.FC<ToolbarProps> = ({ title, onSearch, onAdd, onExport, onImport, searchPlaceholder, layoutMode, onLayoutChange }) => {
-  return (
-    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{title}</h2>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative">
-          <input 
-            type="text" 
-            placeholder={searchPlaceholder || "Search..."} 
-            onChange={e => onSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none w-full sm:w-64"
-          />
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-        </div>
-        
-        <div className="flex items-center gap-2">
-            {onLayoutChange && (
-              <div className="flex bg-gray-100 p-1 rounded-xl mr-2">
-                <button onClick={() => onLayoutChange('table')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'table' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <List size={18} />
-                </button>
-                <button onClick={() => onLayoutChange('grid')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'grid' ? 'bg-white shadow text-primary' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <LayoutGrid size={18} />
-                </button>
-              </div>
-            )}
-            
-            {onImport && (
-              <label className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 cursor-pointer transition-colors" title="Import Excel">
-                <Upload size={20} />
-                <input type="file" className="hidden" accept=".xlsx, .xls" onChange={(e) => e.target.files && onImport(e.target.files[0])} />
-              </label>
-            )}
-
-            {onExport && (
-              <button onClick={onExport} className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors" title="Export Data">
-                <Download size={20} />
-              </button>
-            )}
-
-            {onAdd && (
-              <Button onClick={onAdd} icon={<Plus size={18} />}>Tambah Data</Button>
-            )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// === SLIP GAJI MODAL ===
-
-export const SlipGajiModal: React.FC<{ isOpen: boolean; onClose: () => void; data: any; defaultFilename?: string }> = ({ isOpen, onClose, data, defaultFilename }) => {
-  if (!isOpen || !data) return null;
-
-  return (
-    <PrintPreviewDialog isOpen={isOpen} onClose={onClose} title="Slip Gaji Karyawan" filename={defaultFilename}>
-      <div className="border border-black p-8 max-w-2xl mx-auto">
-        <div className="text-center border-b-2 border-black pb-4 mb-6">
-          <div className="flex items-center justify-center gap-4 mb-2">
-             <Logo className="w-12 h-12" />
-             <div className="text-left">
-                <h2 className="text-xl font-bold uppercase tracking-wider">SPPG Tales Setono</h2>
-                <p className="text-xs uppercase">Satuan Pelayanan Pemenuhan Gizi - Ngadiluwih</p>
-             </div>
-          </div>
-          <h1 className="text-2xl font-black uppercase underline">SLIP GAJI</h1>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-6 text-sm">
-           <div>
-              <table className="w-full">
-                 <tbody>
-                    <tr><td className="font-bold py-1">Nama</td><td>: {data.nama}</td></tr>
-                    <tr><td className="font-bold py-1">Divisi</td><td>: {data.divisi}</td></tr>
-                    <tr><td className="font-bold py-1">Periode</td><td>: {data.periode}</td></tr>
-                 </tbody>
-              </table>
-           </div>
-           <div>
-              <table className="w-full">
-                 <tbody>
-                    <tr><td className="font-bold py-1">Bank</td><td>: {data.bank}</td></tr>
-                    <tr><td className="font-bold py-1">No. Rek</td><td>: {data.rekening}</td></tr>
-                    <tr><td className="font-bold py-1">Tanggal</td><td>: {new Date().toLocaleDateString('id-ID')}</td></tr>
-                 </tbody>
-              </table>
-           </div>
-        </div>
-
-        <table className="w-full border-collapse border border-black mb-8 text-sm">
-           <thead>
-              <tr className="bg-gray-100">
-                 <th className="border border-black p-2 text-left">Keterangan</th>
-                 <th className="border border-black p-2 text-center w-24">Volume</th>
-                 <th className="border border-black p-2 text-right w-32">Satuan (Rp)</th>
-                 <th className="border border-black p-2 text-right w-32">Jumlah (Rp)</th>
-              </tr>
-           </thead>
-           <tbody>
-              <tr>
-                 <td className="border border-black p-2">Honorarium Harian</td>
-                 <td className="border border-black p-2 text-center">{data.totalHadir} Hari</td>
-                 <td className="border border-black p-2 text-right">{new Intl.NumberFormat('id-ID').format(data.honorHarian)}</td>
-                 <td className="border border-black p-2 text-right font-bold">{new Intl.NumberFormat('id-ID').format(data.totalTerima)}</td>
-              </tr>
-              <tr className="bg-gray-200">
-                 <td colSpan={3} className="border border-black p-2 text-right font-bold">TOTAL DITERIMA</td>
-                 <td className="border border-black p-2 text-right font-black text-lg">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.totalTerima)}</td>
-              </tr>
-           </tbody>
-        </table>
-
-        <div className="flex justify-between mt-12 mb-4 text-center text-sm break-inside-avoid">
-           <div className="w-40">
-              <p className="mb-20 font-bold">Penerima</p>
-              <p className="font-bold underline">{data.nama}</p>
-           </div>
-           <div className="w-40">
-              <p className="mb-20 font-bold">Kepala SPPG</p>
-              <p className="font-bold underline">Tiurmasi S.S., S.T.</p>
-           </div>
-        </div>
-      </div>
-    </PrintPreviewDialog>
-  );
-};
-
-
-// === EXPORT PREVIEW MODAL (FULL INTEGRATION) ===
-
+// === Export Preview Modal (Enhanced for Professional Layout & Repeating Headers) ===
 interface ExportModalProps<T> {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   subtitle?: string;
   data: T[];
-  columns: { header: string; accessor: keyof T | ((item: T) => React.ReactNode); className?: string }[];
+  columns: { header: string; accessor: keyof T | ((item: T) => string | number | undefined); className?: string }[];
   onExportExcel?: () => void;
   hideLogo?: boolean;
   summaryData?: { [key: string]: string | number };
@@ -461,12 +358,8 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   // INTERNAL SMART EXCEL EXPORT
   const handleSmartExcelExport = () => {
-    // Check if XLSX is available globally
     const XLSX = (window as any).XLSX;
-    if (!XLSX) {
-        alert("Library XLSX belum dimuat. Mohon refresh halaman.");
-        return;
-    }
+    if (!XLSX) return;
 
     if (onExportExcel) {
         onExportExcel();
@@ -477,7 +370,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
         const row: any = {};
         columns.forEach(col => {
             const val = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
-            row[col.header] = React.isValidElement(val) ? String(val) : val;
+            row[col.header] = val;
         });
         return row;
     });
@@ -501,11 +394,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   const handleExportPdf = () => {
     const element = document.getElementById('export-preview-content');
-    const html2pdf = (window as any).html2pdf;
-    if (!element || !html2pdf) {
-        alert("Library PDF belum siap.");
-        return;
-    }
+    if (!element || !(window as any).html2pdf) return;
 
     setIsPdfLoading(true);
     const opt = {
@@ -517,7 +406,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
       pagebreak: { mode: ['css', 'legacy'] } 
     };
 
-    html2pdf().set(opt).from(element).save().then(() => {
+    (window as any).html2pdf().set(opt).from(element).save().then(() => {
       setIsPdfLoading(false);
     });
   };
@@ -549,22 +438,23 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               
               {/* PDF Styles Injection */}
               <style>{`
+                /* Document Base Style */
                 .pdf-table { 
                     width: 100%; 
                     margin: 0 auto;
                     border-collapse: collapse; 
-                    font-size: 10px; 
+                    font-size: 10px; /* Standar ukuran font laporan */
                     color: #000; 
                     font-family: Arial, sans-serif;
                 }
                 .pdf-table th { 
-                    background-color: #E5E7EB; 
+                    background-color: #E5E7EB; /* Light Gray Header */
                     color: black;
                     font-weight: bold;
                     text-transform: uppercase;
-                    text-align: center !important; 
+                    text-align: center !important; /* Force Centered Header */
                     vertical-align: middle;
-                    border: 1px solid #000; 
+                    border: 1px solid #000; /* Solid Black Border */
                     padding: 8px 4px;
                 }
                 .pdf-table td { 
@@ -573,25 +463,37 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                     vertical-align: middle;
                     color: black;
                 }
-                .pdf-table tr:nth-child(even) { background-color: #fdfdfd; }
+                .pdf-table tr:nth-child(even) {
+                    background-color: #fdfdfd;
+                }
                 .pdf-table tfoot td {
                     font-weight: bold;
                     border: 1px solid #000;
                     padding: 8px 4px;
                     background-color: #F3F4F6;
                 }
+                
+                /* Custom Classes for Color Coding */
                 .col-blue { background-color: #DBEAFE !important; }
                 .col-pink { background-color: #FCE7F3 !important; }
                 .col-purple { background-color: #F3E8FF !important; }
-                .col-guru { background-color: #e0e7ff !important; }
+                .col-orange { background-color: #FFEDD5 !important; }
+                .col-green { background-color: #DCFCE7 !important; }
+                .col-guru { background-color: #e0e7ff !important; } /* Indigo-ish */
                 .text-center { text-align: center !important; }
+                
+                /* --- PAGINATION & PRINT RULES --- */
                 .report-header { page-break-inside: avoid; }
+                
+                /* HEADER BERULANG (CRITICAL) */
                 thead { display: table-header-group; } 
                 tfoot { display: table-footer-group; }
                 tr { page-break-inside: avoid; page-break-after: auto; }
+                
+                /* KOP SURAT SIMETRIS GRID */
                 .header-grid {
                     display: grid;
-                    grid-template-columns: 100px 1fr 100px; 
+                    grid-template-columns: 100px 1fr 100px; /* Logo | Text | Spacer */
                     align-items: center;
                     border-bottom: 2px solid black;
                     padding-bottom: 15px;
@@ -607,20 +509,32 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                 .logo-img {
                     width: 100%;
                     height: 100%;
-                    object-fit: contain; 
+                    object-fit: contain; /* Prevents squashing/gepeng */
+                }
+                
+                @media print {
+                   body { -webkit-print-color-adjust: exact; }
+                   .pdf-table { width: 100%; }
+                   thead { display: table-header-group; }
+                   tr { page-break-inside: avoid; }
                 }
               `}</style>
 
-              {/* Report Header */}
+              {/* Report Header (Kop Surat Simetris with Grid) */}
               <div className="header-grid report-header">
+                  {/* Left: Logo Box (Hidden if hideLogo is true) */}
                   <div className="logo-container">
                       {!hideLogo && <img src={LOGO_URI} alt="Logo" className="logo-img" />}
                   </div>
+
+                  {/* Center: Text (Centered in available space) */}
                   <div className="text-center px-2">
                     <h1 className="text-2xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
                     <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
                     <p className="text-xs text-gray-600 mt-1 italic">Tanggal Laporan: {currentDate}</p>
                   </div>
+
+                  {/* Right: Spacer (Same Width as Logo for Symmetry) */}
                   <div className="w-[100px]"></div>
               </div>
 
@@ -661,14 +575,25 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  {summaryData && (
                     <tfoot>
                         <tr>
+                            {/* 
+                                DYNAMIC FOOTER LOGIC:
+                                1. Calculate colspan for the 'TOTAL' label. 
+                                   It spans the 'NO' column (+1) and all columns BEFORE the first column that has a value.
+                                2. Render the "TOTAL" label aligned to the right.
+                                3. Render the remaining columns (values or empty cells).
+                            */}
+                            
                             <td 
                                 colSpan={firstValueIndex === -1 ? columns.length + 1 : firstValueIndex + 1} 
                                 className="text-right font-black bg-gray-200 border border-black px-2 uppercase text-[10px] tracking-wider"
                             >
                                 TOTAL KESELURUHAN:
                             </td>
+                            
                             {columns.map((col, idx) => {
+                                // Skip columns that are covered by the colspan above
                                 if (idx < firstValueIndex) return null;
+
                                 const val = summaryData[col.header];
                                 return (
                                     <td key={idx} className={`text-center font-bold border border-black ${col.className || 'bg-gray-200'}`}>
@@ -681,7 +606,7 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  )}
               </table>
 
-              {/* Footer Signature */}
+              {/* Footer Signature Area */}
               <div className="mt-10 flex justify-end page-break-inside-avoid">
                  <div className="text-center w-64 text-black">
                     <p className="mb-16">Mengetahui,</p>
@@ -714,6 +639,663 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
               Download PDF
            </Button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// === Toolbar ===
+interface ToolbarProps {
+  title: string;
+  onSearch: (value: string) => void;
+  onAdd?: () => void;
+  onExport?: () => void;
+  onImport?: (file: File) => void;
+  searchPlaceholder?: string;
+  layoutMode?: 'table' | 'grid';
+  onLayoutChange?: (mode: 'table' | 'grid') => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({
+  title,
+  onSearch,
+  onAdd,
+  onExport,
+  onImport,
+  searchPlaceholder = 'Search...',
+  layoutMode,
+  onLayoutChange
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImport) {
+      onImport(e.target.files[0]);
+      e.target.value = ''; // Reset
+    }
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+            onChange={(e) => onSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          {onLayoutChange && (
+            <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+              <button
+                onClick={() => onLayoutChange('table')}
+                className={`p-1.5 rounded-md transition-all ${layoutMode === 'table' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Table View"
+              >
+                <List size={18} />
+              </button>
+              <button
+                onClick={() => onLayoutChange('grid')}
+                className={`p-1.5 rounded-md transition-all ${layoutMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Grid View"
+              >
+                <LayoutGrid size={18} />
+              </button>
+            </div>
+          )}
+          
+          {onImport && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+              />
+              <Button variant="secondary" onClick={() => fileInputRef.current?.click()} title="Import Excel">
+                <FileUp size={18} />
+              </Button>
+            </>
+          )}
+          
+          {onExport && (
+            <Button variant="secondary" onClick={onExport} title="Export Data">
+              <FileDown size={18} />
+            </Button>
+          )}
+          
+          {onAdd && (
+            <Button onClick={onAdd} className="shrink-0">
+              <Plus size={18} className="mr-1" /> Add New
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Table ===
+interface TableColumn<T> {
+  header: string;
+  accessor: keyof T | ((item: T) => React.ReactNode);
+  className?: string;
+}
+
+interface TableProps<T> {
+  data: T[];
+  columns: TableColumn<T>[];
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  isLoading?: boolean;
+  hideActions?: boolean;
+  customActions?: (item: T) => React.ReactNode;
+}
+
+export const Table = <T extends { id: string }>({
+  data,
+  columns,
+  onEdit,
+  onDelete,
+  isLoading,
+  hideActions,
+  customActions
+}: TableProps<T>) => {
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-gray-50 text-gray-700 uppercase font-semibold border-b">
+          <tr>
+            <th className="px-6 py-4 w-16">No</th>
+            {columns.map((col, idx) => (
+              <th key={idx} className={`px-6 py-4 ${col.className || ''}`}>{col.header}</th>
+            ))}
+            {!hideActions && (onEdit || onDelete || customActions) && <th className="px-6 py-4 text-right">Actions</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map((item, idx) => (
+            <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+              <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+              {columns.map((col, cIdx) => (
+                <td key={cIdx} className={`px-6 py-4 ${col.className || ''}`}>
+                  {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
+                </td>
+              ))}
+              {!hideActions && (onEdit || onDelete || customActions) && (
+                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                  {customActions && customActions(item)}
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      onClick={() => onDelete(item)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// === Confirmation Modal ===
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  isLoading?: boolean;
+}
+
+export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+  isOpen, onClose, onConfirm, title, message, isLoading
+}) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+        <div className="flex items-center gap-3 text-red-600 mb-4">
+          <div className="p-2 bg-red-100 rounded-full">
+            <AlertTriangle size={24} />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+        </div>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onClose} disabled={isLoading}>Batal</Button>
+          <Button variant="danger" onClick={onConfirm} isLoading={isLoading}>Hapus</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Preview Modal ===
+interface PreviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  src: string | null;
+  title: string;
+}
+
+export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, src, title }) => {
+  if (!isOpen || !src) return null;
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in no-print" onClick={onClose}>
+      <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-4xl max-h-[90vh] w-full flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+          <h3 className="font-bold text-gray-800">{title}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full"><X size={20} /></button>
+        </div>
+        <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center">
+          {src.startsWith('data:application/pdf') || src.endsWith('.pdf') ? (
+             <iframe src={src} className="w-full h-[60vh]" title="PDF Preview"></iframe>
+          ) : (
+             <img src={src} alt="Preview" className="max-w-full max-h-[70vh] object-contain shadow-lg" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Slip Gaji Modal ===
+interface SlipGajiModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  data: {
+    nama: string;
+    divisi: string;
+    bank: string;
+    rekening: string;
+    periode: string;
+    periodeDates: string;
+    totalHadir: number;
+    honorHarian: number;
+    totalTerima: number;
+  } | null;
+  defaultFilename?: string;
+}
+
+export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, data, defaultFilename }) => {
+  const componentRef = useRef<HTMLDivElement>(null);
+  const [fileName, setFileName] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && defaultFilename) {
+      setFileName(defaultFilename);
+    }
+  }, [isOpen, defaultFilename]);
+
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = fileName || "Slip_Gaji_Karyawan";
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 500);
+  };
+
+  const handleDownload = () => {
+    const element = document.getElementById('printable-slip');
+    if (!element || !(window as any).html2pdf) return;
+
+    setIsDownloading(true);
+    const opt = {
+      margin: 0,
+      filename: fileName.endsWith('.pdf') ? fileName : `${fileName || 'document'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    (window as any).html2pdf().set(opt).from(element).save().then(() => {
+      setIsDownloading(false);
+    });
+  };
+
+  if (!isOpen || !data) return null;
+
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-scale-in flex flex-col">
+        {/* Header Actions */}
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl sticky top-0 z-10 no-print flex-wrap gap-2">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mr-auto"><Printer size={18} className="text-primary"/> Preview Slip Gaji</h3>
+          
+          <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20">
+            <Edit3 size={14} className="text-gray-400" />
+            <input 
+              type="text" 
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+              className="text-sm outline-none w-48 text-gray-600 font-medium"
+              placeholder="Nama File untuk Simpan PDF..."
+              title="Nama file yang akan digunakan saat 'Save as PDF'"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handlePrint} icon={<Printer size={16}/>} size="sm">Cetak</Button>
+            <Button onClick={handleDownload} icon={<Download size={16}/>} size="sm" variant="secondary" isLoading={isDownloading}>Download PDF</Button>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+              <X size={20} className="text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        {/* Printable Content */}
+        <div className="p-8 bg-gray-100 flex justify-center">
+          <div ref={componentRef} id="printable-slip" className="bg-white p-2 w-full max-w-[210mm] min-h-[148mm] mx-auto text-black relative print:shadow-none print:w-full print:h-full print:m-0 print:absolute print:top-0 print:left-0 print:p-0">
+            <style>
+              {`
+                @media print {
+                  @page { 
+                    size: landscape; 
+                    margin: 0mm; 
+                  }
+                  body, html, #root {
+                    height: 100% !important;
+                    width: 100% !important;
+                    overflow: visible !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: white !important;
+                  }
+                  body * {
+                    visibility: hidden;
+                  }
+                  #printable-slip, #printable-slip * {
+                    visibility: visible;
+                  }
+                  #printable-slip {
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    margin: 0;
+                    padding: 10mm;
+                    background: white;
+                    z-index: 99999;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                  }
+                  .no-print { display: none !important; }
+                  
+                  /* Kop Surat Simetris Grid for Slip */
+                  .slip-header-grid {
+                      display: grid;
+                      grid-template-columns: 100px 1fr 100px;
+                      align-items: center;
+                      border-bottom: 4px double black;
+                      padding-bottom: 10px;
+                      margin-bottom: 20px;
+                  }
+                  .logo-container {
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 80px;
+                      width: 100%;
+                  }
+                  .logo-img {
+                      width: 100%;
+                      height: 100%;
+                      object-fit: contain;
+                  }
+                }
+                
+                /* Default (Screen) Style for Slip Header */
+                .slip-header-grid {
+                    display: grid;
+                    grid-template-columns: 100px 1fr 100px;
+                    align-items: center;
+                    border-bottom: 4px double black;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 80px;
+                    width: 100%;
+                }
+                .logo-img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
+              `}
+            </style>
+            
+            <div className="border-2 border-black p-8 h-full relative flex flex-col justify-between">
+              <div>
+                {/* Header Kop Surat (Grid Simetris) */}
+                <div className="slip-header-grid">
+                  <div className="logo-container">
+                     <img src={LOGO_URI} alt="Logo" className="logo-img" />
+                  </div>
+                  <div className="text-center px-2">
+                    <h1 className="text-xl font-bold uppercase tracking-wide leading-tight text-black">SATUAN PELAYANAN PEMENUHAN GIZI (SPPG)</h1>
+                    <h2 className="text-sm font-bold uppercase tracking-wider mt-1 text-black">DESA TALES SETONO - KECAMATAN NGADILUWIH</h2>
+                  </div>
+                  <div className="w-[100px]"></div>
+                </div>
+
+                <div className="text-center mb-8">
+                  <h2 className="text-2xl font-bold underline decoration-2 underline-offset-4 text-black">SLIP GAJI</h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-8 mb-8 border border-black p-4 rounded-sm">
+                  <table className="w-full text-sm text-black">
+                    <tbody>
+                      <tr>
+                        <td className="w-32 font-semibold py-1">Nama Karyawan</td>
+                        <td className="py-1">: {data.nama}</td>
+                      </tr>
+                      <tr>
+                        <td className="font-semibold py-1">Divisi</td>
+                        <td className="py-1">: {data.divisi}</td>
+                      </tr>
+                      <tr>
+                        <td className="font-semibold py-1">Bank</td>
+                        <td className="py-1">: {data.bank}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <table className="w-full text-sm text-black">
+                    <tbody>
+                      <tr>
+                        <td className="w-32 font-semibold py-1">Periode</td>
+                        <td className="py-1">: {data.periode}</td>
+                      </tr>
+                      <tr>
+                        <td className="font-semibold py-1">Tanggal</td>
+                        <td className="py-1">: {data.periodeDates}</td>
+                      </tr>
+                      <tr>
+                        <td className="font-semibold py-1">No. Rekening</td>
+                        <td className="py-1">: {data.rekening}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <table className="w-full border-collapse border border-black mb-8 text-sm text-black">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="border border-black px-4 py-2 text-left w-1/2 font-bold">KETERANGAN</th>
+                      <th className="border border-black px-4 py-2 text-center font-bold">VOL</th>
+                      <th className="border border-black px-4 py-2 text-right font-bold">SATUAN (Rp)</th>
+                      <th className="border border-black px-4 py-2 text-right font-bold">JUMLAH (Rp)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-black px-4 py-3">Honorarium Harian</td>
+                      <td className="border border-black px-4 py-3 text-center">{data.totalHadir} Hari</td>
+                      <td className="border border-black px-4 py-3 text-right">{new Intl.NumberFormat('id-ID').format(data.honorHarian)}</td>
+                      <td className="border border-black px-4 py-3 text-right font-medium">{new Intl.NumberFormat('id-ID').format(data.totalTerima)}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100">
+                      <td colSpan={3} className="border border-black px-4 py-3 text-right text-base font-bold">TOTAL DITERIMA</td>
+                      <td className="border border-black px-4 py-3 text-right text-base font-bold">{formatCurrency(data.totalTerima)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Refined Signatures Grid */}
+              <div className="grid grid-cols-2 mt-8 px-4 text-black text-sm gap-x-16">
+                <div className="flex flex-col items-center justify-end">
+                  <p className="mb-24 font-bold">Penerima,</p>
+                  <div className="border-b border-black w-56 text-center pb-1 font-bold">{data.nama}</div>
+                </div>
+
+                <div className="flex flex-col items-center justify-end">
+                  <p className="mb-1 text-center">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                  <p className="mb-24 font-bold uppercase">Kepala SPPG</p>
+                  <div className="border-b border-black w-64 text-center pb-1 font-bold whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Print Preview Dialog (Enhanced for Native Print) ===
+interface PrintPreviewDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  onPrint?: () => void;
+  filename?: string;
+  children: React.ReactNode;
+}
+
+export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, onClose, title, onPrint, filename, children }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handlePrint = () => {
+    if (onPrint) {
+      onPrint();
+      return;
+    }
+
+    const originalTitle = document.title;
+    if (filename) {
+      document.title = filename;
+    }
+    
+    window.print();
+    
+    if (filename) {
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 500);
+    }
+  };
+
+  const handleDownload = () => {
+    const element = document.getElementById('printable-preview-content');
+    if (!element || !(window as any).html2pdf) return;
+
+    setIsDownloading(true);
+    const opt = {
+      margin: 5,
+      filename: filename?.endsWith('.pdf') ? filename : `${filename || 'document'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak: { mode: ['css', 'legacy'] } 
+    };
+
+    (window as any).html2pdf().set(opt).from(element).save().then(() => {
+      setIsDownloading(false);
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-scale-in">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Printer size={18} className="text-primary"/> {title}
+          </h3>
+          <div className="flex gap-2">
+             <Button onClick={handlePrint} icon={<Printer size={16}/>} size="sm">Cetak Sekarang</Button>
+             <Button onClick={handleDownload} icon={<Download size={16}/>} size="sm" variant="secondary" isLoading={isDownloading}>Download PDF</Button>
+             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+               <X size={20} className="text-gray-600" />
+             </button>
+          </div>
+        </div>
+        
+        {/* Preview Content Area */}
+        <div className="p-6 overflow-y-auto bg-gray-100 flex-1">
+           {/* Printable Container */}
+           <div id="printable-preview-content" className="bg-white shadow-lg border border-gray-200 p-8 mx-auto max-w-[297mm] min-h-[210mm] text-black">
+              {children}
+           </div>
+        </div>
+        
+        {/* Print CSS Injection */}
+        <style>
+          {`
+            @media print {
+              @page { size: landscape; margin: 5mm; }
+              body, html, #root {
+                height: 100% !important;
+                width: 100% !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+              }
+              body * {
+                visibility: hidden;
+              }
+              .no-print { display: none !important; }
+              #printable-preview-content, #printable-preview-content * {
+                visibility: visible;
+              }
+              #printable-preview-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+                border: none;
+                box-shadow: none;
+                z-index: 99999;
+              }
+              /* Ensure tables break nicely in Native Print */
+              table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              thead { display: table-header-group; }
+              tfoot { display: table-footer-group; }
+              th { 
+                  text-align: center !important; 
+                  background-color: #E5E7EB !important; 
+                  -webkit-print-color-adjust: exact;
+                  border: 1px solid black;
+              } 
+              td { border: 1px solid black; }
+            }
+          `}
+        </style>
       </div>
     </div>
   );
