@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useEffect, useState, useRef } from 'react'; // Added useRef
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator, ChevronDown, Check } from 'lucide-react'; // Added ChevronDown, Check
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -23,8 +24,13 @@ export const SchoolPage: React.FC = () => {
 
   // Filtering States
   const [filterDesa, setFilterDesa] = useState('');
-  const [filterJenis, setFilterJenis] = useState('');
+  // MODIFIED: Changed to array for multi-select
+  const [filterJenis, setFilterJenis] = useState<string[]>([]);
   const [filterProposal, setFilterProposal] = useState(''); // New Filter
+
+  // UI State for Custom Dropdown
+  const [isJenisDropdownOpen, setIsJenisDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Layout State
   const [layout, setLayout] = useState<'table' | 'grid'>('table');
@@ -62,6 +68,19 @@ export const SchoolPage: React.FC = () => {
   // Define roles allowed to import
   const canImport = ['SUPERADMIN', 'KSPPG', 'ADMINSPPG'].includes(role);
 
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsJenisDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Realtime Subscription with Integrated Filtering
   useEffect(() => {
     setLoading(true);
@@ -81,9 +100,9 @@ export const SchoolPage: React.FC = () => {
         filtered = filtered.filter(i => i.desa === filterDesa);
       }
 
-      // Filter by Jenis
-      if (filterJenis) {
-        filtered = filtered.filter(i => i.jenis === filterJenis);
+      // MODIFIED: Multi-Filter by Jenis
+      if (filterJenis.length > 0) {
+        filtered = filtered.filter(i => filterJenis.includes(i.jenis));
       }
 
       // Filter by Proposal Status
@@ -377,6 +396,15 @@ export const SchoolPage: React.FC = () => {
 
   const summaryData = calculateTotals();
 
+  // Helper for checkbox toggle
+  const toggleJenis = (jenis: string) => {
+    setFilterJenis(prev => 
+        prev.includes(jenis) 
+        ? prev.filter(j => j !== jenis)
+        : [...prev, jenis]
+    );
+  };
+
   // Grid Renderer
   const renderGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -517,17 +545,43 @@ export const SchoolPage: React.FC = () => {
                 ))}
              </select>
 
-             {/* Filter Jenis */}
-             <select 
-                value={filterJenis} 
-                onChange={(e) => setFilterJenis(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none"
-             >
-                <option value="">-- Semua Jenjang --</option>
-                {jenisOptionsRaw.map(jenis => (
-                   <option key={jenis} value={jenis}>{jenis}</option>
-                ))}
-             </select>
+             {/* MODIFIED: Multi-Select Filter Jenis */}
+             <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsJenisDropdownOpen(!isJenisDropdownOpen)}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary outline-none bg-white min-w-[180px] flex items-center justify-between text-gray-700"
+                >
+                  <span className="truncate">
+                    {filterJenis.length === 0 
+                      ? "-- Semua Jenjang --" 
+                      : `${filterJenis.length} Jenjang Terpilih`}
+                  </span>
+                  <ChevronDown size={14} className="text-gray-400" />
+                </button>
+
+                {isJenisDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-full min-w-[200px] bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-2 animate-fade-in">
+                    <div className="space-y-1">
+                      {jenisOptionsRaw.map((jenis) => {
+                        const isSelected = filterJenis.includes(jenis);
+                        return (
+                          <div 
+                            key={jenis}
+                            onClick={() => toggleJenis(jenis)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}>
+                               {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
+                            </div>
+                            <span className="text-sm">{jenis}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+             </div>
 
              {/* Filter Proposal */}
              <select 
@@ -541,17 +595,21 @@ export const SchoolPage: React.FC = () => {
              </select>
          </div>
 
-         {(filterDesa || filterJenis || filterProposal) && (
+         {(filterDesa || filterJenis.length > 0 || filterProposal) && (
            <div className="flex flex-wrap gap-2 md:ml-auto">
              {filterDesa && (
                 <span className="text-xs text-primary font-medium bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
                   Desa: {filterDesa}
                 </span>
              )}
-             {filterJenis && (
-                <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
-                  Jenjang: {filterJenis}
-                </span>
+             {filterJenis.length > 0 && (
+                <div className="flex gap-1">
+                  {filterJenis.map(j => (
+                    <span key={j} className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                      {j}
+                    </span>
+                  ))}
+                </div>
              )}
              {filterProposal && (
                 <span className={`text-xs font-medium px-2 py-1 rounded-md border ${filterProposal === 'SUDAH' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
@@ -559,7 +617,7 @@ export const SchoolPage: React.FC = () => {
                 </span>
              )}
              <button 
-                onClick={() => { setFilterDesa(''); setFilterJenis(''); setFilterProposal(''); }}
+                onClick={() => { setFilterDesa(''); setFilterJenis([]); setFilterProposal(''); }}
                 className="text-xs text-gray-500 hover:text-red-500 underline"
              >
                 Reset
