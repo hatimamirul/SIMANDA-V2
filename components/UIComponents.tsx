@@ -570,12 +570,17 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  {summaryData && (
                     <tfoot>
                         <tr>
-                            <td colSpan={columns.length - 2} className="text-right pr-4">TOTAL KESELURUHAN</td>
-                            {columns.slice(-3).map((col, idx) => (
-                                <td key={idx} className={`text-center ${col.className}`}>
-                                    {summaryData[col.header] || '-'}
-                                </td>
-                            ))}
+                            {columns.map((col, idx) => {
+                                // Logic to place TOTAL label and Values correctly aligned
+                                const val = summaryData[col.header];
+                                if (val !== undefined) {
+                                    return <td key={idx} className={`text-center font-bold bg-gray-200 ${col.className}`}>{val}</td>;
+                                }
+                                if (idx === 1) { // Place "TOTAL" label in the second column (NPSN/Name usually)
+                                     return <td key={idx} className="text-right font-bold bg-gray-200 px-2">TOTAL KESELURUHAN:</td>
+                                }
+                                return <td key={idx} className="bg-gray-200"></td>;
+                            })}
                         </tr>
                     </tfoot>
                  )}
