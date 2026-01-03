@@ -33,10 +33,19 @@ export interface PMSekolah {
   desa?: string; // Added Desa field
   jenis: 'KB/PAUD' | 'TK' | 'SD/MI' | 'SMP/MTS' | 'SMA/MA';
   jmlsiswa: number;
-  jmlLaki: number; // NEW: Jumlah Laki-laki
-  jmlPerempuan: number; // NEW: Jumlah Perempuan
+  
+  // Existing Totals (Calculated Automatically now)
+  jmlLaki: number; 
+  jmlPerempuan: number; 
   pmBesar: number;
   pmKecil: number;
+
+  // NEW: Detailed Breakdown
+  jmlLakiBesar: number;
+  jmlLakiKecil: number;
+  jmlPerempuanBesar: number;
+  jmlPerempuanKecil: number;
+
   jmlguru: number;
   narahubung: string;
   hp: string;
