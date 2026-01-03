@@ -608,9 +608,9 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
               {/* Footer Signature Area */}
               <div className="mt-10 flex justify-end page-break-inside-avoid">
-                 <div className="text-center w-48 text-black">
+                 <div className="text-center w-64 text-black">
                     <p className="mb-16">Mengetahui,</p>
-                    <p className="font-bold underline">Tiurmasi Saulina Sirait, S.T.</p>
+                    <p className="font-bold underline whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</p>
                     <p className="text-xs">Kepala SPPG</p>
                  </div>
               </div>
@@ -1157,8 +1157,8 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
 
                 <div className="flex flex-col items-center justify-end">
                   <p className="mb-1 text-center">Ngadiluwih, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
-                  <p className="mb-24 font-bold">Kepala SPPG</p>
-                  <div className="border-b border-black w-56 text-center pb-1 font-bold">Tiurmasi Saulina Sirait, S.T.</div>
+                  <p className="mb-24 font-bold uppercase">Kepala SPPG</p>
+                  <div className="border-b border-black w-64 text-center pb-1 font-bold whitespace-nowrap">Tiurmasi Saulina Sirait, S.T.</div>
                 </div>
               </div>
 
