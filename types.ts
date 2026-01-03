@@ -52,6 +52,10 @@ export interface PMSekolah {
   buktiScan?: string;
   statusProposal?: 'SUDAH' | 'BELUM'; // New Field for Flagging
   catatan?: string; // NEW: History Note Log
+  
+  // NEW: Schedule Data
+  hariMasuk?: string;
+  jamPulang?: string;
 }
 
 export interface AlergiSiswa {
