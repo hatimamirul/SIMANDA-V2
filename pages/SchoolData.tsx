@@ -360,7 +360,7 @@ export const SchoolPage: React.FC = () => {
      );
   };
 
-  // Calculate Totals for Footer
+  // Calculate Totals for Footer (PM Besar, PM Kecil, Guru)
   const calculateTotals = () => {
       const totals = {
           'PM Besar': 0,
