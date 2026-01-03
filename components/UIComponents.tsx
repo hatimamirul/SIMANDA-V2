@@ -1,5 +1,5 @@
 import React, { useState, useRef, createContext, useContext, useEffect } from 'react';
-import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText } from 'lucide-react';
+import { X, Search, FileDown, FileUp, Plus, Loader2, Eye, EyeOff, Pencil, Trash2, AlertTriangle, CheckCircle, XCircle, Info, Printer, Edit3, Download, LayoutGrid, List, FileSpreadsheet, FileText, Check } from 'lucide-react';
 
 // === CUSTOM ROUTER IMPLEMENTATION ===
 const RouterContext = createContext<{ path: string; navigate: (to: string, opts?: { replace?: boolean }) => void }>({ 
@@ -351,6 +351,11 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
 
   if (!isOpen) return null;
 
+  // Calculate the first index that contains summary data to determine colspan
+  const firstValueIndex = summaryData 
+    ? columns.findIndex(col => summaryData[col.header] !== undefined)
+    : -1;
+
   // INTERNAL SMART EXCEL EXPORT
   const handleSmartExcelExport = () => {
     const XLSX = (window as any).XLSX;
@@ -570,16 +575,31 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
                  {summaryData && (
                     <tfoot>
                         <tr>
+                            {/* 
+                                DYNAMIC FOOTER LOGIC:
+                                1. Calculate colspan for the 'TOTAL' label. 
+                                   It spans the 'NO' column (+1) and all columns BEFORE the first column that has a value.
+                                2. Render the "TOTAL" label aligned to the right.
+                                3. Render the remaining columns (values or empty cells).
+                            */}
+                            
+                            <td 
+                                colSpan={firstValueIndex === -1 ? columns.length + 1 : firstValueIndex + 1} 
+                                className="text-right font-black bg-gray-200 border border-black px-2 uppercase text-[10px] tracking-wider"
+                            >
+                                TOTAL KESELURUHAN:
+                            </td>
+                            
                             {columns.map((col, idx) => {
-                                // Logic to place TOTAL label and Values correctly aligned
+                                // Skip columns that are covered by the colspan above
+                                if (idx < firstValueIndex) return null;
+
                                 const val = summaryData[col.header];
-                                if (val !== undefined) {
-                                    return <td key={idx} className={`text-center font-bold bg-gray-200 ${col.className}`}>{val}</td>;
-                                }
-                                if (idx === 1) { // Place "TOTAL" label in the second column (NPSN/Name usually)
-                                     return <td key={idx} className="text-right font-bold bg-gray-200 px-2">TOTAL KESELURUHAN:</td>
-                                }
-                                return <td key={idx} className="bg-gray-200"></td>;
+                                return (
+                                    <td key={idx} className={`text-center font-bold border border-black ${col.className || 'bg-gray-200'}`}>
+                                        {val !== undefined ? val : ''}
+                                    </td>
+                                );
                             })}
                         </tr>
                     </tfoot>
@@ -624,6 +644,194 @@ export const ExportModal = <T extends {}>({ isOpen, onClose, title, subtitle, da
   );
 };
 
+// === Toolbar ===
+interface ToolbarProps {
+  title: string;
+  onSearch: (value: string) => void;
+  onAdd?: () => void;
+  onExport?: () => void;
+  onImport?: (file: File) => void;
+  searchPlaceholder?: string;
+  layoutMode?: 'table' | 'grid';
+  onLayoutChange?: (mode: 'table' | 'grid') => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({
+  title,
+  onSearch,
+  onAdd,
+  onExport,
+  onImport,
+  searchPlaceholder = 'Search...',
+  layoutMode,
+  onLayoutChange
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onImport) {
+      onImport(e.target.files[0]);
+      e.target.value = ''; // Reset
+    }
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+      <div>
+        <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+            onChange={(e) => onSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          {onLayoutChange && (
+            <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
+              <button
+                onClick={() => onLayoutChange('table')}
+                className={`p-1.5 rounded-md transition-all ${layoutMode === 'table' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Table View"
+              >
+                <List size={18} />
+              </button>
+              <button
+                onClick={() => onLayoutChange('grid')}
+                className={`p-1.5 rounded-md transition-all ${layoutMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Grid View"
+              >
+                <LayoutGrid size={18} />
+              </button>
+            </div>
+          )}
+          
+          {onImport && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+              />
+              <Button variant="secondary" onClick={() => fileInputRef.current?.click()} title="Import Excel">
+                <FileUp size={18} />
+              </Button>
+            </>
+          )}
+          
+          {onExport && (
+            <Button variant="secondary" onClick={onExport} title="Export Data">
+              <FileDown size={18} />
+            </Button>
+          )}
+          
+          {onAdd && (
+            <Button onClick={onAdd} className="shrink-0">
+              <Plus size={18} className="mr-1" /> Add New
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// === Table ===
+interface TableColumn<T> {
+  header: string;
+  accessor: keyof T | ((item: T) => React.ReactNode);
+  className?: string;
+}
+
+interface TableProps<T> {
+  data: T[];
+  columns: TableColumn<T>[];
+  onEdit?: (item: T) => void;
+  onDelete?: (item: T) => void;
+  isLoading?: boolean;
+  hideActions?: boolean;
+  customActions?: (item: T) => React.ReactNode;
+}
+
+export const Table = <T extends { id: string }>({
+  data,
+  columns,
+  onEdit,
+  onDelete,
+  isLoading,
+  hideActions,
+  customActions
+}: TableProps<T>) => {
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead className="bg-gray-50 text-gray-700 uppercase font-semibold border-b">
+          <tr>
+            <th className="px-6 py-4 w-16">No</th>
+            {columns.map((col, idx) => (
+              <th key={idx} className={`px-6 py-4 ${col.className || ''}`}>{col.header}</th>
+            ))}
+            {!hideActions && (onEdit || onDelete || customActions) && <th className="px-6 py-4 text-right">Actions</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {data.map((item, idx) => (
+            <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+              <td className="px-6 py-4 text-gray-500">{idx + 1}</td>
+              {columns.map((col, cIdx) => (
+                <td key={cIdx} className={`px-6 py-4 ${col.className || ''}`}>
+                  {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
+                </td>
+              ))}
+              {!hideActions && (onEdit || onDelete || customActions) && (
+                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                  {customActions && customActions(item)}
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(item)}
+                      className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      onClick={() => onDelete(item)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 // === Confirmation Modal ===
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -633,12 +841,20 @@ interface ConfirmationModalProps {
   message: string;
   isLoading?: boolean;
 }
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
+
+export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+  isOpen, onClose, onConfirm, title, message, isLoading
+}) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in no-print">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+        <div className="flex items-center gap-3 text-red-600 mb-4">
+          <div className="p-2 bg-red-100 rounded-full">
+            <AlertTriangle size={24} />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+        </div>
         <p className="text-gray-600 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>Batal</Button>
@@ -656,155 +872,23 @@ interface PreviewModalProps {
   src: string | null;
   title: string;
 }
+
 export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, src, title }) => {
   if (!isOpen || !src) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in no-print">
-      <div className="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col animate-scale-in">
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Eye size={18}/> {title}</h3>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
-            <X size={20} className="text-gray-600" />
-          </button>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in no-print" onClick={onClose}>
+      <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-4xl max-h-[90vh] w-full flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+          <h3 className="font-bold text-gray-800">{title}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full"><X size={20} /></button>
         </div>
-        <div className="p-4 flex-1 overflow-auto bg-gray-100 flex items-center justify-center">
-          {src.startsWith('data:image') || src.match(/\.(jpeg|jpg|gif|png)$/) ? (
-             <img src={src} alt="Preview" className="max-w-full max-h-[70vh] object-contain shadow-lg rounded" />
+        <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center">
+          {src.startsWith('data:application/pdf') || src.endsWith('.pdf') ? (
+             <iframe src={src} className="w-full h-[60vh]" title="PDF Preview"></iframe>
           ) : (
-             <iframe src={src} className="w-full h-[70vh] border-0 rounded bg-white" title="Document Preview" />
+             <img src={src} alt="Preview" className="max-w-full max-h-[70vh] object-contain shadow-lg" />
           )}
         </div>
-      </div>
-    </div>
-  );
-};
-
-// === Print Preview Dialog (Enhanced for Native Print) ===
-interface PrintPreviewDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  onPrint?: () => void;
-  filename?: string;
-  children: React.ReactNode;
-}
-
-export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, onClose, title, onPrint, filename, children }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handlePrint = () => {
-    if (onPrint) {
-      onPrint();
-      return;
-    }
-
-    const originalTitle = document.title;
-    if (filename) {
-      document.title = filename;
-    }
-    
-    window.print();
-    
-    if (filename) {
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 500);
-    }
-  };
-
-  const handleDownload = () => {
-    const element = document.getElementById('printable-preview-content');
-    if (!element || !(window as any).html2pdf) return;
-
-    setIsDownloading(true);
-    const opt = {
-      margin: 5,
-      filename: filename?.endsWith('.pdf') ? filename : `${filename || 'document'}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['css', 'legacy'] } 
-    };
-
-    (window as any).html2pdf().set(opt).from(element).save().then(() => {
-      setIsDownloading(false);
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-scale-in">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <Printer size={18} className="text-primary"/> {title}
-          </h3>
-          <div className="flex gap-2">
-             <Button onClick={handlePrint} icon={<Printer size={16}/>} size="sm">Cetak Sekarang</Button>
-             <Button onClick={handleDownload} icon={<Download size={16}/>} size="sm" variant="secondary" isLoading={isDownloading}>Download PDF</Button>
-             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
-               <X size={20} className="text-gray-600" />
-             </button>
-          </div>
-        </div>
-        
-        {/* Preview Content Area */}
-        <div className="p-6 overflow-y-auto bg-gray-100 flex-1">
-           {/* Printable Container */}
-           <div id="printable-preview-content" className="bg-white shadow-lg border border-gray-200 p-8 mx-auto max-w-[297mm] min-h-[210mm] text-black">
-              {children}
-           </div>
-        </div>
-        
-        {/* Print CSS Injection */}
-        <style>
-          {`
-            @media print {
-              @page { size: landscape; margin: 5mm; }
-              body, html, #root {
-                height: 100% !important;
-                width: 100% !important;
-                overflow: visible !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
-              }
-              body * {
-                visibility: hidden;
-              }
-              .no-print { display: none !important; }
-              #printable-preview-content, #printable-preview-content * {
-                visibility: visible;
-              }
-              #printable-preview-content {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                background: white;
-                border: none;
-                box-shadow: none;
-                z-index: 99999;
-              }
-              /* Ensure tables break nicely in Native Print */
-              table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
-              tr { page-break-inside: avoid; page-break-after: auto; }
-              thead { display: table-header-group; }
-              tfoot { display: table-footer-group; }
-              th { 
-                  text-align: center !important; 
-                  background-color: #E5E7EB !important; 
-                  -webkit-print-color-adjust: exact;
-                  border: 1px solid black;
-              } 
-              td { border: 1px solid black; }
-            }
-          `}
-        </style>
       </div>
     </div>
   );
@@ -1086,192 +1170,133 @@ export const SlipGajiModal: React.FC<SlipGajiModalProps> = ({ isOpen, onClose, d
   );
 };
 
-// === Toolbar ===
-interface ToolbarProps {
-  onSearch: (q: string) => void;
-  onAdd?: () => void;
-  onExport: () => void;
-  onImport?: (file: File) => void;
-  searchPlaceholder?: string;
+// === Print Preview Dialog (Enhanced for Native Print) ===
+interface PrintPreviewDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
   title: string;
-  layoutMode?: 'table' | 'grid';
-  onLayoutChange?: (mode: 'table' | 'grid') => void;
+  onPrint?: () => void;
+  filename?: string;
+  children: React.ReactNode;
 }
-export const Toolbar: React.FC<ToolbarProps> = ({ onSearch, onAdd, onExport, onImport, searchPlaceholder = "Search...", title, layoutMode, onLayoutChange }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [searchValue, setSearchValue] = useState('');
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
+export const PrintPreviewDialog: React.FC<PrintPreviewDialogProps> = ({ isOpen, onClose, title, onPrint, filename, children }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onImport) {
-      onImport(file);
+  if (!isOpen) return null;
+
+  const handlePrint = () => {
+    if (onPrint) {
+      onPrint();
+      return;
     }
-    // Reset value so same file can be selected again
-    if (e.target) e.target.value = '';
+
+    const originalTitle = document.title;
+    if (filename) {
+      document.title = filename;
+    }
+    
+    window.print();
+    
+    if (filename) {
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 500);
+    }
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchValue(val);
-    onSearch(val);
-  };
+  const handleDownload = () => {
+    const element = document.getElementById('printable-preview-content');
+    if (!element || !(window as any).html2pdf) return;
 
-  const handleClearSearch = () => {
-    setSearchValue('');
-    onSearch('');
+    setIsDownloading(true);
+    const opt = {
+      margin: 5,
+      filename: filename?.endsWith('.pdf') ? filename : `${filename || 'document'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak: { mode: ['css', 'legacy'] } 
+    };
+
+    (window as any).html2pdf().set(opt).from(element).save().then(() => {
+      setIsDownloading(false);
+    });
   };
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200/60 no-print">
-      <h2 className="text-xl font-bold text-gray-800 tracking-tight">{title}</h2>
-      <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3 items-center">
-        <div className="relative flex-grow sm:flex-grow-0 group w-full sm:w-auto">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-             <Search className="text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in no-print">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-scale-in">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-xl">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Printer size={18} className="text-primary"/> {title}
+          </h3>
+          <div className="flex gap-2">
+             <Button onClick={handlePrint} icon={<Printer size={16}/>} size="sm">Cetak Sekarang</Button>
+             <Button onClick={handleDownload} icon={<Download size={16}/>} size="sm" variant="secondary" isLoading={isDownloading}>Download PDF</Button>
+             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 transition-colors">
+               <X size={20} className="text-gray-600" />
+             </button>
           </div>
-          <input 
-            type="text" 
-            placeholder={searchPlaceholder} 
-            value={searchValue}
-            className="pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none w-full sm:w-72 bg-gray-50 focus:bg-white transition-all text-sm"
-            onChange={handleSearchChange}
-          />
-          {searchValue && (
-            <button 
-              onClick={handleClearSearch}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
-              title="Clear search"
-            >
-              <X size={16} />
-            </button>
-          )}
         </div>
         
-        {/* Layout Switcher */}
-        {layoutMode && onLayoutChange && (
-          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
-            <button 
-              onClick={() => onLayoutChange('table')}
-              className={`p-1.5 rounded-md transition-all ${layoutMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              title="List View"
-            >
-              <List size={18} />
-            </button>
-            <button 
-              onClick={() => onLayoutChange('grid')}
-              className={`p-1.5 rounded-md transition-all ${layoutMode === 'grid' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              title="Grid View"
-            >
-              <LayoutGrid size={18} />
-            </button>
-          </div>
-        )}
-
-        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-           {onAdd && <Button onClick={onAdd} icon={<Plus size={18} />} className="whitespace-nowrap shadow-sm">Add New</Button>}
-           <Button variant="secondary" onClick={onExport} icon={<FileDown size={18} />} className="whitespace-nowrap shadow-sm">Export</Button>
-           {onImport && (
-             <>
-               <input 
-                 type="file" 
-                 ref={fileInputRef} 
-                 className="hidden" 
-                 accept=".xlsx,.xls,.csv" 
-                 onChange={handleFileChange} 
-               />
-               <Button variant="secondary" onClick={handleImportClick} icon={<FileUp size={18} />} className="whitespace-nowrap shadow-sm">Import</Button>
-             </>
-           )}
+        {/* Preview Content Area */}
+        <div className="p-6 overflow-y-auto bg-gray-100 flex-1">
+           {/* Printable Container */}
+           <div id="printable-preview-content" className="bg-white shadow-lg border border-gray-200 p-8 mx-auto max-w-[297mm] min-h-[210mm] text-black">
+              {children}
+           </div>
         </div>
+        
+        {/* Print CSS Injection */}
+        <style>
+          {`
+            @media print {
+              @page { size: landscape; margin: 5mm; }
+              body, html, #root {
+                height: 100% !important;
+                width: 100% !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+              }
+              body * {
+                visibility: hidden;
+              }
+              .no-print { display: none !important; }
+              #printable-preview-content, #printable-preview-content * {
+                visibility: visible;
+              }
+              #printable-preview-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: white;
+                border: none;
+                box-shadow: none;
+                z-index: 99999;
+              }
+              /* Ensure tables break nicely in Native Print */
+              table { page-break-inside: auto; width: 100%; border-collapse: collapse; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+              thead { display: table-header-group; }
+              tfoot { display: table-footer-group; }
+              th { 
+                  text-align: center !important; 
+                  background-color: #E5E7EB !important; 
+                  -webkit-print-color-adjust: exact;
+                  border: 1px solid black;
+              } 
+              td { border: 1px solid black; }
+            }
+          `}
+        </style>
       </div>
     </div>
   );
 };
-
-// === Table ===
-interface TableProps<T> {
-  columns: { header: string; accessor: keyof T | ((item: T) => React.ReactNode) }[];
-  data: T[];
-  onEdit: (item: T) => void;
-  onDelete: (item: T) => void;
-  isLoading?: boolean;
-  hideActions?: boolean;
-  customActions?: (item: T) => React.ReactNode;
-}
-export const Table = <T extends { id: string }>({ columns, data, onEdit, onDelete, isLoading, hideActions = false, customActions }: TableProps<T>) => (
-  <div className="overflow-x-auto relative min-h-[150px] no-print">
-    {isLoading && (
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-10 flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={32} />
-      </div>
-    )}
-    <table className="w-full text-left border-collapse">
-      <thead>
-        <tr className="border-b border-gray-100 bg-gray-50/50">
-          {columns.map((col, idx) => (
-            <th key={idx} className="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-              {col.header}
-            </th>
-          ))}
-          {!hideActions && <th className="p-4 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>}
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-100">
-        {!isLoading && data.length === 0 ? (
-          <tr>
-            <td colSpan={columns.length + (hideActions ? 0 : 1)} className="p-8 text-center text-gray-500">
-              No data found.
-            </td>
-          </tr>
-        ) : (
-          data.map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
-              {columns.map((col, idx) => (
-                <td key={idx} className="p-4 text-sm text-gray-700 whitespace-nowrap">
-                  {typeof col.accessor === 'function' ? col.accessor(item) : (item[col.accessor] as React.ReactNode)}
-                </td>
-              ))}
-              {!hideActions && (
-                <td className="p-4 text-right">
-                  <div className="flex justify-end gap-2 items-center">
-                    {customActions && customActions(item)}
-                    <Button 
-                      type="button"
-                      size="sm" 
-                      variant="secondary" 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        onEdit(item); 
-                      }}
-                      icon={<Pencil size={14} />}
-                    >
-                      Edit
-                    </Button>
-                    <Button 
-                      type="button"
-                      size="sm" 
-                      variant="danger" 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation(); 
-                        onDelete(item); 
-                      }}
-                      icon={<Trash2 size={14} />}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </td>
-              )}
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-);
