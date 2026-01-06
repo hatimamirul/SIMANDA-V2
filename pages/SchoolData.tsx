@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, Toolbar, Table, Modal, Input, Select, Button, PreviewModal, ConfirmationModal, FormHelperText, useToast, LoadingSpinner, ExportModal } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { PMSekolah, User, Role, AlergiSiswa } from '../types';
-import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator } from 'lucide-react';
+import { FileText, Download, Eye, AlertTriangle, Filter, School, Phone, Pencil, Trash2, MapPin, ShieldAlert, FileCheck, FileClock, History, Calculator, GraduationCap } from 'lucide-react';
 
 // Declare XLSX from global scope
 const XLSX = (window as any).XLSX;
@@ -129,6 +129,25 @@ export const SchoolPage: React.FC = () => {
       setFormData(newFormData);
   };
 
+  // Logic to handle Class Breakdown change for SD/MI
+  const handleSDDetailChange = (kelas: string, gender: 'L' | 'P', value: string) => {
+      const numVal = parseInt(value) || 0;
+      const currentRincian = formData.rincianSD || {
+          "1": { L: 0, P: 0 }, "2": { L: 0, P: 0 }, "3": { L: 0, P: 0 },
+          "4": { L: 0, P: 0 }, "5": { L: 0, P: 0 }, "6": { L: 0, P: 0 }
+      };
+
+      const updatedRincian = {
+          ...currentRincian,
+          [kelas]: {
+              ...currentRincian[kelas],
+              [gender]: numVal
+          }
+      };
+
+      setFormData({ ...formData, rincianSD: updatedRincian });
+  };
+
   const validate = (): boolean => {
     if (
       !formData.nama || 
@@ -217,7 +236,13 @@ export const SchoolPage: React.FC = () => {
       
       // NEW FIELDS
       hariMasuk: "Senin - Jum'at",
-      jamPulang: ''
+      jamPulang: '',
+
+      // SD/MI Breakdown Init
+      rincianSD: {
+          "1": { L: 0, P: 0 }, "2": { L: 0, P: 0 }, "3": { L: 0, P: 0 },
+          "4": { L: 0, P: 0 }, "5": { L: 0, P: 0 }, "6": { L: 0, P: 0 }
+      }
     });
     setTempNote('');
     setIsModalOpen(true);
@@ -243,27 +268,40 @@ export const SchoolPage: React.FC = () => {
   const fmt = (val?: number) => (val === 0 || !val) ? '-' : val;
 
   const handleExportExcel = () => {
-    const dataToExport = data.map(item => ({
-      'Status Proposal': item.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk',
-      'NPSN': item.npsn,
-      'Nama Sekolah': item.nama,
-      'Desa': item.desa,
-      'Jenis': item.jenis,
-      'Hari Masuk': item.hariMasuk || '-',
-      'Jam Pulang': item.jamPulang ? `${item.jamPulang} WIB` : '-',
-      'Total Siswa': fmt(item.jmlsiswa),
-      // Detailed Breakdown
-      'L Besar': fmt(item.jmlLakiBesar),
-      'L Kecil': fmt(item.jmlLakiKecil),
-      'P Besar': fmt(item.jmlPerempuanBesar),
-      'P Kecil': fmt(item.jmlPerempuanKecil),
-      'PM Besar': fmt(item.pmBesar),
-      'PM Kecil': fmt(item.pmKecil),
-      'Jumlah Guru': fmt(item.jmlguru),
-      'Narahubung': item.narahubung,
-      'No HP': item.hp,
-      'Catatan': item.catatan || '-'
-    }));
+    const dataToExport = data.map(item => {
+      const baseData: any = {
+        'Status Proposal': item.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk',
+        'NPSN': item.npsn,
+        'Nama Sekolah': item.nama,
+        'Desa': item.desa,
+        'Jenis': item.jenis,
+        'Hari Masuk': item.hariMasuk || '-',
+        'Jam Pulang': item.jamPulang ? `${item.jamPulang} WIB` : '-',
+        'Total Siswa': fmt(item.jmlsiswa),
+        // Detailed Breakdown
+        'L Besar': fmt(item.jmlLakiBesar),
+        'L Kecil': fmt(item.jmlLakiKecil),
+        'P Besar': fmt(item.jmlPerempuanBesar),
+        'P Kecil': fmt(item.jmlPerempuanKecil),
+        'PM Besar': fmt(item.pmBesar),
+        'PM Kecil': fmt(item.pmKecil),
+        'Jumlah Guru': fmt(item.jmlguru),
+        'Narahubung': item.narahubung,
+        'No HP': item.hp,
+        'Catatan': item.catatan || '-'
+      };
+
+      // Add SD Detail Columns if exists
+      if (item.jenis === 'SD/MI' && item.rincianSD) {
+          for (let i = 1; i <= 6; i++) {
+              const k = String(i);
+              baseData[`K${i} L`] = item.rincianSD[k]?.L || 0;
+              baseData[`K${i} P`] = item.rincianSD[k]?.P || 0;
+          }
+      }
+
+      return baseData;
+    });
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
@@ -299,6 +337,18 @@ export const SchoolPage: React.FC = () => {
             const pBesar = parseInt(row['P Besar'] || '0');
             const pKecil = parseInt(row['P Kecil'] || '0');
 
+            // Parse Rincian SD if available in Excel columns like "K1 L", "K1 P"
+            const rincianSDImport: any = {};
+            if (row['Jenis'] === 'SD/MI') {
+                for (let i = 1; i <= 6; i++) {
+                    const k = String(i);
+                    rincianSDImport[k] = {
+                        L: parseInt(row[`K${i} L`] || '0'),
+                        P: parseInt(row[`K${i} P`] || '0')
+                    };
+                }
+            }
+
             const newItem: PMSekolah = {
               id: '', // New ID generated by savePM
               npsn: String(row['NPSN']),
@@ -328,7 +378,10 @@ export const SchoolPage: React.FC = () => {
               
               // NEW FIELDS IMPORT
               hariMasuk: row['Hari Masuk'] || "Senin - Jum'at",
-              jamPulang: row['Jam Pulang'] ? String(row['Jam Pulang']).replace(' WIB', '') : ''
+              jamPulang: row['Jam Pulang'] ? String(row['Jam Pulang']).replace(' WIB', '') : '',
+              
+              // SD Detail Import
+              rincianSD: Object.keys(rincianSDImport).length > 0 ? rincianSDImport : undefined
             };
 
             await api.savePM(newItem);
@@ -384,6 +437,44 @@ export const SchoolPage: React.FC = () => {
   };
 
   const summaryData = calculateTotals();
+
+  // Define Columns for Export (Dynamic)
+  const getExportColumns = () => {
+      const cols = [
+        { header: 'Status Proposal', accessor: (i: PMSekolah) => i.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk' },
+        { header: 'NPSN', accessor: 'npsn' as keyof PMSekolah },
+        { header: 'Nama Sekolah', accessor: 'nama' as keyof PMSekolah },
+        { header: 'Desa', accessor: 'desa' as keyof PMSekolah },
+        { header: 'Jenis', accessor: 'jenis' as keyof PMSekolah },
+        { header: 'Hari Masuk', accessor: (i: PMSekolah) => i.hariMasuk || '-' },
+        { header: 'Jam Pulang', accessor: (i: PMSekolah) => i.jamPulang ? `${i.jamPulang} WIB` : '-' },
+        { header: 'Siswa', accessor: (i: PMSekolah) => fmt(i.jmlsiswa), className: 'text-center' },
+        // Detailed Breakdown
+        { header: 'L Besar', accessor: (i: PMSekolah) => fmt(i.jmlLakiBesar), className: 'col-blue text-center' },
+        { header: 'L Kecil', accessor: (i: PMSekolah) => fmt(i.jmlLakiKecil), className: 'col-pink text-center' },
+        { header: 'P Besar', accessor: (i: PMSekolah) => fmt(i.jmlPerempuanBesar), className: 'col-blue text-center' },
+        { header: 'P Kecil', accessor: (i: PMSekolah) => fmt(i.jmlPerempuanKecil), className: 'col-pink text-center' },
+        
+        { header: 'PM Besar', accessor: (i: PMSekolah) => fmt(i.pmBesar), className: 'col-blue text-center' },
+        { header: 'PM Kecil', accessor: (i: PMSekolah) => fmt(i.pmKecil), className: 'col-pink text-center' },
+        { header: 'Guru', accessor: (i: PMSekolah) => fmt(i.jmlguru), className: 'col-guru text-center' },
+        
+        { header: 'Narahubung', accessor: 'narahubung' as keyof PMSekolah },
+        { header: 'No HP', accessor: 'hp' as keyof PMSekolah },
+        { header: 'Catatan', accessor: (i: PMSekolah) => i.catatan || '-' }
+      ];
+
+      // Dynamically Add SD Detail Columns if any visible row is SD/MI
+      const hasSD = data.some(d => d.jenis === 'SD/MI');
+      if (hasSD) {
+          for (let i = 1; i <= 6; i++) {
+              cols.push({ header: `K${i} L`, accessor: (item: PMSekolah) => item.rincianSD ? item.rincianSD[String(i)]?.L || 0 : '-', className: 'text-center bg-gray-50' });
+              cols.push({ header: `K${i} P`, accessor: (item: PMSekolah) => item.rincianSD ? item.rincianSD[String(i)]?.P || 0 : '-', className: 'text-center bg-gray-50' });
+          }
+      }
+
+      return cols;
+  };
 
   // Grid Renderer
   const renderGrid = () => (
@@ -471,6 +562,22 @@ export const SchoolPage: React.FC = () => {
                   <span>Kecil: {item.jmlPerempuanKecil || 0}</span>
                </div>
             </div>
+
+            {/* SD Detail Preview (if available) */}
+            {item.jenis === 'SD/MI' && item.rincianSD && (
+               <div className="bg-blue-50/50 rounded-lg p-2 mb-4 border border-blue-100 text-[10px]">
+                  <p className="font-bold text-blue-800 mb-1 text-center border-b border-blue-200 pb-1">Detail Kelas</p>
+                  <div className="grid grid-cols-6 gap-1 text-center">
+                     {[1,2,3,4,5,6].map(k => (
+                        <div key={k} className="flex flex-col">
+                           <span className="font-bold text-gray-600">K{k}</span>
+                           <span className="text-blue-600">{item.rincianSD?.[String(k)]?.L || 0}</span>
+                           <span className="text-purple-600">{item.rincianSD?.[String(k)]?.P || 0}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
 
             <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
                <Phone size={14} /> {item.narahubung} ({item.hp})
@@ -684,29 +791,7 @@ export const SchoolPage: React.FC = () => {
         data={data}
         hideLogo={true}
         summaryData={summaryData}
-        columns={[
-            { header: 'Status Proposal', accessor: (i) => i.statusProposal === 'SUDAH' ? 'Sudah Masuk' : 'Belum Masuk' },
-            { header: 'NPSN', accessor: 'npsn' },
-            { header: 'Nama Sekolah', accessor: 'nama' },
-            { header: 'Desa', accessor: 'desa' },
-            { header: 'Jenis', accessor: 'jenis' },
-            { header: 'Hari Masuk', accessor: (i) => i.hariMasuk || '-' },
-            { header: 'Jam Pulang', accessor: (i) => i.jamPulang ? `${i.jamPulang} WIB` : '-' },
-            { header: 'Siswa', accessor: (i) => fmt(i.jmlsiswa), className: 'text-center' },
-            // Detailed Breakdown
-            { header: 'L Besar', accessor: (i) => fmt(i.jmlLakiBesar), className: 'col-blue text-center' },
-            { header: 'L Kecil', accessor: (i) => fmt(i.jmlLakiKecil), className: 'col-pink text-center' },
-            { header: 'P Besar', accessor: (i) => fmt(i.jmlPerempuanBesar), className: 'col-blue text-center' },
-            { header: 'P Kecil', accessor: (i) => fmt(i.jmlPerempuanKecil), className: 'col-pink text-center' },
-            
-            { header: 'PM Besar', accessor: (i) => fmt(i.pmBesar), className: 'col-blue text-center' },
-            { header: 'PM Kecil', accessor: (i) => fmt(i.pmKecil), className: 'col-pink text-center' },
-            { header: 'Guru', accessor: (i) => fmt(i.jmlguru), className: 'col-guru text-center' },
-            
-            { header: 'Narahubung', accessor: 'narahubung' },
-            { header: 'No HP', accessor: 'hp' },
-            { header: 'Catatan', accessor: (i) => i.catatan || '-' }
-        ]}
+        columns={getExportColumns()}
         onExportExcel={handleExportExcel}
       />
 
@@ -858,6 +943,42 @@ export const SchoolPage: React.FC = () => {
                  </div>
              </div>
           </div>
+
+          {/* NEW: RINCIAN KELAS KHUSUS SD/MI */}
+          {formData.jenis === 'SD/MI' && (
+             <div className="p-4 bg-orange-50 rounded-lg border border-orange-100 relative">
+                <h4 className="text-sm font-bold text-orange-800 flex items-center gap-2 mb-3">
+                   <GraduationCap size={16} /> Rincian Kelas 1 - 6
+                </h4>
+                <div className="space-y-2">
+                   {[1, 2, 3, 4, 5, 6].map(kelas => (
+                      <div key={kelas} className="grid grid-cols-12 gap-2 items-center text-xs">
+                         <div className="col-span-2 font-bold text-gray-600">Kelas {kelas}</div>
+                         <div className="col-span-5 flex items-center gap-1">
+                            <span className="w-4 text-blue-600 font-bold">L:</span>
+                            <input 
+                               type="number"
+                               className="w-full px-2 py-1 border border-blue-200 rounded text-center focus:ring-1 focus:ring-blue-500 outline-none"
+                               placeholder="0"
+                               value={formData.rincianSD?.[String(kelas)]?.L ?? ''}
+                               onChange={(e) => handleSDDetailChange(String(kelas), 'L', e.target.value)}
+                            />
+                         </div>
+                         <div className="col-span-5 flex items-center gap-1">
+                            <span className="w-4 text-purple-600 font-bold">P:</span>
+                            <input 
+                               type="number"
+                               className="w-full px-2 py-1 border border-purple-200 rounded text-center focus:ring-1 focus:ring-purple-500 outline-none"
+                               placeholder="0"
+                               value={formData.rincianSD?.[String(kelas)]?.P ?? ''}
+                               onChange={(e) => handleSDDetailChange(String(kelas), 'P', e.target.value)}
+                            />
+                         </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
+          )}
 
           <div>
             <Input 
