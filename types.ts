@@ -56,6 +56,11 @@ export interface PMSekolah {
   // NEW FIELDS REQUESTED
   hariMasuk?: string; // Contoh: Senin - Sabtu
   jamPulang?: string; // Contoh: 12.00
+
+  // NEW: Rincian Khusus SD/MI (Kelas 1-6)
+  rincianSD?: {
+    [kelas: string]: { L: number; P: number }; // Key: "1", "2", ... "6"
+  };
 }
 
 export interface AlergiSiswa {
