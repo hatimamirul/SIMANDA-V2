@@ -11,6 +11,7 @@ import { api } from './services/mockService';
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ default: module.Dashboard })));
 const PublicLanding = lazy(() => import('./pages/PublicLanding').then(module => ({ default: module.PublicLanding })));
+const PublicDailyMenu = lazy(() => import('./pages/PublicDailyMenu').then(module => ({ default: module.PublicDailyMenu })));
 const UsersPage = lazy(() => import('./pages/Users').then(module => ({ default: module.UsersPage })));
 const KaryawanPage = lazy(() => import('./pages/Karyawan').then(module => ({ default: module.KaryawanPage })));
 const SchoolPage = lazy(() => import('./pages/SchoolData').then(module => ({ default: module.SchoolPage })));
@@ -180,8 +181,9 @@ const MainApp = () => {
     <BrowserRouter>
       <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-slate-50"><LoadingSpinner /></div>}>
         <Routes>
-          {/* PUBLIC ROUTE: Landing Page */}
+          {/* PUBLIC ROUTES */}
           <Route path="/" element={<PublicLanding />} />
+          <Route path="/menu-hari-ini" element={<PublicDailyMenu />} />
 
           {/* LOGIN ROUTE */}
           <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />} />

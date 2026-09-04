@@ -177,6 +177,15 @@ export const PublicLanding: React.FC = () => {
               <div className="text-xl font-bold font-mono leading-none tracking-wider">{timeStr}</div>
             </div>
 
+            <a
+              href="/menu-hari-ini"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`hidden sm:inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition-all border ${scrolled ? 'border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-white' : 'border-white/30 bg-white/10 text-white hover:bg-white hover:text-primary'}`}
+            >
+              <ChefHat size={18} /> Menu Hari Ini
+            </a>
+
             {/* MODERN LOGIN BUTTON */}
             <button 
               onClick={() => navigate('/login')}
