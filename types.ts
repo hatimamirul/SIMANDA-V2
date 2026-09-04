@@ -145,6 +145,25 @@ export interface HonorariumRow {
   totalTerima: number;
 }
 
+export interface NilaiGiziPorsi {
+  jenisPorsi: 'PORSI_BESAR' | 'PORSI_KECIL' | 'BALITA' | 'BUMIL_BUSUI';
+  gambarMenu: string;
+  namaMenu: string;
+  karbohidrat: number;
+  protein: number;
+  serat: number;
+  energi: number;
+  lemak: number;
+}
+
+export interface NilaiGiziMenu {
+  id: string;
+  tanggalProduksi: string;
+  batasDikonsumsi: string;
+  porsiMenus: NilaiGiziPorsi[];
+  createdAt?: string;
+}
+
 export interface DashboardStats {
   karyawan: number;
   pmsekolah: number;

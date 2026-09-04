@@ -1,5 +1,5 @@
 
-import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary } from '../types';
+import { User, Karyawan, PMSekolah, PMB3, PICSekolah, KaderB3, DashboardStats, Periode, AbsensiRecord, HonorariumRow, AbsensiDetail, AlergiSiswa, Supplier, BahanMasuk, BahanKeluar, StokOpname, MasterBarang, StokSummary, NilaiGiziMenu } from '../types';
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot, query, where, updateDoc } from "firebase/firestore";
 // Storage imports are kept but unused in this "Database-Only" mode
@@ -110,6 +110,8 @@ const INITIAL_MASTER_BARANG: MasterBarang[] = [];
 const INITIAL_BAHAN_MASUK: BahanMasuk[] = [];
 const INITIAL_BAHAN_KELUAR: BahanKeluar[] = [];
 const INITIAL_STOK_OPNAME: StokOpname[] = [];
+const INITIAL_NILAI_GIZI: NilaiGiziMenu[] = [];
+const MAX_NILAI_GIZI_RECORDS = 20;
 
 // Keys
 const KEYS = {
@@ -126,7 +128,8 @@ const KEYS = {
   MASTER_BARANG: 'simanda_master_barang_v1',
   BAHAN_MASUK: 'simanda_bahan_masuk_v1',
   BAHAN_KELUAR: 'simanda_bahan_keluar_v1',
-  STOK_OPNAME: 'simanda_stok_opname_v1'
+  STOK_OPNAME: 'simanda_stok_opname_v1',
+  NILAI_GIZI: 'simanda_nilai_gizi_v1'
 };
 
 const channel = new BroadcastChannel('simanda_sync_channel');
@@ -177,14 +180,24 @@ const processDataForUpload = async (item: any, collectionName: string) => {
   const newItem = { ...item };
   
   // 1. Process Standard Fields
-  const imageFields = ['sertifikat', 'buktiScan', 'buktiFoto'];
+  const imageFields = ['sertifikat', 'buktiScan', 'buktiFoto', 'menuPorsiBesar', 'menuPorsiKecil', 'menuBalita', 'menuBumilBusui'];
   for (const field of imageFields) {
     if (newItem[field] && typeof newItem[field] === 'string' && newItem[field].startsWith('data:image')) {
        newItem[field] = await processImageUpload(newItem[field], collectionName);
     }
   }
 
-  // 2. Process Nested Absensi Details
+  // 2. Process nutrition-menu images stored per portion
+  if (Array.isArray(newItem.porsiMenus)) {
+    newItem.porsiMenus = await Promise.all(newItem.porsiMenus.map(async (porsi: any) => ({
+      ...porsi,
+      gambarMenu: porsi.gambarMenu && porsi.gambarMenu.startsWith('data:image')
+        ? await processImageUpload(porsi.gambarMenu, `${collectionName}/${porsi.jenisPorsi || 'menu'}`)
+        : porsi.gambarMenu,
+    })));
+  }
+
+  // 3. Process Nested Absensi Details
   if (newItem.detailHari) {
     const newDetailHari = { ...newItem.detailHari };
     for (const key in newDetailHari) {
@@ -288,6 +301,30 @@ const saveData = async (collectionName: string, localKey: string, item: any, isD
       }
       throw e; 
     }
+  }
+};
+
+const pruneNilaiGiziArchive = async () => {
+  let records = localDb.get<NilaiGiziMenu[]>(KEYS.NILAI_GIZI, INITIAL_NILAI_GIZI);
+
+  // Read the cloud collection after a successful save so retention is enforced
+  // against the real archive, not only this browser's local mirror.
+  if (USE_FIREBASE && db) {
+    const snapshot = await getDocs(collection(db, 'nilai_gizi_menu'));
+    records = snapshot.docs.map(item => ({ ...item.data(), id: item.id } as NilaiGiziMenu));
+  }
+
+  const recordsToDelete = [...records]
+    .sort((a, b) => a.tanggalProduksi.localeCompare(b.tanggalProduksi))
+    .slice(0, Math.max(0, records.length - MAX_NILAI_GIZI_RECORDS));
+
+  if (recordsToDelete.length === 0) return;
+
+  const removedIds = new Set(recordsToDelete.map(record => record.id));
+  localDb.set(KEYS.NILAI_GIZI, records.filter(record => !removedIds.has(record.id)));
+
+  if (USE_FIREBASE && db) {
+    await Promise.all(recordsToDelete.map(record => deleteDoc(doc(db, 'nilai_gizi_menu', record.id))));
   }
 };
 
@@ -458,6 +495,14 @@ export const api = {
   subscribeAlergi: (cb: (data: AlergiSiswa[]) => void) => createSubscriber('alergi_siswa', KEYS.ALERGI, INITIAL_ALERGI, cb),
   saveAlergi: (item: AlergiSiswa) => saveData('alergi_siswa', KEYS.ALERGI, item),
   deleteAlergi: (id: string) => saveData('alergi_siswa', KEYS.ALERGI, { id }, true),
+
+  // Nilai Gizi Menu
+  subscribeNilaiGizi: (cb: (data: NilaiGiziMenu[]) => void) => createSubscriber('nilai_gizi_menu', KEYS.NILAI_GIZI, INITIAL_NILAI_GIZI, cb),
+  saveNilaiGizi: async (item: NilaiGiziMenu) => {
+    await saveData('nilai_gizi_menu', KEYS.NILAI_GIZI, item);
+    await pruneNilaiGiziArchive();
+  },
+  deleteNilaiGizi: (id: string) => saveData('nilai_gizi_menu', KEYS.NILAI_GIZI, { id }, true),
 
   // === INVENTORY MANAGEMENT (NEW) ===
   subscribeSuppliers: (cb: (data: Supplier[]) => void) => createSubscriber('suppliers', KEYS.SUPPLIER, INITIAL_SUPPLIERS, cb),

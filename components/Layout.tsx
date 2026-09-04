@@ -28,7 +28,9 @@ import {
   ClipboardList, // Icon for Stock Opname
   Layers, // Icon for Stock Current
   Settings, // New Icon for System
-  BookOpen // New Icon for School Group
+  BookOpen, // Icon for School Group
+  UtensilsCrossed, // Icon for Menu Information
+  Archive // Icon for Daily Menu Archive
 } from 'lucide-react';
 import { User, Role } from '../types';
 import { Logo } from './UIComponents';
@@ -183,6 +185,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   // Inventory (Stok Bahan Baku) Permissions
   const canSeeInventory = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
 
+  // Menu Information Permissions
+  const canSeeMenuInformation = role === 'SUPERADMIN' || role === 'KSPPG' || role === 'ADMINSPPG';
+
   const canSeeLogs = role === 'SUPERADMIN';
 
   // Group Permissions
@@ -294,7 +299,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
              </SidebarDropdown>
           )}
           
-          {/* 6. Keuangan */}
+          {/* 6. Manajemen Informasi Menu */}
+          {canSeeMenuInformation && (
+            <SidebarDropdown
+              icon={<UtensilsCrossed size={20} />}
+              label="Manajemen Informasi Menu"
+              isOpen={isOpen}
+              sidebarOpen={isOpen}
+              setSidebarOpen={setIsOpen}
+            >
+              <SidebarItem to="/informasi-menu/nilai-gizi" icon={<UtensilsCrossed size={18} />} label="Data Nilai Gizi" isSubItem />
+              <SidebarItem to="/informasi-menu/arsip-menu-harian" icon={<Archive size={18} />} label="Arsip Menu Harian" isSubItem />
+            </SidebarDropdown>
+          )}
+
+          {/* 7. Keuangan */}
           {canSeeFinance && (
             <SidebarDropdown 
               icon={<Wallet size={20} />} 

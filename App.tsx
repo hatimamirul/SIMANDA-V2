@@ -27,6 +27,8 @@ const LaporanBahanMasukPage = lazy(() => import('./pages/inventory/LaporanBahanM
 const LaporanBahanKeluarPage = lazy(() => import('./pages/inventory/LaporanBahanKeluar').then(module => ({ default: module.LaporanBahanKeluarPage })));
 const LaporanStokOpnamePage = lazy(() => import('./pages/inventory/LaporanStokOpname').then(module => ({ default: module.LaporanStokOpnamePage })));
 const StokSaatIniPage = lazy(() => import('./pages/inventory/StokSaatIni').then(module => ({ default: module.StokSaatIniPage })));
+const DataNilaiGiziPage = lazy(() => import('./pages/MenuInformation').then(module => ({ default: module.DataNilaiGiziPage })));
+const ArsipMenuHarianPage = lazy(() => import('./pages/MenuInformation').then(module => ({ default: module.ArsipMenuHarianPage })));
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -270,6 +272,18 @@ const MainApp = () => {
               </ProtectedRoute>
           } />
           
+          {/* Menu Information - Restricted to SUPERADMIN, KSPPG, and ADMINSPPG */}
+          <Route path="/informasi-menu/nilai-gizi" element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <DataNilaiGiziPage />
+              </ProtectedRoute>
+          } />
+          <Route path="/informasi-menu/arsip-menu-harian" element={
+              <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG', 'ADMINSPPG']}>
+                <ArsipMenuHarianPage />
+              </ProtectedRoute>
+          } />
+
           {/* Finance Routes - Restricted to SUPERADMIN and KSPPG */}
           <Route path="/honor-karyawan" element={
               <ProtectedRoute user={user} token={token} onLogout={handleLogout} allowedRoles={['SUPERADMIN', 'KSPPG']}>
