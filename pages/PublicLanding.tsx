@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '../components/UIComponents';
 import { api } from '../services/mockService';
 import { DashboardStats } from '../types';
@@ -86,6 +86,7 @@ export const PublicLanding: React.FC = () => {
   // Slideshow State
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loadedImages, setLoadedImages] = useState<boolean[]>([]);
+  const readyImagesRef = useRef<boolean[]>([]);
 
   // === KONFIGURASI GAMBAR SLIDESHOW ===
   // GANTI link di dalam array ini dengan link gambar hosting Anda sendiri.
@@ -110,12 +111,19 @@ export const PublicLanding: React.FC = () => {
     });
     const timer = setInterval(() => setTime(new Date()), 1000);
     
-    // Initialize loaded state array
-    setLoadedImages(new Array(heroImages.length).fill(false));
+    // Keep readiness outside the interval closure so it never advances to a blank slide.
+    readyImagesRef.current = new Array(heroImages.length).fill(false);
+    setLoadedImages([...readyImagesRef.current]);
 
-    // Smooth Slideshow Interval (5 seconds)
+    // Move only to images that have finished loading; the current slide stays visible otherwise.
     const slideTimer = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+        setCurrentImageIndex((prev) => {
+          const readyIndexes = readyImagesRef.current
+            .map((isReady, index) => isReady ? index : -1)
+            .filter(index => index >= 0);
+          if (readyIndexes.length < 2) return prev;
+          return readyIndexes.find(index => index > prev) ?? readyIndexes[0];
+        });
     }, 5000);
 
     const handleScroll = () => {
@@ -136,6 +144,7 @@ export const PublicLanding: React.FC = () => {
   }, []);
 
   const handleImageLoad = (index: number) => {
+      readyImagesRef.current[index] = true;
       setLoadedImages(prev => {
           const newState = [...prev];
           newState[index] = true;
@@ -214,17 +223,17 @@ export const PublicLanding: React.FC = () => {
                 `}
             >
                 {/* Fallback solid color while loading */}
-                <div className="absolute inset-0 bg-slate-900"></div>
+                <div className="absolute inset-0 bg-slate-900 z-0"></div>
                 
                 {/* Image */}
                 <img 
                     src={img} 
                     alt="Hero Background" 
-                    className={`w-full h-full object-cover transition-opacity duration-1000 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
+                    className={`relative z-[1] w-full h-full object-cover transition-opacity duration-1000 ${loadedImages[index] ? 'opacity-100' : 'opacity-0'}`}
                     onLoad={() => handleImageLoad(index)}
-                    onError={(e) => {
-                        // Jika gambar gagal dimuat (expired/broken), sembunyikan agar tidak ada icon broken
-                        e.currentTarget.style.display = 'none';
+                    onError={() => {
+                        // Failed images remain excluded from the rotation; the current ready slide stays visible.
+                        readyImagesRef.current[index] = false;
                     }}
                 />
                 
