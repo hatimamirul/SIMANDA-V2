@@ -162,6 +162,8 @@ export interface NilaiGiziMenu {
   batasDikonsumsi: string;
   porsiMenus: NilaiGiziPorsi[];
   createdAt?: string;
+  updatedAt?: string;
+  status?: 'DRAFT' | 'PUBLISHED';
 }
 
 export interface DashboardStats {

@@ -33,7 +33,7 @@ export const PublicDailyMenu: React.FC = () => {
   }, []);
 
   const dailyRecords = useMemo(() => records
-    .filter(item => item.tanggalProduksi === today)
+    .filter(item => item.tanggalProduksi === today && item.status !== 'DRAFT')
     .sort((a, b) => b.createdAt?.localeCompare(a.createdAt || '') || 0), [records, today]);
 
   const currentTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });

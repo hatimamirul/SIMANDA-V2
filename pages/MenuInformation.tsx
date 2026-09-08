@@ -83,10 +83,24 @@ export const DataNilaiGiziPage: React.FC = () => {
   const [jamBatasDikonsumsi, setJamBatasDikonsumsi] = useState('');
   const [portions, setPortions] = useState<PortionForm[]>(createPortions);
   const [records, setRecords] = useState<NilaiGiziMenu[]>([]);
+  const [editRecordId, setEditRecordId] = useState(() => new URLSearchParams(window.location.search).get('edit'));
   const [status, setStatus] = useState<'idle' | 'saving' | 'success'>('idle');
   const [error, setError] = useState('');
+  const editingRecord = records.find(record => record.id === editRecordId);
 
   useEffect(() => api.subscribeNilaiGizi(setRecords), []);
+
+  useEffect(() => {
+    if (!editingRecord) return;
+    setTanggalProduksi(editingRecord.tanggalProduksi);
+    const [datePart = '', timePart = ''] = editingRecord.batasDikonsumsi.split('T');
+    setTanggalBatasDikonsumsi(datePart);
+    setJamBatasDikonsumsi(timePart);
+    setPortions(createPortions().map(defaultPortion => {
+      const saved = editingRecord.porsiMenus.find(item => item.jenisPorsi === defaultPortion.jenisPorsi);
+      return saved ? { ...defaultPortion, ...saved, karbohidrat: String(saved.karbohidrat), protein: String(saved.protein), serat: String(saved.serat), energi: String(saved.energi), lemak: String(saved.lemak) } : defaultPortion;
+    }));
+  }, [editingRecord]);
 
   const updatePortion = (index: number, field: keyof PortionForm, value: string) => {
     setPortions(current => current.map((portion, itemIndex) => itemIndex === index ? { ...portion, [field]: value } : portion));
@@ -99,50 +113,42 @@ export const DataNilaiGiziPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const saveMenu = async (publicationStatus: 'DRAFT' | 'PUBLISHED', validateForPublish: boolean) => {
     setError('');
-    const batasDikonsumsi = `${tanggalBatasDikonsumsi}T${jamBatasDikonsumsi}`;
-    const mulaiProduksi = `${tanggalProduksi}T00:00`;
-
-    if (batasDikonsumsi < mulaiProduksi) {
+    const batasDikonsumsi = tanggalBatasDikonsumsi && jamBatasDikonsumsi ? `${tanggalBatasDikonsumsi}T${jamBatasDikonsumsi}` : '';
+    const mulaiProduksi = tanggalProduksi ? `${tanggalProduksi}T00:00` : '';
+    if (validateForPublish && batasDikonsumsi < mulaiProduksi) {
       setError('Batas dikonsumsi tidak boleh lebih awal dari tanggal produksi.');
       return;
     }
-
     setStatus('saving');
     try {
       await api.saveNilaiGizi({
-        id: `nilai-gizi-${Date.now()}`,
+        id: editingRecord?.id || `nilai-gizi-${Date.now()}`,
         tanggalProduksi,
         batasDikonsumsi,
-        porsiMenus: portions.map(({ label: _label, ...portion }) => ({
-          ...portion,
-          karbohidrat: Number(portion.karbohidrat),
-          protein: Number(portion.protein),
-          serat: Number(portion.serat),
-          energi: Number(portion.energi),
-          lemak: Number(portion.lemak),
-        })),
-        createdAt: new Date().toISOString(),
+        status: publicationStatus,
+        porsiMenus: portions.map(({ label: _label, ...portion }) => ({ ...portion, karbohidrat: Number(portion.karbohidrat), protein: Number(portion.protein), serat: Number(portion.serat), energi: Number(portion.energi), lemak: Number(portion.lemak) })),
+        createdAt: editingRecord?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
-      setTanggalProduksi('');
-      setTanggalBatasDikonsumsi('');
-      setJamBatasDikonsumsi('');
-      setPortions(createPortions());
       setStatus('success');
+      if (publicationStatus === 'PUBLISHED') {
+        setEditRecordId(null); window.history.replaceState({}, '', '/informasi-menu/nilai-gizi');
+        setTanggalProduksi(''); setTanggalBatasDikonsumsi(''); setJamBatasDikonsumsi(''); setPortions(createPortions());
+      }
       window.setTimeout(() => setStatus('idle'), 3500);
-    } catch {
-      setError('Data belum dapat disimpan. Periksa koneksi Firebase dan izin aksesnya.');
-      setStatus('idle');
-    }
+    } catch { setError('Data belum dapat disimpan. Periksa koneksi Firebase dan izin aksesnya.'); setStatus('idle'); }
   };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); await saveMenu('PUBLISHED', true); };
+  const handleSaveDraft = async () => { await saveMenu('DRAFT', false); };
 
   return (
     <div className="space-y-6 pb-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Data Nilai Gizi</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{editingRecord ? 'Edit Data Nilai Gizi' : 'Data Nilai Gizi'}</h1>
           <p className="text-gray-500 mt-1">Setiap kelompok porsi memiliki gambar, nama menu, dan nilai gizi tersendiri.</p>
         </div>
         <div className="inline-flex items-center gap-2 self-start md:self-auto px-3 py-2 rounded-xl bg-primary/10 text-primary text-sm font-semibold">
@@ -201,9 +207,12 @@ export const DataNilaiGiziPage: React.FC = () => {
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
         {status === 'success' && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">Data nilai gizi berhasil disimpan.</div>}
 
-        <div className="flex justify-end">
-          <button disabled={status === 'saving'} type="submit" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white shadow-lg shadow-primary/20 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">
-            <Save size={18} /> {status === 'saving' ? 'Menyimpan...' : 'Simpan Data Nilai Gizi'}
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+          <button disabled={status === 'saving'} type="button" onClick={handleSaveDraft} className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-white px-5 py-3 font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-70">
+            <Save size={18} /> {status === 'saving' ? 'Menyimpan...' : 'Simpan sebagai Draft'}
+          </button>
+          <button disabled={status === 'saving'} type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white shadow-lg shadow-primary/20 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70">
+            <Save size={18} /> {status === 'saving' ? 'Menyimpan...' : editingRecord ? 'Simpan Perubahan & Publikasikan' : 'Simpan & Publikasikan'}
           </button>
         </div>
       </form>
@@ -256,7 +265,11 @@ export const ArsipMenuHarianPage: React.FC = () => {
                   <p className="font-bold text-gray-800">Produksi: {formatProductionDay(record.tanggalProduksi)}</p>
                   <p className="mt-1 text-sm text-gray-500">Batas dikonsumsi: {record.batasDikonsumsi.replace('T', ' · ')} WIB</p>
                 </div>
-                <span className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-primary shadow-sm">{record.porsiMenus.length} jenis porsi</span>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-lg px-3 py-2 text-xs font-bold shadow-sm ${record.status === 'DRAFT' ? 'bg-amber-100 text-amber-800' : 'bg-white text-primary'}`}>{record.status === 'DRAFT' ? 'DRAFT' : 'DIPUBLIKASIKAN'}</span>
+                  <button type="button" onClick={() => { window.location.href = `/informasi-menu/nilai-gizi?edit=${record.id}`; }} className="rounded-lg border border-primary/20 bg-white px-3 py-2 text-xs font-bold text-primary hover:bg-primary/5">Edit Menu</button>
+                  <span className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-primary shadow-sm">{record.porsiMenus.length} jenis porsi</span>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-5 md:p-6">
                 {record.porsiMenus.map(porsi => (

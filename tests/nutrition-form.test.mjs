@@ -37,3 +37,18 @@ test('Data Nilai Gizi saves records through the application API and compresses p
   assert.match(serviceSource, /subscribeNilaiGizi/);
   assert.match(serviceSource, /porsiMenus/);
 });
+
+test('Data Nilai Gizi provides draft saving without requiring publication', () => {
+  assert.match(pageSource, /Simpan sebagai Draft/);
+  assert.match(pageSource, /handleSaveDraft/);
+  assert.match(pageSource, /saveMenu\('DRAFT', false\)/);
+  assert.match(pageSource, /saveMenu\('PUBLISHED', true\)/);
+  assert.match(serviceSource, /pruneNilaiGiziArchive/);
+});
+
+test('Arsip Menu Harian provides an edit action that preserves the archive record ID', () => {
+  assert.match(pageSource, /Edit Menu/);
+  assert.match(pageSource, /editRecordId/);
+  assert.match(pageSource, /new URLSearchParams/);
+  assert.match(pageSource, /editingRecord\?\.id/);
+});
