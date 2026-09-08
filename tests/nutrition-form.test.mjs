@@ -46,9 +46,21 @@ test('Data Nilai Gizi provides draft saving without requiring publication', () =
   assert.match(serviceSource, /pruneNilaiGiziArchive/);
 });
 
-test('Arsip Menu Harian provides an edit action that preserves the archive record ID', () => {
-  assert.match(pageSource, /Edit Menu/);
-  assert.match(pageSource, /editRecordId/);
-  assert.match(pageSource, /new URLSearchParams/);
-  assert.match(pageSource, /editingRecord\?\.id/);
+test('Arsip Menu Harian edits records directly without returning to the input menu', () => {
+  assert.match(pageSource, /editingArchive/);
+  assert.match(pageSource, /Simpan Perubahan Arsip/);
+  assert.match(pageSource, /handleSaveArchiveEdit/);
+  assert.doesNotMatch(pageSource, /window\.location\.href = `\/informasi-menu\/nilai-gizi\?edit=/);
+});
+
+test('Arsip Menu Harian provides a confirmed delete action', () => {
+  assert.match(pageSource, /Hapus Menu/);
+  assert.match(pageSource, /api\.deleteNilaiGizi/);
+  assert.match(pageSource, /window\.confirm/);
+});
+
+test('Arsip Menu Harian can enlarge menu images', () => {
+  assert.match(pageSource, /archiveSelectedImage/);
+  assert.match(pageSource, /Perbesar gambar menu/);
+  assert.match(pageSource, /fixed inset-0 z-50/);
 });
